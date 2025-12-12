@@ -1,9 +1,11 @@
-// WalletConnect integration with proper client-side only handling
+// WalletConnect v2 integration with proper client-side only handling
+
+import type { EthereumProvider } from '@walletconnect/ethereum-provider';
 
 export interface WalletState {
   address: string | null;
   isConnected: boolean;
-  provider: any | null;
+  provider: any | null; // EthereumProvider type
 }
 
 // Initialize wallet state from localStorage if available
@@ -45,19 +47,19 @@ const saveWalletState = () => {
   }
 };
 
-// Client-side only - WalletConnect needs NEXT_PUBLIC_ prefix
+// Client-side only - WalletConnect v2 needs NEXT_PUBLIC_ prefix
 const getProjectId = (): string => {
   if (typeof window === 'undefined') return '';
   // Use the provided project ID or fallback to env variable
   return process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '14470476d6df65c41949146d2a788698';
 };
 
-export const initWalletConnect = async () => {
+export const initWalletConnect = async (): Promise<any> => {
   if (typeof window === 'undefined') {
     throw new Error('WalletConnect can only be initialized on the client side');
   }
 
-  if (walletState.provider) {
+  if (walletState.provider && walletState.provider.connected) {
     return walletState.provider;
   }
 
@@ -67,49 +69,13 @@ export const initWalletConnect = async () => {
   }
 
   try {
-    // Dynamic import to avoid SSR issues
-    const EthereumProviderModule = await import('@walletconnect/ethereum-provider');
+    console.log('Initializing WalletConnect v2 with project ID:', projectId);
     
-    // Handle different export formats
-    let EthereumProvider = EthereumProviderModule;
-    if ((EthereumProviderModule as any).default) {
-      EthereumProvider = (EthereumProviderModule as any).default;
-    }
-    if ((EthereumProviderModule as any).EthereumProvider) {
-      EthereumProvider = (EthereumProviderModule as any).EthereumProvider;
-    }
-
-    // Use type assertion to bypass TypeScript checking for the init method
-    const ProviderClass = EthereumProvider as any;
+    // Dynamic import for WalletConnect v2
+    const { EthereumProvider: EthereumProviderClass } = await import('@walletconnect/ethereum-provider');
     
-    if (!ProviderClass) {
-      throw new Error('WalletConnect EthereumProvider module not found');
-    }
-    
-    if (typeof ProviderClass.init !== 'function') {
-      // Try alternative initialization methods
-      if (typeof ProviderClass === 'function') {
-        // It might be a constructor
-        const provider = new ProviderClass({
-          projectId,
-          chains: [1, 137, 56, 43114],
-          optionalChains: [42161, 10, 250],
-          showQrModal: true,
-          metadata: {
-            name: 'PrimePick Tournament',
-            description: 'Crypto Raffle Platform',
-            url: window.location.origin,
-            icons: [],
-          },
-        });
-        walletState.provider = provider;
-        return provider;
-      }
-      throw new Error('WalletConnect init method not available');
-    }
-
-    console.log('Initializing WalletConnect with project ID:', projectId);
-    const provider = await ProviderClass.init({
+    // WalletConnect v2 initialization
+    const provider = await EthereumProviderClass.init({
       projectId,
       chains: [1, 137, 56, 43114], // Ethereum, Polygon, BSC, Avalanche
       optionalChains: [42161, 10, 250], // Arbitrum, Optimism, Fantom
@@ -124,13 +90,56 @@ export const initWalletConnect = async () => {
 
     walletState.provider = provider;
 
-    // Set up event listeners
+    // Set up event listeners for WalletConnect v2
+    provider.on('display_uri', (uri: string) => {
+      console.log('WalletConnect URI:', uri);
+    });
+
+    provider.on('connect', () => {
+      console.log('WalletConnect connected');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      }
+    });
+
+    provider.on('disconnect', () => {
+      console.log('WalletConnect disconnected');
+      walletState.address = null;
+      walletState.isConnected = false;
+      walletState.provider = null;
+      saveWalletState();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+        localStorage.removeItem('walletState');
+      }
+    });
+
+    provider.on('session_event', (payload: any) => {
+      console.log('WalletConnect session event:', payload);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      }
+    });
+
+    provider.on('session_delete', () => {
+      console.log('WalletConnect session deleted');
+      walletState.address = null;
+      walletState.isConnected = false;
+      walletState.provider = null;
+      saveWalletState();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+        localStorage.removeItem('walletState');
+      }
+    });
+
+    // Handle accounts changed (EIP-1193)
+    // Listen for account changes
     provider.on('accountsChanged', (accounts: string[]) => {
       if (accounts.length > 0) {
         walletState.address = accounts[0];
         walletState.isConnected = true;
         saveWalletState();
-        // Dispatch custom event for UI updates
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('walletStateChanged'));
         }
@@ -145,20 +154,8 @@ export const initWalletConnect = async () => {
     });
 
     provider.on('chainChanged', () => {
-      // Handle chain change if needed
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('walletStateChanged'));
-      }
-    });
-
-    provider.on('disconnect', () => {
-      walletState.address = null;
-      walletState.isConnected = false;
-      walletState.provider = null;
-      saveWalletState();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('walletStateChanged'));
-        localStorage.removeItem('walletState');
       }
     });
 
@@ -171,15 +168,31 @@ export const initWalletConnect = async () => {
 
 export const connectWallet = async (): Promise<string | null> => {
   try {
-    console.log('Initializing WalletConnect...');
+    console.log('Initializing WalletConnect v2...');
     const provider = await initWalletConnect();
     
     if (!provider) {
       throw new Error('Failed to initialize wallet provider');
     }
     
+    // Check if already connected
+    if (provider.connected && provider.accounts && provider.accounts.length > 0) {
+      walletState.address = provider.accounts[0];
+      walletState.isConnected = true;
+      saveWalletState();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      }
+      console.log('Wallet already connected:', provider.accounts[0]);
+      return provider.accounts[0];
+    }
+    
     console.log('Requesting wallet connection...');
-    const accounts = await provider.enable();
+    // WalletConnect v2 uses enable() method
+    await provider.enable();
+    
+    // Get accounts after enabling
+    const accounts = provider.accounts;
     
     if (accounts && accounts.length > 0) {
       walletState.address = accounts[0];
@@ -204,7 +217,7 @@ export const connectWallet = async (): Promise<string | null> => {
       throw new Error('Connection was rejected. Please try again and approve the connection.');
     }
     
-    if (error?.message?.includes('User closed')) {
+    if (error?.message?.includes('User closed') || error?.message?.includes('closed')) {
       throw new Error('Connection window was closed. Please try again.');
     }
     
