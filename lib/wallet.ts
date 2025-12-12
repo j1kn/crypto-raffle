@@ -6,16 +6,50 @@ export interface WalletState {
   provider: any | null;
 }
 
-let walletState: WalletState = {
-  address: null,
-  isConnected: false,
-  provider: null,
+// Initialize wallet state from localStorage if available
+const getInitialState = (): WalletState => {
+  if (typeof window === 'undefined') {
+    return { address: null, isConnected: false, provider: null };
+  }
+  
+  try {
+    const saved = localStorage.getItem('walletState');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        address: parsed.address || null,
+        isConnected: parsed.isConnected || false,
+        provider: null, // Don't restore provider, will reconnect if needed
+      };
+    }
+  } catch (e) {
+    // Ignore localStorage errors
+  }
+  
+  return { address: null, isConnected: false, provider: null };
+};
+
+let walletState: WalletState = getInitialState();
+
+// Save wallet state to localStorage
+const saveWalletState = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('walletState', JSON.stringify({
+        address: walletState.address,
+        isConnected: walletState.isConnected,
+      }));
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }
 };
 
 // Client-side only - WalletConnect needs NEXT_PUBLIC_ prefix
 const getProjectId = (): string => {
   if (typeof window === 'undefined') return '';
-  return process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '';
+  // Use the provided project ID or fallback to env variable
+  return process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '14470476d6df65c41949146d2a788698';
 };
 
 export const initWalletConnect = async () => {
@@ -63,20 +97,38 @@ export const initWalletConnect = async () => {
     provider.on('accountsChanged', (accounts: string[]) => {
       if (accounts.length > 0) {
         walletState.address = accounts[0];
+        walletState.isConnected = true;
+        saveWalletState();
+        // Dispatch custom event for UI updates
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('walletStateChanged'));
+        }
       } else {
         walletState.address = null;
         walletState.isConnected = false;
+        saveWalletState();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('walletStateChanged'));
+        }
       }
     });
 
     provider.on('chainChanged', () => {
       // Handle chain change if needed
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      }
     });
 
     provider.on('disconnect', () => {
       walletState.address = null;
       walletState.isConnected = false;
       walletState.provider = null;
+      saveWalletState();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+        localStorage.removeItem('walletState');
+      }
     });
 
     return provider;
@@ -94,12 +146,23 @@ export const connectWallet = async (): Promise<string | null> => {
     if (accounts && accounts.length > 0) {
       walletState.address = accounts[0];
       walletState.isConnected = true;
+      saveWalletState();
+      
+      // Dispatch event for UI updates
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      }
+      
       return accounts[0];
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to connect wallet:', error);
-    return null;
+    // User might have rejected the connection
+    if (error?.message?.includes('User rejected')) {
+      throw new Error('Connection rejected. Please try again.');
+    }
+    throw error;
   }
 };
 
@@ -110,9 +173,14 @@ export const disconnectWallet = async () => {
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
     }
-    walletState.address = null;
-    walletState.isConnected = false;
-    walletState.provider = null;
+  }
+  walletState.address = null;
+  walletState.isConnected = false;
+  walletState.provider = null;
+  
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('walletState');
+    window.dispatchEvent(new CustomEvent('walletStateChanged'));
   }
 };
 

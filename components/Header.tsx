@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, User, Menu } from 'lucide-react';
+import { Search, User, Menu, Shield } from 'lucide-react';
 import { getWalletAddress, isWalletConnected, connectWallet, disconnectWallet } from '@/lib/wallet';
 import { useState, useEffect } from 'react';
 
@@ -10,25 +10,70 @@ export default function Header() {
   const pathname = usePathname();
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Check initial wallet state
     const checkWallet = () => {
       if (isWalletConnected()) {
-        setWalletAddress(getWalletAddress());
+        const address = getWalletAddress();
+        setWalletAddress(address);
+        checkAdminStatus(address);
       }
     };
+    
     checkWallet();
-    const interval = setInterval(checkWallet, 1000);
-    return () => clearInterval(interval);
+    
+    // Listen for wallet state changes
+    const handleWalletChange = () => {
+      checkWallet();
+    };
+    
+    window.addEventListener('walletStateChanged', handleWalletChange);
+    
+    return () => {
+      window.removeEventListener('walletStateChanged', handleWalletChange);
+    };
   }, []);
+
+  const checkAdminStatus = async (address: string | null) => {
+    if (!address) {
+      setIsAdmin(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/admin/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      const data = await response.json();
+      setIsAdmin(data.isAdmin || false);
+    } catch (error) {
+      setIsAdmin(false);
+    }
+  };
 
   const handleWalletClick = async () => {
     if (isWalletConnected()) {
       await disconnectWallet();
       setWalletAddress(null);
+      setIsAdmin(false);
     } else {
-      const address = await connectWallet();
-      setWalletAddress(address);
+      setIsConnecting(true);
+      try {
+        const address = await connectWallet();
+        if (address) {
+          setWalletAddress(address);
+          checkAdminStatus(address);
+        }
+      } catch (error: any) {
+        alert(error.message || 'Failed to connect wallet. Please try again.');
+      } finally {
+        setIsConnecting(false);
+      }
     }
   };
 
@@ -68,6 +113,19 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                  pathname === '/admin'
+                    ? 'text-primary-orange'
+                    : 'text-gray-300 hover:text-primary-orange'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                ADMIN
+              </Link>
+            )}
           </nav>
 
           {/* Right Side Actions */}
@@ -77,12 +135,15 @@ export default function Header() {
             </button>
             <button
               onClick={handleWalletClick}
-              className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
+              disabled={isConnecting}
+              className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <User className="w-4 h-4" />
-              {walletAddress
+              {isConnecting
+                ? 'CONNECTING...'
+                : walletAddress
                 ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                : 'SIGN IN'}
+                : 'CONNECT WALLET'}
             </button>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -111,6 +172,20 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                    pathname === '/admin'
+                      ? 'text-primary-orange'
+                      : 'text-gray-300 hover:text-primary-orange'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  ADMIN
+                </Link>
+              )}
             </div>
           </nav>
         )}

@@ -1,3 +1,5 @@
+'use client';
+
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -25,12 +27,22 @@ export default function HomePage() {
               VIEW LIVE RAFFLES
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link
-              href="/dashboard"
+            <button
+              onClick={async () => {
+                if (typeof window !== 'undefined') {
+                  const { connectWallet } = await import('@/lib/wallet');
+                  try {
+                    await connectWallet();
+                    window.location.href = '/dashboard';
+                  } catch (error: any) {
+                    alert(error.message || 'Failed to connect wallet');
+                  }
+                }
+              }}
               className="bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors inline-flex items-center justify-center gap-2"
             >
               CONNECT WALLET
-            </Link>
+            </button>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-primary-dark to-transparent"></div>
