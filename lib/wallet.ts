@@ -51,7 +51,7 @@ const saveWalletState = () => {
 const getProjectId = (): string => {
   if (typeof window === 'undefined') return '';
   // Use the provided project ID or fallback to env variable
-  return process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '14470476d6df65c41949146d2a788698';
+  return process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
 };
 
 export const initWalletConnect = async (): Promise<any> => {
