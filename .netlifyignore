@@ -1,0 +1,13 @@
+node_modules
+.next
+.env.local
+.env
+.git
+.gitignore
+README.md
+SETUP.md
+NETLIFY_DEPLOY.md
+PROJECT_SUMMARY.md
+*.md
+.DS_Store
+
