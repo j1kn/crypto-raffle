@@ -58,19 +58,33 @@ export default function Header() {
 
   const handleWalletClick = async () => {
     if (isWalletConnected()) {
-      await disconnectWallet();
-      setWalletAddress(null);
-      setIsAdmin(false);
+      try {
+        await disconnectWallet();
+        setWalletAddress(null);
+        setIsAdmin(false);
+      } catch (error: any) {
+        console.error('Error disconnecting:', error);
+      }
     } else {
       setIsConnecting(true);
       try {
+        console.log('Connecting wallet...');
         const address = await connectWallet();
         if (address) {
           setWalletAddress(address);
           checkAdminStatus(address);
+          console.log('Wallet connected successfully:', address);
+        } else {
+          throw new Error('No wallet address returned');
         }
       } catch (error: any) {
-        alert(error.message || 'Failed to connect wallet. Please try again.');
+        console.error('Wallet connection error:', error);
+        const errorMessage = error?.message || 'Failed to connect wallet. Please try again.';
+        
+        // Show user-friendly error
+        if (typeof window !== 'undefined') {
+          alert(errorMessage);
+        }
       } finally {
         setIsConnecting(false);
       }

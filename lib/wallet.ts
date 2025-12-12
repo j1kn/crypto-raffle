@@ -69,15 +69,46 @@ export const initWalletConnect = async () => {
   try {
     // Dynamic import to avoid SSR issues
     const EthereumProviderModule = await import('@walletconnect/ethereum-provider');
-    const EthereumProvider = (EthereumProviderModule as any).default || EthereumProviderModule;
+    
+    // Handle different export formats
+    let EthereumProvider = EthereumProviderModule;
+    if ((EthereumProviderModule as any).default) {
+      EthereumProvider = (EthereumProviderModule as any).default;
+    }
+    if ((EthereumProviderModule as any).EthereumProvider) {
+      EthereumProvider = (EthereumProviderModule as any).EthereumProvider;
+    }
 
     // Use type assertion to bypass TypeScript checking for the init method
     const ProviderClass = EthereumProvider as any;
     
-    if (!ProviderClass || typeof ProviderClass.init !== 'function') {
-      throw new Error('WalletConnect EthereumProvider not available');
+    if (!ProviderClass) {
+      throw new Error('WalletConnect EthereumProvider module not found');
+    }
+    
+    if (typeof ProviderClass.init !== 'function') {
+      // Try alternative initialization methods
+      if (typeof ProviderClass === 'function') {
+        // It might be a constructor
+        const provider = new ProviderClass({
+          projectId,
+          chains: [1, 137, 56, 43114],
+          optionalChains: [42161, 10, 250],
+          showQrModal: true,
+          metadata: {
+            name: 'PrimePick Tournament',
+            description: 'Crypto Raffle Platform',
+            url: window.location.origin,
+            icons: [],
+          },
+        });
+        walletState.provider = provider;
+        return provider;
+      }
+      throw new Error('WalletConnect init method not available');
     }
 
+    console.log('Initializing WalletConnect with project ID:', projectId);
     const provider = await ProviderClass.init({
       projectId,
       chains: [1, 137, 56, 43114], // Ethereum, Polygon, BSC, Avalanche
@@ -87,7 +118,7 @@ export const initWalletConnect = async () => {
         name: 'PrimePick Tournament',
         description: 'Crypto Raffle Platform',
         url: window.location.origin,
-        icons: [],
+        icons: ['https://crypto-raffle-heys.vercel.app/favicon.ico'],
       },
     });
 
@@ -140,7 +171,14 @@ export const initWalletConnect = async () => {
 
 export const connectWallet = async (): Promise<string | null> => {
   try {
+    console.log('Initializing WalletConnect...');
     const provider = await initWalletConnect();
+    
+    if (!provider) {
+      throw new Error('Failed to initialize wallet provider');
+    }
+    
+    console.log('Requesting wallet connection...');
     const accounts = await provider.enable();
     
     if (accounts && accounts.length > 0) {
@@ -153,16 +191,39 @@ export const connectWallet = async (): Promise<string | null> => {
         window.dispatchEvent(new CustomEvent('walletStateChanged'));
       }
       
+      console.log('Wallet connected:', accounts[0]);
       return accounts[0];
     }
-    return null;
+    
+    throw new Error('No accounts returned from wallet');
   } catch (error: any) {
     console.error('Failed to connect wallet:', error);
-    // User might have rejected the connection
-    if (error?.message?.includes('User rejected')) {
-      throw new Error('Connection rejected. Please try again.');
+    
+    // Handle specific error cases
+    if (error?.message?.includes('User rejected') || error?.message?.includes('rejected')) {
+      throw new Error('Connection was rejected. Please try again and approve the connection.');
     }
-    throw error;
+    
+    if (error?.message?.includes('User closed')) {
+      throw new Error('Connection window was closed. Please try again.');
+    }
+    
+    if (error?.code === 'USER_REJECTED' || error?.code === 4001) {
+      throw new Error('Connection was rejected. Please approve the connection request.');
+    }
+    
+    // More user-friendly error messages
+    const errorMessage = error?.message || 'Unknown error occurred';
+    
+    if (errorMessage.includes('Project ID')) {
+      throw new Error('WalletConnect configuration error. Please contact support.');
+    }
+    
+    if (errorMessage.includes('network') || errorMessage.includes('Network')) {
+      throw new Error('Network error. Please check your internet connection and try again.');
+    }
+    
+    throw new Error(`Failed to connect wallet: ${errorMessage}. Please try again.`);
   }
 };
 

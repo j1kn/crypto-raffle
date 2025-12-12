@@ -30,12 +30,16 @@ export default function HomePage() {
             <button
               onClick={async () => {
                 if (typeof window !== 'undefined') {
-                  const { connectWallet } = await import('@/lib/wallet');
                   try {
-                    await connectWallet();
-                    window.location.href = '/dashboard';
+                    const { connectWallet } = await import('@/lib/wallet');
+                    const address = await connectWallet();
+                    if (address) {
+                      window.location.href = '/dashboard';
+                    } else {
+                      alert('Failed to connect wallet. Please try again.');
+                    }
                   } catch (error: any) {
-                    alert(error.message || 'Failed to connect wallet');
+                    alert(error?.message || 'Failed to connect wallet. Please try again.');
                   }
                 }
               }}
