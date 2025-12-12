@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "push": "git add -A && git commit -m \"Auto-commit: $(date '+%Y-%m-%d %H:%M:%S')\" && git push origin main",
+    "auto-push": "./scripts/auto-push.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.3",
