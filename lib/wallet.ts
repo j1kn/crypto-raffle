@@ -80,12 +80,19 @@ export const initWalletConnect = async (): Promise<any> => {
     const { EthereumProvider: EthereumProviderClass } = await import('@walletconnect/ethereum-provider');
     
     // WalletConnect v2 initialization - Mobile-friendly configuration
+    // The modal will show both QR code and wallet list by default
+    // Users can switch between QR code tab and wallet list tab
     const provider = await EthereumProviderClass.init({
       projectId,
       // Support major EVM chains
       chains: [1, 137, 56, 43114, 42161, 10, 250], // Ethereum, Polygon, BSC, Avalanche, Arbitrum, Optimism, Fantom
       optionalChains: [8453, 59144, 534352], // Base, Linea, Scroll
       showQrModal: true,
+      // WalletConnect v2 modal configuration
+      // The modal has two views:
+      // 1. QR Code view - for mobile wallets to scan
+      // 2. Wallet List/Explorer view - shows all available wallets
+      // Users can switch between these views using tabs in the modal
       metadata: {
         name: 'PrimePick Tournament',
         description: 'Crypto Raffle Platform - Play to Earn',
@@ -93,6 +100,11 @@ export const initWalletConnect = async (): Promise<any> => {
         icons: [`${window.location.origin}/favicon.ico`],
       },
     });
+    
+    // Note: WalletConnect v2 modal automatically shows:
+    // - QR Code tab (for mobile wallet scanning)
+    // - Wallet List/Explorer tab (shows all available wallets like MetaMask, Trust Wallet, etc.)
+    // Users can click on the "Wallets" or "Explorer" tab to see the wallet list
 
     walletState.provider = provider;
 
