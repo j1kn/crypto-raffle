@@ -29,6 +29,7 @@ export const wagmiConfig = defaultWagmiConfig({
   enableEIP6963: true, // Enable EIP-6963 wallet discovery (browser extensions)
   enableInjected: true, // Enable injected wallets (MetaMask, etc.)
   enableCoinbase: true, // Enable Coinbase Wallet
+  // Explorer is enabled by default - shows all wallets from WalletConnect Explorer
   // No featuredWalletIds or excludedWalletIds - show ALL wallets
 });
 

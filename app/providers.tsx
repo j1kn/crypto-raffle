@@ -10,14 +10,13 @@ import { useState } from 'react';
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
 
 // Initialize Web3Modal with all wallets enabled
-// Web3Modal v5 shows all wallets from WalletConnect Explorer by default
-// The explorer is automatically enabled and displays all available wallets
+// Ensure explorer is enabled to show all wallets from WalletConnect Explorer
 createWeb3Modal({
   projectId,
   wagmiConfig,
   enableAnalytics: true,
-  // Explorer is enabled by default - shows all wallets from WalletConnect Explorer
-  // Don't set featuredWalletIds or excludeWalletIds to show ALL wallets
+  // Explorer is enabled by default in defaultWagmiConfig
+  // Don't set featuredWalletIds or excludeWalletIds - shows ALL wallets
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#00ff88', // Primary green
