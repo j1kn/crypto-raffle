@@ -26,6 +26,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+ADMIN_PIN_REMINDER.md
 .env
 
 # vercel
@@ -35,3 +36,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+ADMIN_PIN_REMINDER.md
+ADMIN_PIN_SETUP.txt
