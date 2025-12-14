@@ -78,10 +78,15 @@ export default function EditRafflePage() {
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching chains:', error);
+        throw error;
+      }
+      console.log('Chains loaded:', data);
       setChains(data || []);
     } catch (error) {
       console.error('Error fetching chains:', error);
+      alert('Failed to load blockchain networks. Please refresh the page.');
     }
   };
 
@@ -328,18 +333,29 @@ export default function EditRafflePage() {
                 <label className="block text-white font-semibold mb-2">Blockchain Network *</label>
                 <select
                   value={formData.chain_uuid}
-                  onChange={(e) => setFormData({ ...formData, chain_uuid: e.target.value })}
+                  onChange={(e) => {
+                    console.log('Chain selected:', e.target.value);
+                    setFormData({ ...formData, chain_uuid: e.target.value });
+                  }}
                   required
-                  className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green"
+                  disabled={chains.length === 0}
+                  className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="">Select Chain (ETH, SOL, etc.)</option>
+                  <option value="">
+                    {chains.length === 0 ? 'Loading chains...' : 'Select Chain (ETH, SOL, etc.)'}
+                  </option>
                   {chains.map((chain) => (
                     <option key={chain.id} value={chain.id}>
                       {chain.name} ({chain.native_symbol})
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-400 mt-1">Select the blockchain for this raffle</p>
+                {chains.length === 0 && (
+                  <p className="text-xs text-yellow-400 mt-1">Loading blockchain networks...</p>
+                )}
+                {chains.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-1">Select the blockchain for this raffle</p>
+                )}
               </div>
               <div>
                 <label className="block text-white font-semibold mb-2">Status *</label>
