@@ -330,7 +330,7 @@ export default function EditRafflePage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2">Ticket Price *</label>
+                <label className="block text-white font-semibold mb-2">Entry Fees *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -339,6 +339,7 @@ export default function EditRafflePage() {
                   onChange={(e) => setFormData({ ...formData, ticket_price: e.target.value })}
                   className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green"
                 />
+                <p className="text-xs text-gray-400 mt-1">Price per ticket/entry</p>
               </div>
               <div>
                 <label className="block text-white font-semibold mb-2">Max Tickets *</label>
@@ -354,19 +355,21 @@ export default function EditRafflePage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2">Chain</label>
+                <label className="block text-white font-semibold mb-2">Blockchain Network *</label>
                 <select
                   value={formData.chain_uuid}
                   onChange={(e) => setFormData({ ...formData, chain_uuid: e.target.value })}
+                  required
                   className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green"
                 >
-                  <option value="">Select Chain</option>
+                  <option value="">Select Chain (ETH, SOL, etc.)</option>
                   {chains.map((chain) => (
                     <option key={chain.id} value={chain.id}>
                       {chain.name} ({chain.native_symbol})
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-400 mt-1">Select the blockchain for this raffle</p>
               </div>
               <div>
                 <label className="block text-white font-semibold mb-2">Status *</label>
@@ -385,14 +388,18 @@ export default function EditRafflePage() {
             </div>
 
             <div>
-              <label className="block text-white font-semibold mb-2">Receiving Address *</label>
+              <label className="block text-white font-semibold mb-2">Receive Funds Wallet Address *</label>
               <input
                 type="text"
                 required
                 value={formData.receiving_address}
                 onChange={(e) => setFormData({ ...formData, receiving_address: e.target.value })}
-                className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green font-mono"
+                placeholder="0x... or Solana address"
+                className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green font-mono text-sm"
               />
+              <p className="text-xs text-gray-400 mt-1">
+                ⚠️ This wallet address will receive all raffle entry payments. Keep it secure and never share publicly.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

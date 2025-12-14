@@ -1,11 +1,11 @@
-// WalletConnect v2 integration with proper client-side only handling
+// WalletConnect v2 integration - Mobile-friendly and supports all wallets
 
 import type { EthereumProvider } from '@walletconnect/ethereum-provider';
 
 export interface WalletState {
   address: string | null;
   isConnected: boolean;
-  provider: any | null; // EthereumProvider type
+  provider: any | null;
 }
 
 // Initialize wallet state from localStorage if available
@@ -50,7 +50,6 @@ const saveWalletState = () => {
 // Client-side only - WalletConnect v2 needs NEXT_PUBLIC_ prefix
 const getProjectId = (): string => {
   if (typeof window === 'undefined') return '';
-  // Use the provided project ID or fallback to env variable
   return process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
 };
 
@@ -59,8 +58,14 @@ export const initWalletConnect = async (): Promise<any> => {
     throw new Error('WalletConnect can only be initialized on the client side');
   }
 
+  // Check if already connected
   if (walletState.provider && walletState.provider.connected) {
-    return walletState.provider;
+    const accounts = walletState.provider.accounts;
+    if (accounts && accounts.length > 0) {
+      walletState.address = accounts[0];
+      walletState.isConnected = true;
+      return walletState.provider;
+    }
   }
 
   const projectId = getProjectId();
@@ -74,17 +79,18 @@ export const initWalletConnect = async (): Promise<any> => {
     // Dynamic import for WalletConnect v2
     const { EthereumProvider: EthereumProviderClass } = await import('@walletconnect/ethereum-provider');
     
-    // WalletConnect v2 initialization
+    // WalletConnect v2 initialization - Mobile-friendly configuration
     const provider = await EthereumProviderClass.init({
       projectId,
-      chains: [1, 137, 56, 43114], // Ethereum, Polygon, BSC, Avalanche
-      optionalChains: [42161, 10, 250], // Arbitrum, Optimism, Fantom
+      // Support major EVM chains
+      chains: [1, 137, 56, 43114, 42161, 10, 250], // Ethereum, Polygon, BSC, Avalanche, Arbitrum, Optimism, Fantom
+      optionalChains: [8453, 59144, 534352], // Base, Linea, Scroll
       showQrModal: true,
       metadata: {
         name: 'PrimePick Tournament',
-        description: 'Crypto Raffle Platform',
+        description: 'Crypto Raffle Platform - Play to Earn',
         url: window.location.origin,
-        icons: ['https://crypto-raffle-heys.vercel.app/favicon.ico'],
+        icons: [`${window.location.origin}/favicon.ico`],
       },
     });
 
@@ -93,10 +99,17 @@ export const initWalletConnect = async (): Promise<any> => {
     // Set up event listeners for WalletConnect v2
     provider.on('display_uri', (uri: string) => {
       console.log('WalletConnect URI:', uri);
+      // Mobile wallets can use this URI for deep linking
     });
 
     provider.on('connect', () => {
       console.log('WalletConnect connected');
+      const accounts = provider.accounts;
+      if (accounts && accounts.length > 0) {
+        walletState.address = accounts[0];
+        walletState.isConnected = true;
+        saveWalletState();
+      }
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('walletStateChanged'));
       }
@@ -134,7 +147,6 @@ export const initWalletConnect = async (): Promise<any> => {
     });
 
     // Handle accounts changed (EIP-1193)
-    // Listen for account changes
     provider.on('accountsChanged', (accounts: string[]) => {
       if (accounts.length > 0) {
         walletState.address = accounts[0];
@@ -188,7 +200,7 @@ export const connectWallet = async (): Promise<string | null> => {
     }
     
     console.log('Requesting wallet connection...');
-    // WalletConnect v2 uses enable() method
+    // WalletConnect v2 uses enable() method - works on mobile and desktop
     await provider.enable();
     
     // Get accounts after enabling
