@@ -1,31 +1,29 @@
 // Web3Modal v3 + Wagmi + Viem integration
 // Provides full wallet list (MetaMask, Coinbase, Trust Wallet, etc.)
 
-import { createConfig, http } from 'wagmi';
+import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
 import { base, mainnet, polygon } from 'wagmi/chains';
-import { walletConnect, injected, coinbaseWallet } from '@wagmi/connectors';
 
 // Get WalletConnect Project ID
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
 
+// Metadata for WalletConnect
+const metadata = {
+  name: 'PrimePick Tournament',
+  description: 'Crypto Raffle Platform',
+  url: 'https://crypto-raffle-heys.vercel.app',
+  icons: ['https://crypto-raffle-heys.vercel.app/icon.png'],
+};
+
 // Configure chains
 const chains = [mainnet, polygon, base] as const;
 
-// Create Wagmi config
-// Using only essential connectors to avoid build issues
-export const wagmiConfig = createConfig({
+// Create Wagmi config using defaultWagmiConfig
+// This automatically includes all wallets from WalletConnect Explorer
+export const wagmiConfig = defaultWagmiConfig({
+  projectId,
+  metadata,
   chains,
-  connectors: [
-    walletConnect({ projectId }),
-    injected({ shimDisconnect: true }),
-    coinbaseWallet({ appName: 'PrimePick Tournament' }),
-  ],
-  transports: {
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
-    [base.id]: http(),
-  },
-  ssr: false, // Disable SSR for wallet connections
 });
 
 // Export helper functions for backward compatibility

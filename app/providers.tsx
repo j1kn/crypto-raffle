@@ -4,16 +4,18 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createWeb3Modal } from '@web3modal/wagmi/react';
 import { wagmiConfig } from '@/lib/wallet';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
-// Initialize Web3Modal
+// Get WalletConnect Project ID
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
 
+// Initialize Web3Modal with all wallets enabled
+// allWallets: 'SHOW' ensures all wallets from WalletConnect Explorer are displayed
 createWeb3Modal({
-  wagmiConfig,
   projectId,
-  enableAnalytics: false,
-  enableOnramp: false,
+  wagmiConfig,
+  enableAnalytics: true,
+  allWallets: 'SHOW',
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#00ff88', // Primary green
@@ -31,4 +33,3 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </WagmiProvider>
   );
 }
-
