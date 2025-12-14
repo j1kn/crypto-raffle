@@ -97,7 +97,7 @@ CREATE POLICY "Users can view entries" ON raffle_entries
 CREATE POLICY "Users can insert entries" ON raffle_entries
   FOR INSERT WITH CHECK (true);
 
--- Create a view for public raffle data (excludes receiving_address)
+-- Create a view for public raffle data (excludes receiving_address, includes winner info)
 CREATE OR REPLACE VIEW public_raffles AS
 SELECT 
   id,
@@ -112,9 +112,11 @@ SELECT
   chain_uuid,
   starts_at,
   ends_at,
-  created_at
+  created_at,
+  winner_user_id,
+  winner_drawn_at
 FROM raffles
-WHERE status = 'live';
+WHERE status IN ('live', 'completed');
 
 -- Grant access to the view
 GRANT SELECT ON public_raffles TO anon, authenticated;

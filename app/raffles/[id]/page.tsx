@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from 'wagmi';
-import { Trophy, Clock, Users, Play } from 'lucide-react';
+import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
 
 interface Raffle {
   id: string;
@@ -22,6 +22,22 @@ interface Raffle {
   status: string;
   ends_at: string;
   starts_at: string | null;
+  winner_user_id?: string | null;
+  winner_drawn_at?: string | null;
+}
+
+interface Entry {
+  id: string;
+  user_id: string;
+  created_at: string;
+  users: {
+    wallet_address: string;
+  };
+}
+
+interface Winner {
+  wallet_address: string;
+  drawn_at: string;
 }
 
 export default function RaffleDetailPage() {
@@ -30,6 +46,8 @@ export default function RaffleDetailPage() {
   const [raffle, setRaffle] = useState<Raffle | null>(null);
   const [entryCount, setEntryCount] = useState(0);
   const [userEntry, setUserEntry] = useState<any>(null);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [winner, setWinner] = useState<Winner | null>(null);
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
   const { address, isConnected } = useAccount();
@@ -41,21 +59,51 @@ export default function RaffleDetailPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (raffle && address) {
+    if (raffle) {
       fetchEntryCount();
-      fetchUserEntry();
+      fetchEntries();
+      if (raffle.winner_user_id) {
+        fetchWinner();
+      }
+      if (address) {
+        fetchUserEntry();
+      }
+      // Check if raffle ended and draw winner if needed
+      checkAndDrawWinner();
     }
   }, [raffle, address]);
 
+  // Auto-refresh entries every 5 seconds for live updates
+  useEffect(() => {
+    if (!raffle) return;
+    const interval = setInterval(() => {
+      fetchEntryCount();
+      fetchEntries();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [raffle]);
+
   const fetchRaffle = async () => {
     try {
-      const { data, error } = await supabase
+      // Try to get from public_raffles first (for live raffles)
+      let { data, error } = await supabase
         .from('public_raffles')
         .select('*')
         .eq('id', params.id)
         .single();
 
-      if (error) throw error;
+      // If not found, try raffles table (for completed raffles)
+      if (error || !data) {
+        const { data: raffleData, error: raffleError } = await supabase
+          .from('raffles')
+          .select('*')
+          .eq('id', params.id)
+          .single();
+        
+        if (raffleError) throw raffleError;
+        data = raffleData;
+      }
+
       setRaffle(data);
     } catch (error) {
       console.error('Error fetching raffle:', error);
@@ -79,10 +127,52 @@ export default function RaffleDetailPage() {
     }
   };
 
+  const fetchEntries = async () => {
+    if (!raffle) return;
+    try {
+      const { data, error } = await supabase
+        .from('raffle_entries')
+        .select(`
+          id,
+          user_id,
+          created_at,
+          users!inner (
+            wallet_address
+          )
+        `)
+        .eq('raffle_id', raffle.id)
+        .order('created_at', { ascending: false })
+        .limit(50); // Show last 50 entries
+
+      if (error) throw error;
+      setEntries((data as any) || []);
+    } catch (error) {
+      console.error('Error fetching entries:', error);
+    }
+  };
+
+  const fetchWinner = async () => {
+    if (!raffle || !raffle.winner_user_id) return;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('wallet_address')
+        .eq('id', raffle.winner_user_id)
+        .single();
+
+      if (error) throw error;
+      setWinner({
+        wallet_address: data.wallet_address,
+        drawn_at: raffle.winner_drawn_at || '',
+      });
+    } catch (error) {
+      console.error('Error fetching winner:', error);
+    }
+  };
+
   const fetchUserEntry = async () => {
     if (!raffle || !address) return;
     try {
-      // First get or create user
       const { data: userData, error: userError } = await supabase
         .from('users')
         .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
@@ -94,8 +184,6 @@ export default function RaffleDetailPage() {
         return;
       }
 
-      // Set wallet context for RLS (this is a workaround - in production use proper auth)
-      // For now, we'll try to fetch the entry
       const { data, error } = await supabase
         .from('raffle_entries')
         .select('*')
@@ -113,6 +201,33 @@ export default function RaffleDetailPage() {
     }
   };
 
+  const checkAndDrawWinner = async () => {
+    if (!raffle) return;
+    
+    const now = new Date();
+    const endsAt = new Date(raffle.ends_at);
+    
+    // Check if raffle has ended and winner not drawn
+    if (endsAt <= now && !raffle.winner_user_id && raffle.status === 'live') {
+      try {
+        const response = await fetch(`/api/raffles/${raffle.id}/draw-winner`, {
+          method: 'POST',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // Refresh raffle data to show winner
+            fetchRaffle();
+            fetchWinner();
+          }
+        }
+      } catch (error) {
+        console.error('Error drawing winner:', error);
+      }
+    }
+  };
+
   const handleEnterRaffle = async () => {
     if (!raffle) return;
 
@@ -126,9 +241,16 @@ export default function RaffleDetailPage() {
       return;
     }
 
+    // Check if raffle has ended
+    const now = new Date();
+    const endsAt = new Date(raffle.ends_at);
+    if (endsAt <= now) {
+      alert('This raffle has ended!');
+      return;
+    }
+
     setEntering(true);
     try {
-      // Upsert user
       const { data: userData, error: userError } = await supabase
         .from('users')
         .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
@@ -137,7 +259,6 @@ export default function RaffleDetailPage() {
 
       if (userError) throw userError;
 
-      // Create entry
       const { error: entryError } = await supabase
         .from('raffle_entries')
         .insert({
@@ -146,7 +267,6 @@ export default function RaffleDetailPage() {
         });
 
       if (entryError) {
-        // Check if it's a duplicate entry error
         if (entryError.code === '23505') {
           alert('You have already entered this raffle!');
           fetchUserEntry();
@@ -154,8 +274,9 @@ export default function RaffleDetailPage() {
           throw entryError;
         }
       } else {
-        alert('Successfully entered the raffle!');
+        alert('Successfully entered the raffle! Your ticket is now in your profile.');
         fetchEntryCount();
+        fetchEntries();
         fetchUserEntry();
       }
     } catch (error: any) {
@@ -165,6 +286,8 @@ export default function RaffleDetailPage() {
       setEntering(false);
     }
   };
+
+  const isRaffleEnded = raffle ? new Date(raffle.ends_at) <= new Date() : false;
 
   if (loading) {
     return (
@@ -218,20 +341,93 @@ export default function RaffleDetailPage() {
               
               {raffle.description && (
                 <div className="prose prose-invert max-w-none mb-8">
-                  <p className="text-gray-300 text-lg">{raffle.description}</p>
+                  <p className="text-gray-300 text-lg whitespace-pre-line">{raffle.description}</p>
+                </div>
+              )}
+
+              {/* Winner Section */}
+              {winner && (
+                <div className="bg-gradient-to-r from-primary-orange/20 to-primary-green/20 border-2 border-primary-orange rounded-lg p-6 mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Crown className="w-8 h-8 text-primary-orange" />
+                    <h2 className="text-2xl font-bold text-white">WINNER ANNOUNCED!</h2>
+                  </div>
+                  <div className="bg-primary-darker rounded-lg p-4">
+                    <p className="text-gray-400 text-sm mb-2">Winner Wallet Address:</p>
+                    <p className="text-primary-green font-mono text-lg font-bold">
+                      {winner.wallet_address}
+                    </p>
+                    {winner.drawn_at && (
+                      <p className="text-gray-400 text-sm mt-2">
+                        Drawn on: {new Date(winner.drawn_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Entry Count */}
               <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 mb-6">
-                <div className="flex items-center gap-2 text-gray-400 mb-2">
-                  <Users className="w-5 h-5" />
-                  <span>Total Entries</span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <Users className="w-5 h-5" />
+                    <span>Total Entries</span>
+                  </div>
+                  {!isRaffleEnded && (
+                    <span className="text-xs text-primary-green animate-pulse">LIVE</span>
+                  )}
                 </div>
                 <p className="text-3xl font-bold text-primary-green">
                   {entryCount} / {raffle.max_tickets}
                 </p>
               </div>
+
+              {/* Live Entries Section */}
+              {entries.length > 0 && (
+                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 mb-6">
+                  <div className="flex items-center gap-2 text-gray-400 mb-4">
+                    <Users className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold text-white">Live Entries</h2>
+                    {!isRaffleEnded && (
+                      <span className="text-xs text-primary-green bg-primary-green/20 px-2 py-1 rounded">
+                        UPDATING
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {entries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="flex items-center justify-between bg-primary-darker rounded-lg p-3 hover:bg-primary-dark transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-primary-green/20 rounded-full flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-primary-green" />
+                          </div>
+                          <div>
+                            <p className="text-white font-mono text-sm">
+                              {entry.users.wallet_address.slice(0, 6)}...{entry.users.wallet_address.slice(-4)}
+                            </p>
+                            <p className="text-gray-400 text-xs">
+                              {new Date(entry.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        {entry.users.wallet_address.toLowerCase() === address?.toLowerCase() && (
+                          <span className="text-xs bg-primary-green/20 text-primary-green px-2 py-1 rounded">
+                            YOU
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {entries.length >= 50 && (
+                    <p className="text-gray-400 text-sm mt-4 text-center">
+                      Showing last 50 entries
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -248,51 +444,70 @@ export default function RaffleDetailPage() {
                   </p>
                 </div>
 
-                {/* Ticket Price */}
+                {/* Entry Price */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 text-gray-400 mb-2">
-                    <span>Ticket Price</span>
+                    <span>Entry Price</span>
                   </div>
                   <p className="text-2xl font-bold text-white">
                     {raffle.prize_pool_symbol} {raffle.ticket_price}
                   </p>
                 </div>
 
-                {/* Countdown */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 text-gray-400 mb-2">
-                    <Clock className="w-5 h-5" />
-                    <span>Time Remaining</span>
+                {/* Countdown Timer */}
+                {!isRaffleEnded ? (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 text-gray-400 mb-2">
+                      <Clock className="w-5 h-5" />
+                      <span>Time Remaining</span>
+                    </div>
+                    <CountdownTimer endDate={raffle.ends_at} />
                   </div>
-                  <CountdownTimer endDate={raffle.ends_at} />
-                </div>
+                ) : (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 text-gray-400 mb-2">
+                      <Clock className="w-5 h-5" />
+                      <span>Status</span>
+                    </div>
+                    <p className="text-xl font-bold text-primary-orange">
+                      RAFFLE ENDED
+                    </p>
+                  </div>
+                )}
 
                 {/* Enter Button */}
-                <button
-                  onClick={handleEnterRaffle}
-                  disabled={entering || userEntry !== null}
-                  className={`w-full py-4 rounded font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
-                    userEntry
-                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                      : 'bg-primary-green text-primary-darker hover:bg-primary-green/90'
-                  }`}
-                >
-                  {entering ? (
-                    'Entering...'
-                  ) : userEntry ? (
-                    'Already Entered'
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5" />
-                      ENTER RAFFLE
-                    </>
-                  )}
-                </button>
+                {!isRaffleEnded && (
+                  <button
+                    onClick={handleEnterRaffle}
+                    disabled={entering || userEntry !== null}
+                    className={`w-full py-4 rounded font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
+                      userEntry
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-primary-green text-primary-darker hover:bg-primary-green/90'
+                    }`}
+                  >
+                    {entering ? (
+                      'Entering...'
+                    ) : userEntry ? (
+                      'Already Entered'
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5" />
+                        ENTER NOW
+                      </>
+                    )}
+                  </button>
+                )}
 
                 {userEntry && (
-                  <p className="text-sm text-gray-400 mt-4 text-center">
-                    You entered this raffle
-                  </p>
+                  <div className="mt-4 p-3 bg-primary-green/20 border border-primary-green rounded-lg">
+                    <p className="text-sm text-primary-green text-center font-semibold">
+                      ✓ You have entered this raffle!
+                    </p>
+                    <p className="text-xs text-gray-400 text-center mt-1">
+                      Check your profile to see your ticket
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -304,4 +519,3 @@ export default function RaffleDetailPage() {
     </div>
   );
 }
-
