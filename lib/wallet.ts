@@ -208,56 +208,91 @@ export const connectWallet = async (): Promise<string | null> => {
     
     console.log('Requesting wallet connection...');
     
-    // WalletConnect v2 uses enable() method - works on mobile and desktop
-    // enable() returns the accounts array directly
-    const accounts = await provider.enable();
+    // Set up a promise to wait for accounts from the connect event
+    let accountResolve: ((value: string) => void) | null = null;
+    let accountReject: ((error: Error) => void) | null = null;
     
-    console.log('Accounts received:', accounts);
+    const accountPromise = new Promise<string>((resolve, reject) => {
+      accountResolve = resolve;
+      accountReject = reject;
+    });
     
-    // Handle different return formats
-    let accountAddress: string | null = null;
+    // Listen for connect event to get accounts
+    const connectHandler = () => {
+      setTimeout(() => {
+        const accounts = provider.accounts;
+        console.log('Accounts from connect event:', accounts);
+        if (accounts && Array.isArray(accounts) && accounts.length > 0 && accountResolve) {
+          accountResolve(accounts[0]);
+        }
+      }, 300);
+    };
     
-    if (Array.isArray(accounts) && accounts.length > 0) {
-      accountAddress = accounts[0];
-    } else if (typeof accounts === 'string') {
-      accountAddress = accounts;
-    } else if (accounts && (accounts as any).accounts && Array.isArray((accounts as any).accounts)) {
-      accountAddress = (accounts as any).accounts[0];
-    } else if (provider.accounts && Array.isArray(provider.accounts) && provider.accounts.length > 0) {
-      // Fallback: get from provider.accounts
-      accountAddress = provider.accounts[0];
-    }
+    provider.once('connect', connectHandler);
     
-    if (accountAddress) {
-      walletState.address = accountAddress;
-      walletState.isConnected = true;
-      saveWalletState();
+    // Set timeout for connection
+    const timeout = setTimeout(() => {
+      if (accountReject) {
+        accountReject(new Error('Connection timeout. Please try again.'));
+      }
+    }, 30000); // 30 second timeout
+    
+    try {
+      // WalletConnect v2 uses enable() method - works on mobile and desktop
+      await provider.enable();
       
-      // Dispatch event for UI updates
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      console.log('Enable completed, provider state:', {
+        connected: provider.connected,
+        accounts: provider.accounts,
+      });
+      
+      // Try to get accounts immediately
+      let accountAddress: string | null = null;
+      
+      if (provider.accounts && Array.isArray(provider.accounts) && provider.accounts.length > 0) {
+        accountAddress = provider.accounts[0];
+        clearTimeout(timeout);
+        provider.off('connect', connectHandler);
+      } else {
+        // Wait for connect event or timeout
+        try {
+          accountAddress = await Promise.race([
+            accountPromise,
+            new Promise<string>((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout waiting for accounts')), 5000)
+            ),
+          ]);
+          clearTimeout(timeout);
+        } catch (e) {
+          clearTimeout(timeout);
+          // Continue to check provider.accounts as fallback
+        }
       }
       
-      console.log('Wallet connected successfully:', accountAddress);
-      return accountAddress;
-    }
-    
-    // If still no account, wait a bit and check again (for async wallet responses)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (provider.accounts && Array.isArray(provider.accounts) && provider.accounts.length > 0) {
-      accountAddress = provider.accounts[0];
-      walletState.address = accountAddress;
-      walletState.isConnected = true;
-      saveWalletState();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      // Final check on provider.accounts
+      if (!accountAddress && provider.accounts && Array.isArray(provider.accounts) && provider.accounts.length > 0) {
+        accountAddress = provider.accounts[0];
       }
-      console.log('Wallet connected (delayed):', accountAddress);
-      return accountAddress;
+      
+      if (accountAddress) {
+        walletState.address = accountAddress;
+        walletState.isConnected = true;
+        saveWalletState();
+        
+        // Dispatch event for UI updates
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('walletStateChanged'));
+        }
+        
+        console.log('Wallet connected successfully:', accountAddress);
+        return accountAddress;
+      }
+      
+      throw new Error('No accounts returned from wallet. Please make sure your wallet is unlocked and try again.');
+    } finally {
+      clearTimeout(timeout);
+      provider.off('connect', connectHandler);
     }
-    
-    throw new Error('No accounts returned from wallet. Please make sure your wallet is unlocked and try again.');
   } catch (error: any) {
     console.error('Failed to connect wallet:', error);
     
