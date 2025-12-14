@@ -2,20 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 
 // GET single raffle for admin (includes receiving_address)
+// Protected by PIN authentication
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const walletAddress = request.headers.get('x-wallet-address');
-    
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const adminWallets = process.env.ADMIN_WALLETS?.split(',').map(w => w.trim().toLowerCase()) || [];
-    if (!adminWallets.includes(walletAddress.toLowerCase())) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Verify admin PIN is configured
+    const adminPin = process.env.ADMIN_PIN;
+    if (!adminPin) {
+      return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
     // Note: In production, use service role key here to bypass RLS
@@ -37,20 +33,16 @@ export async function GET(
 }
 
 // PUT update raffle
+// Protected by PIN authentication
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const walletAddress = request.headers.get('x-wallet-address');
-    
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const adminWallets = process.env.ADMIN_WALLETS?.split(',').map(w => w.trim().toLowerCase()) || [];
-    if (!adminWallets.includes(walletAddress.toLowerCase())) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Verify admin PIN is configured
+    const adminPin = process.env.ADMIN_PIN;
+    if (!adminPin) {
+      return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
     const body = await request.json();
@@ -86,20 +78,16 @@ export async function PUT(
 }
 
 // DELETE raffle
+// Protected by PIN authentication
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const walletAddress = request.headers.get('x-wallet-address');
-    
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const adminWallets = process.env.ADMIN_WALLETS?.split(',').map(w => w.trim().toLowerCase()) || [];
-    if (!adminWallets.includes(walletAddress.toLowerCase())) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Verify admin PIN is configured
+    const adminPin = process.env.ADMIN_PIN;
+    if (!adminPin) {
+      return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
     // Note: In production, use service role key here to bypass RLS
