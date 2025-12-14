@@ -8,7 +8,7 @@
 
 1. Go to: https://cloud.walletconnect.com
 2. Sign in with your WalletConnect account
-3. Select your project (Project ID: `7fafc875947064cbb05b25b9b9407cad`)
+3. Select your project (Project ID: `f3d84f94db7d9e42a9faeff19847f751`)
 4. Go to **Settings** → **App Settings**
 5. Scroll to **"Allowed Domains"** section
 6. Add these domains:
@@ -27,14 +27,14 @@
 
 ### Local Development:
 - Open `.env.local` file
-- Should contain: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=7fafc875947064cbb05b25b9b9407cad`
+- Should contain: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=f3d84f94db7d9e42a9faeff19847f751`
 
 ### Production (Vercel):
 1. Go to Vercel Dashboard
 2. Select your project
 3. Go to **Settings** → **Environment Variables**
 4. Find `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
-5. Verify value is: `7fafc875947064cbb05b25b9b9407cad`
+5. Verify value is: `f3d84f94db7d9e42a9faeff19847f751`
 6. Ensure it's set for **Production**, **Preview**, AND **Development**
 7. **Redeploy** after checking
 
@@ -47,7 +47,7 @@
    ```javascript
    console.log('Project ID:', process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);
    ```
-5. Should output: `7fafc875947064cbb05b25b9b9407cad`
+5. Should output: `f3d84f94db7d9e42a9faeff19847f751`
 6. If it shows `undefined`, the environment variable is not set!
 
 ## ✅ STEP 4: Check Browser Console for Errors
@@ -100,7 +100,7 @@ Ad blockers can block WalletConnect domains:
 ## ✅ STEP 8: Verify Project ID is Active
 
 1. Go to: https://cloud.walletconnect.com
-2. Check if your project (ID: `7fafc875947064cbb05b25b9b9407cad`) is:
+2. Check if your project (ID: `f3d84f94db7d9e42a9faeff19847f751`) is:
    - ✅ Active
    - ✅ Has correct name
    - ✅ Not deleted or suspended
@@ -112,7 +112,7 @@ Your app is configured with:
 - ✅ `enableEIP6963: true` - Detects browser extensions
 - ✅ `enableInjected: true` - Shows injected wallets (MetaMask)
 - ✅ `enableCoinbase: true` - Shows Coinbase Wallet
-- ✅ Project ID: `7fafc875947064cbb05b25b9b9407cad`
+- ✅ Project ID: `f3d84f94db7d9e42a9faeff19847f751`
 - ✅ No wallet filtering - Should show ALL wallets
 
 **Configuration looks correct!** If wallets aren't showing, it's almost certainly a **domain whitelisting** issue.
@@ -123,7 +123,7 @@ Run through this checklist:
 
 - [ ] **Domain whitelisted in WalletConnect Cloud** ← MOST IMPORTANT!
 - [ ] Environment variable `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set
-- [ ] Project ID value is correct: `7fafc875947064cbb05b25b9b9407cad`
+- [ ] Project ID value is correct: `f3d84f94db7d9e42a9faeff19847f751`
 - [ ] No errors in browser console
 - [ ] No 403/401 errors in Network tab
 - [ ] Browser cache cleared

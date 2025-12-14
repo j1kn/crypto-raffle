@@ -7,7 +7,7 @@ import { wagmiConfig } from '@/lib/wallet';
 import { useState } from 'react';
 
 // Get WalletConnect Project ID
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'f3d84f94db7d9e42a9faeff19847f751';
 
 // Debug logging
 if (typeof window !== 'undefined') {

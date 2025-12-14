@@ -4,7 +4,7 @@
 
 ### ✅ 1. Environment Variable
 - **Status:** PASSED
-- **Variable:** `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=7fafc875947064cbb05b25b9b9407cad`
+- **Variable:** `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=f3d84f94db7d9e42a9faeff19847f751`
 - **Location:** Used in `lib/wallet.ts` and `app/providers.tsx`
 - **Fallback:** Correct fallback value provided
 - ✅ No other WalletConnect env vars found
@@ -136,7 +136,7 @@
 2. **`app/providers.tsx`** - Added `allWallets: 'SHOW'` and `explorer` config
 
 ### Key Configuration:
-- Project ID: `7fafc875947064cbb05b25b9b9407cad`
+- Project ID: `f3d84f94db7d9e42a9faeff19847f751`
 - Explorer: `wallets: 'ALL'`, `recommendedWalletIds: 'ALL'`
 - All wallet types enabled: EIP6963, Injected, Coinbase
 - Metadata: Complete with URL and icons

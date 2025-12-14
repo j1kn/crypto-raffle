@@ -8,7 +8,7 @@
 
 1. **Missing Environment Variable on Vercel**
    - Go to Vercel Dashboard > Your Project > Settings > Environment Variables
-   - Ensure `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set to: `7fafc875947064cbb05b25b9b9407cad`
+   - Ensure `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set to: `f3d84f94db7d9e42a9faeff19847f751`
    - Make sure it's set for **Production**, **Preview**, and **Development**
    - **Redeploy** after adding/updating the variable
 
@@ -33,7 +33,7 @@
 ```bash
 # Check if variable is set (in browser console)
 console.log(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID)
-# Should output: 7fafc875947064cbb05b25b9b9407cad
+# Should output: f3d84f94db7d9e42a9faeff19847f751
 ```
 
 **2. Clear Browser Cache:**
@@ -56,7 +56,7 @@ console.log(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID)
 1. **Check Environment Variable:**
    - Vercel Dashboard > Settings > Environment Variables
    - Variable: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
-   - Value: `7fafc875947064cbb05b25b9b9407cad`
+   - Value: `f3d84f94db7d9e42a9faeff19847f751`
    - Scope: Production, Preview, Development
 
 2. **Redeploy:**

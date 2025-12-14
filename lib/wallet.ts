@@ -5,7 +5,7 @@ import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
 import { base, mainnet, polygon } from 'wagmi/chains';
 
 // Get WalletConnect Project ID
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'f3d84f94db7d9e42a9faeff19847f751';
 
 // Metadata for WalletConnect
 const metadata = {

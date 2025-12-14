@@ -10,18 +10,18 @@ If wallets are not appearing in the Web3Modal "All Wallets" section, follow thes
 
 1. **Local Development:**
    - Check `.env.local` file
-   - Should contain: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=7fafc875947064cbb05b25b9b9407cad`
+   - Should contain: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=f3d84f94db7d9e42a9faeff19847f751`
 
 2. **Production (Vercel):**
    - Go to Vercel Dashboard → Your Project → Settings → Environment Variables
-   - Verify `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set to: `7fafc875947064cbb05b25b9b9407cad`
+   - Verify `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set to: `f3d84f94db7d9e42a9faeff19847f751`
    - Make sure it's set for **Production**, **Preview**, and **Development**
    - **Redeploy** after checking
 
 3. **Test in Browser Console:**
    ```javascript
    console.log('Project ID:', process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);
-   // Should output: 7fafc875947064cbb05b25b9b9407cad
+   // Should output: f3d84f94db7d9e42a9faeff19847f751
    ```
 
 ## ✅ Step 2: Verify WalletConnect Cloud Configuration
@@ -29,7 +29,7 @@ If wallets are not appearing in the Web3Modal "All Wallets" section, follow thes
 **Critical:** Your domain must be whitelisted in WalletConnect Cloud!
 
 1. Go to https://cloud.walletconnect.com
-2. Sign in and select your project (ID: `7fafc875947064cbb05b25b9b9407cad`)
+2. Sign in and select your project (ID: `f3d84f94db7d9e42a9faeff19847f751`)
 3. Navigate to **Settings** → **App Settings**
 4. Under **Allowed Domains**, ensure these are added:
    - `http://localhost:3000` (for local development)
@@ -56,7 +56,7 @@ If wallets are not appearing in the Web3Modal "All Wallets" section, follow thes
 - Using `defaultWagmiConfig` from `@web3modal/wagmi/react/config`
 - Explorer is enabled by default
 - No `featuredWalletIds` or `excludeWalletIds` set (shows ALL wallets)
-- Project ID: `7fafc875947064cbb05b25b9b9407cad`
+- Project ID: `f3d84f94db7d9e42a9faeff19847f751`
 
 **Check if configuration is correct:**
 - File: `/app/providers.tsx`
@@ -154,7 +154,7 @@ npm list @web3modal/wagmi wagmi viem
 ## 📋 Debug Checklist
 
 - [ ] Environment variable `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set
-- [ ] Project ID value is: `7fafc875947064cbb05b25b9b9407cad`
+- [ ] Project ID value is: `f3d84f94db7d9e42a9faeff19847f751`
 - [ ] Domain is whitelisted in WalletConnect Cloud
 - [ ] No errors in browser console
 - [ ] Network connection is working
