@@ -193,106 +193,122 @@ export const connectWallet = async (): Promise<string | null> => {
     
     // Check if already connected
     if (provider.connected) {
-      const accounts = provider.accounts || [];
-      if (accounts.length > 0) {
-        walletState.address = accounts[0];
+      // Try to get accounts using request method
+      try {
+        const accounts = await provider.request({ method: 'eth_accounts' });
+        if (accounts && Array.isArray(accounts) && accounts.length > 0) {
+          walletState.address = accounts[0];
+          walletState.isConnected = true;
+          saveWalletState();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('walletStateChanged'));
+          }
+          console.log('Wallet already connected:', accounts[0]);
+          return accounts[0];
+        }
+      } catch (e) {
+        console.log('Error getting accounts with request, trying provider.accounts');
+      }
+      
+      // Fallback to provider.accounts
+      if (provider.accounts && Array.isArray(provider.accounts) && provider.accounts.length > 0) {
+        walletState.address = provider.accounts[0];
         walletState.isConnected = true;
         saveWalletState();
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('walletStateChanged'));
         }
-        console.log('Wallet already connected:', accounts[0]);
-        return accounts[0];
+        console.log('Wallet already connected (from provider.accounts):', provider.accounts[0]);
+        return provider.accounts[0];
       }
     }
     
     console.log('Requesting wallet connection...');
     
-    // Set up a promise to wait for accounts from the connect event
-    let accountResolve: ((value: string) => void) | null = null;
-    let accountReject: ((error: Error) => void) | null = null;
+    // WalletConnect v2: enable() opens the connection modal
+    await provider.enable();
     
-    const accountPromise = new Promise<string>((resolve, reject) => {
-      accountResolve = resolve;
-      accountReject = reject;
-    });
+    console.log('Enable completed, checking for accounts...');
     
-    // Listen for connect event to get accounts
-    const connectHandler = () => {
-      setTimeout(() => {
-        const accounts = provider.accounts;
-        console.log('Accounts from connect event:', accounts);
-        if (accounts && Array.isArray(accounts) && accounts.length > 0 && accountResolve) {
-          accountResolve(accounts[0]);
-        }
-      }, 300);
-    };
+    // Wait a moment for the connection to establish
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    provider.once('connect', connectHandler);
-    
-    // Set timeout for connection
-    const timeout = setTimeout(() => {
-      if (accountReject) {
-        accountReject(new Error('Connection timeout. Please try again.'));
-      }
-    }, 30000); // 30 second timeout
-    
+    // Method 1: Try using request to get accounts (most reliable)
+    let accounts: string[] = [];
     try {
-      // WalletConnect v2 uses enable() method - works on mobile and desktop
-      await provider.enable();
-      
-      console.log('Enable completed, provider state:', {
-        connected: provider.connected,
-        accounts: provider.accounts,
+      const requestedAccounts = await provider.request({ method: 'eth_accounts' });
+      if (Array.isArray(requestedAccounts)) {
+        accounts = requestedAccounts;
+        console.log('Accounts from request method:', accounts);
+      }
+    } catch (e) {
+      console.log('Request method failed, trying alternatives:', e);
+    }
+    
+    // Method 2: Check provider.accounts directly
+    if (accounts.length === 0 && provider.accounts && Array.isArray(provider.accounts)) {
+      accounts = provider.accounts;
+      console.log('Accounts from provider.accounts:', accounts);
+    }
+    
+    // Method 3: Wait for connect event if still no accounts
+    if (accounts.length === 0) {
+      console.log('No accounts yet, waiting for connect event...');
+      const accountsPromise = new Promise<string[]>((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve([]);
+        }, 5000);
+        
+        const connectHandler = () => {
+          clearTimeout(timeout);
+          setTimeout(() => {
+            const accs = provider.accounts || [];
+            console.log('Accounts from connect event:', accs);
+            provider.off('connect', connectHandler);
+            resolve(accs);
+          }, 500);
+        };
+        
+        provider.once('connect', connectHandler);
       });
       
-      // Try to get accounts immediately
-      let accountAddress: string | null = null;
-      
-      if (provider.accounts && Array.isArray(provider.accounts) && provider.accounts.length > 0) {
-        accountAddress = provider.accounts[0];
-        clearTimeout(timeout);
-        provider.off('connect', connectHandler);
-      } else {
-        // Wait for connect event or timeout
-        try {
-          accountAddress = await Promise.race([
-            accountPromise,
-            new Promise<string>((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout waiting for accounts')), 5000)
-            ),
-          ]);
-          clearTimeout(timeout);
-        } catch (e) {
-          clearTimeout(timeout);
-          // Continue to check provider.accounts as fallback
-        }
-      }
-      
-      // Final check on provider.accounts
-      if (!accountAddress && provider.accounts && Array.isArray(provider.accounts) && provider.accounts.length > 0) {
-        accountAddress = provider.accounts[0];
-      }
-      
-      if (accountAddress) {
-        walletState.address = accountAddress;
-        walletState.isConnected = true;
-        saveWalletState();
-        
-        // Dispatch event for UI updates
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('walletStateChanged'));
-        }
-        
-        console.log('Wallet connected successfully:', accountAddress);
-        return accountAddress;
-      }
-      
-      throw new Error('No accounts returned from wallet. Please make sure your wallet is unlocked and try again.');
-    } finally {
-      clearTimeout(timeout);
-      provider.off('connect', connectHandler);
+      accounts = await accountsPromise;
     }
+    
+    // Final check: try request one more time
+    if (accounts.length === 0) {
+      try {
+        const finalAccounts = await provider.request({ method: 'eth_accounts' });
+        if (Array.isArray(finalAccounts) && finalAccounts.length > 0) {
+          accounts = finalAccounts;
+          console.log('Accounts from final request:', accounts);
+        }
+      } catch (e) {
+        console.log('Final request also failed');
+      }
+    }
+    
+    if (accounts.length > 0) {
+      const accountAddress = accounts[0];
+      walletState.address = accountAddress;
+      walletState.isConnected = true;
+      saveWalletState();
+      
+      // Dispatch event for UI updates
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletStateChanged'));
+      }
+      
+      console.log('Wallet connected successfully:', accountAddress);
+      return accountAddress;
+    }
+    
+    // If we still don't have accounts, check if user rejected
+    if (!provider.connected) {
+      throw new Error('Connection was rejected or cancelled. Please try again and approve the connection.');
+    }
+    
+    throw new Error('Unable to retrieve wallet accounts. Please make sure your wallet is unlocked and try again.');
   } catch (error: any) {
     console.error('Failed to connect wallet:', error);
     
@@ -301,7 +317,7 @@ export const connectWallet = async (): Promise<string | null> => {
       throw new Error('Connection was rejected. Please try again and approve the connection.');
     }
     
-    if (error?.message?.includes('User closed') || error?.message?.includes('closed')) {
+    if (error?.message?.includes('User closed') || error?.message?.includes('closed') || error?.message?.includes('cancelled')) {
       throw new Error('Connection window was closed. Please try again.');
     }
     
@@ -321,7 +337,7 @@ export const connectWallet = async (): Promise<string | null> => {
     }
     
     // Don't wrap the error message if it's already user-friendly
-    if (errorMessage.includes('No accounts returned')) {
+    if (errorMessage.includes('Unable to retrieve') || errorMessage.includes('Connection was rejected')) {
       throw error;
     }
     
