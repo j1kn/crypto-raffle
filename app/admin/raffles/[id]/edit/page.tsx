@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getWalletAddress, isWalletConnected, connectWallet } from '@/lib/wallet';
+import { useAccount } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { supabase } from '@/lib/supabase';
 import { Upload, X } from 'lucide-react';
 
@@ -19,7 +20,8 @@ interface Chain {
 export default function EditRafflePage() {
   const params = useParams();
   const router = useRouter();
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const { open } = useWeb3Modal();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -42,28 +44,17 @@ export default function EditRafflePage() {
   });
 
   useEffect(() => {
-    checkAdmin();
+    if (isConnected && address) {
+      verifyAdmin(address);
+    } else if (!isConnected) {
+      open();
+      router.push('/');
+    }
     fetchChains();
     if (params.id) {
       fetchRaffle();
     }
-  }, [params.id]);
-
-  const checkAdmin = async () => {
-    if (!isWalletConnected()) {
-      const address = await connectWallet();
-      if (address) {
-        setWalletAddress(address);
-        await verifyAdmin(address);
-      } else {
-        router.push('/');
-      }
-    } else {
-      const address = getWalletAddress();
-      setWalletAddress(address);
-      await verifyAdmin(address);
-    }
-  };
+  }, [isConnected, address, params.id]);
 
   const verifyAdmin = async (address: string | null) => {
     if (!address) {
@@ -109,12 +100,12 @@ export default function EditRafflePage() {
   };
 
   const fetchRaffle = async () => {
-    if (!walletAddress) return;
+    if (!address) return;
     
     try {
       const response = await fetch(`/api/admin/raffles/${params.id}`, {
         headers: {
-          'x-wallet-address': walletAddress,
+          'x-wallet-address': address,
         },
       });
 
@@ -198,7 +189,7 @@ export default function EditRafflePage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-wallet-address': walletAddress || '',
+          'x-wallet-address': address || '',
         },
         body: JSON.stringify({
           ...formData,

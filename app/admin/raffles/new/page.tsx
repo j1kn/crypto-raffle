@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getWalletAddress, isWalletConnected, connectWallet } from '@/lib/wallet';
+import { useAccount } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { supabase } from '@/lib/supabase';
 import { Upload, X } from 'lucide-react';
 
@@ -18,7 +19,8 @@ interface Chain {
 
 export default function NewRafflePage() {
   const router = useRouter();
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const { open } = useWeb3Modal();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -41,25 +43,14 @@ export default function NewRafflePage() {
   });
 
   useEffect(() => {
-    checkAdmin();
-    fetchChains();
-  }, []);
-
-  const checkAdmin = async () => {
-    if (!isWalletConnected()) {
-      const address = await connectWallet();
-      if (address) {
-        setWalletAddress(address);
-        await verifyAdmin(address);
-      } else {
-        router.push('/');
-      }
-    } else {
-      const address = getWalletAddress();
-      setWalletAddress(address);
-      await verifyAdmin(address);
+    if (isConnected && address) {
+      verifyAdmin(address);
+    } else if (!isConnected) {
+      open();
+      router.push('/');
     }
-  };
+    fetchChains();
+  }, [isConnected, address]);
 
   const verifyAdmin = async (address: string | null) => {
     if (!address) {
@@ -155,7 +146,7 @@ export default function NewRafflePage() {
       // Get or create user
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .upsert({ wallet_address: walletAddress }, { onConflict: 'wallet_address' })
+        .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
         .select()
         .single();
 

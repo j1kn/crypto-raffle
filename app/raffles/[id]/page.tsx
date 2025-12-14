@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
-import { getWalletAddress, isWalletConnected, connectWallet } from '@/lib/wallet';
+import { useAccount } from 'wagmi';
 import { Trophy, Clock, Users, Play } from 'lucide-react';
 
 interface Raffle {
@@ -32,27 +32,20 @@ export default function RaffleDetailPage() {
   const [userEntry, setUserEntry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
 
   useEffect(() => {
     if (params.id) {
       fetchRaffle();
-      checkWallet();
     }
   }, [params.id]);
 
   useEffect(() => {
-    if (raffle && walletAddress) {
+    if (raffle && address) {
       fetchEntryCount();
       fetchUserEntry();
     }
-  }, [raffle, walletAddress]);
-
-  const checkWallet = () => {
-    if (isWalletConnected()) {
-      setWalletAddress(getWalletAddress());
-    }
-  };
+  }, [raffle, address]);
 
   const fetchRaffle = async () => {
     try {
@@ -87,12 +80,12 @@ export default function RaffleDetailPage() {
   };
 
   const fetchUserEntry = async () => {
-    if (!raffle || !walletAddress) return;
+    if (!raffle || !address) return;
     try {
       // First get or create user
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .upsert({ wallet_address: walletAddress }, { onConflict: 'wallet_address' })
+        .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
         .select()
         .single();
 
@@ -123,19 +116,8 @@ export default function RaffleDetailPage() {
   const handleEnterRaffle = async () => {
     if (!raffle) return;
 
-    if (!isWalletConnected() || !walletAddress) {
-      const address = await connectWallet();
-      if (!address) {
-        alert('Please connect your wallet to enter the raffle');
-        return;
-      }
-      setWalletAddress(address);
-      // Wait a bit for state to update, then try again
-      setTimeout(() => {
-        if (!userEntry) {
-          handleEnterRaffle();
-        }
-      }, 500);
+    if (!isConnected || !address) {
+      alert('Please connect your wallet to enter the raffle');
       return;
     }
 
@@ -149,7 +131,7 @@ export default function RaffleDetailPage() {
       // Upsert user
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .upsert({ wallet_address: walletAddress }, { onConflict: 'wallet_address' })
+        .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
         .select()
         .single();
 

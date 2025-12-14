@@ -6,7 +6,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
-import { getWalletAddress, isWalletConnected, connectWallet } from '@/lib/wallet';
+import { useAccount } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { Trophy, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,42 +28,33 @@ interface RaffleEntry {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const { open } = useWeb3Modal();
   const [entries, setEntries] = useState<RaffleEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkWallet();
-  }, []);
+    if (!isConnected) {
+      open();
+      router.push('/');
+    }
+  }, [isConnected]);
 
   useEffect(() => {
-    if (walletAddress) {
+    if (address) {
       fetchEntries();
     }
-  }, [walletAddress]);
-
-  const checkWallet = async () => {
-    if (isWalletConnected()) {
-      setWalletAddress(getWalletAddress());
-    } else {
-      const address = await connectWallet();
-      if (address) {
-        setWalletAddress(address);
-      } else {
-        router.push('/');
-      }
-    }
-  };
+  }, [address]);
 
   const fetchEntries = async () => {
-    if (!walletAddress) return;
+    if (!address) return;
 
     try {
       // Get user ID
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', walletAddress)
+        .eq('wallet_address', address)
         .single();
 
       if (userError || !userData) {
@@ -121,7 +113,7 @@ export default function DashboardPage() {
           {/* Wallet Address */}
           <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 mb-8">
             <h2 className="text-xl font-semibold text-white mb-2">Connected Wallet</h2>
-            <p className="text-primary-green font-mono">{walletAddress}</p>
+            <p className="text-primary-green font-mono">{address}</p>
           </div>
 
           {/* My Raffles */}

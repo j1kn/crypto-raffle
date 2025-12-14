@@ -3,39 +3,25 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Search, User, Menu, Shield } from 'lucide-react';
-import { getWalletAddress, isWalletConnected, connectWallet, disconnectWallet } from '@/lib/wallet';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { open } = useWeb3Modal();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check initial wallet state
-    const checkWallet = () => {
-      if (isWalletConnected()) {
-        const address = getWalletAddress();
-        setWalletAddress(address);
-        checkAdminStatus(address);
-      }
-    };
-    
-    checkWallet();
-    
-    // Listen for wallet state changes
-    const handleWalletChange = () => {
-      checkWallet();
-    };
-    
-    window.addEventListener('walletStateChanged', handleWalletChange);
-    
-    return () => {
-      window.removeEventListener('walletStateChanged', handleWalletChange);
-    };
-  }, []);
+    if (isConnected && address) {
+      checkAdminStatus(address);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [isConnected, address]);
 
   const checkAdminStatus = async (address: string | null) => {
     if (!address) {
@@ -52,42 +38,17 @@ export default function Header() {
       const data = await response.json();
       setIsAdmin(data.isAdmin || false);
     } catch (error) {
+      console.error('Error checking admin status:', error);
       setIsAdmin(false);
     }
   };
 
-  const handleWalletClick = async () => {
-    if (isWalletConnected()) {
-      try {
-        await disconnectWallet();
-        setWalletAddress(null);
-        setIsAdmin(false);
-      } catch (error: any) {
-        console.error('Error disconnecting:', error);
-      }
+  const handleWalletClick = () => {
+    if (isConnected) {
+      disconnect();
+      setIsAdmin(false);
     } else {
-      setIsConnecting(true);
-      try {
-        console.log('Connecting wallet...');
-        const address = await connectWallet();
-        if (address) {
-          setWalletAddress(address);
-          checkAdminStatus(address);
-          console.log('Wallet connected successfully:', address);
-        } else {
-          throw new Error('No wallet address returned');
-        }
-      } catch (error: any) {
-        console.error('Wallet connection error:', error);
-        const errorMessage = error?.message || 'Failed to connect wallet. Please try again.';
-        
-        // Show user-friendly error
-        if (typeof window !== 'undefined') {
-          alert(errorMessage);
-        }
-      } finally {
-        setIsConnecting(false);
-      }
+      open();
     }
   };
 
@@ -149,14 +110,11 @@ export default function Header() {
             </button>
             <button
               onClick={handleWalletClick}
-              disabled={isConnecting}
-              className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
             >
               <User className="w-4 h-4" />
-              {isConnecting
-                ? 'CONNECTING...'
-                : walletAddress
-                ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+              {isConnected && address
+                ? `${address.slice(0, 6)}...${address.slice(-4)}`
                 : 'CONNECT WALLET'}
             </button>
             <button
@@ -207,4 +165,3 @@ export default function Header() {
     </header>
   );
 }
-

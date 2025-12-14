@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getWalletAddress, isWalletConnected, connectWallet } from '@/lib/wallet';
+import { useAccount } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -22,36 +23,26 @@ interface Raffle {
 
 export default function AdminPage() {
   const router = useRouter();
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const { open } = useWeb3Modal();
   const [isAdmin, setIsAdmin] = useState(false);
   const [raffles, setRaffles] = useState<Raffle[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAdmin();
-  }, []);
+    if (isConnected && address) {
+      verifyAdmin(address);
+    } else if (!isConnected) {
+      open();
+      router.push('/');
+    }
+  }, [isConnected, address]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && address) {
       fetchRaffles();
     }
-  }, [isAdmin]);
-
-  const checkAdmin = async () => {
-    if (!isWalletConnected()) {
-      const address = await connectWallet();
-      if (address) {
-        setWalletAddress(address);
-        verifyAdmin(address);
-      } else {
-        router.push('/');
-      }
-    } else {
-      const address = getWalletAddress();
-      setWalletAddress(address);
-      verifyAdmin(address);
-    }
-  };
+  }, [isAdmin, address]);
 
   const verifyAdmin = async (address: string | null) => {
     if (!address) {
@@ -84,12 +75,12 @@ export default function AdminPage() {
   };
 
   const fetchRaffles = async () => {
-    if (!walletAddress) return;
+    if (!address) return;
     
     try {
       const response = await fetch('/api/admin/raffles', {
         headers: {
-          'x-wallet-address': walletAddress,
+          'x-wallet-address': address,
         },
       });
 
@@ -105,13 +96,13 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this raffle?') || !walletAddress) return;
+    if (!confirm('Are you sure you want to delete this raffle?') || !address) return;
 
     try {
       const response = await fetch(`/api/admin/raffles/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-wallet-address': walletAddress,
+          'x-wallet-address': address,
         },
       });
 
