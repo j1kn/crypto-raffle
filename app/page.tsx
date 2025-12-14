@@ -4,8 +4,22 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+import { useAccount } from 'wagmi';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function HomePage() {
+  const { open } = useWeb3Modal();
+  const { address, isConnected } = useAccount();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isConnected && address) {
+      router.push('/dashboard');
+    }
+  }, [isConnected, address, router]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -28,21 +42,7 @@ export default function HomePage() {
               <ArrowRight className="w-5 h-5" />
             </Link>
             <button
-              onClick={async () => {
-                if (typeof window !== 'undefined') {
-                  try {
-                    const { connectWallet } = await import('@/lib/wallet');
-                    const address = await connectWallet();
-                    if (address) {
-                      window.location.href = '/dashboard';
-                    } else {
-                      alert('Failed to connect wallet. Please try again.');
-                    }
-                  } catch (error: any) {
-                    alert(error?.message || 'Failed to connect wallet. Please try again.');
-                  }
-                }
-              }}
+              onClick={() => open()}
               className="bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors inline-flex items-center justify-center gap-2"
             >
               CONNECT WALLET
