@@ -80,19 +80,17 @@ export const initWalletConnect = async (): Promise<any> => {
     const { EthereumProvider: EthereumProviderClass } = await import('@walletconnect/ethereum-provider');
     
     // WalletConnect v2 initialization - Mobile-friendly configuration
-    // The modal will show both QR code and wallet list by default
-    // Users can switch between QR code tab and wallet list tab
+    // The modal will show both QR code and wallet list
+    // By default, WalletConnect v2 modal shows:
+    // 1. QR Code tab - for mobile wallets to scan
+    // 2. Wallets/Explorer tab - shows all available wallets (MetaMask, Trust Wallet, Coinbase, etc.)
+    // Users can click on the "Wallets" tab to see and select from the wallet list
     const provider = await EthereumProviderClass.init({
       projectId,
       // Support major EVM chains
       chains: [1, 137, 56, 43114, 42161, 10, 250], // Ethereum, Polygon, BSC, Avalanche, Arbitrum, Optimism, Fantom
       optionalChains: [8453, 59144, 534352], // Base, Linea, Scroll
-      showQrModal: true,
-      // WalletConnect v2 modal configuration
-      // The modal has two views:
-      // 1. QR Code view - for mobile wallets to scan
-      // 2. Wallet List/Explorer view - shows all available wallets
-      // Users can switch between these views using tabs in the modal
+      showQrModal: true, // This enables the modal with both QR code and wallet list tabs
       metadata: {
         name: 'PrimePick Tournament',
         description: 'Crypto Raffle Platform - Play to Earn',
@@ -101,10 +99,11 @@ export const initWalletConnect = async (): Promise<any> => {
       },
     });
     
-    // Note: WalletConnect v2 modal automatically shows:
-    // - QR Code tab (for mobile wallet scanning)
-    // - Wallet List/Explorer tab (shows all available wallets like MetaMask, Trust Wallet, etc.)
-    // Users can click on the "Wallets" or "Explorer" tab to see the wallet list
+    // IMPORTANT: The WalletConnect v2 modal has TWO tabs:
+    // - "QR Code" tab (default) - shows QR code for mobile wallet scanning
+    // - "Wallets" or "Explorer" tab - shows a list of all available wallets
+    // Users should click on the "Wallets" tab to see and select from the wallet list
+    // The wallet list includes: MetaMask, Trust Wallet, Coinbase Wallet, Rainbow, etc.
 
     walletState.provider = provider;
 
