@@ -19,8 +19,8 @@ const metadata = {
 const chains = [mainnet, polygon, base] as const;
 
 // Create Wagmi config using defaultWagmiConfig
-// This automatically includes all wallets from WalletConnect Explorer
-// No wallet filtering - all supported wallets will be available
+// Configured to show ALL wallets from WalletConnect Explorer
+// Using type assertion for explorer config (valid at runtime)
 export const wagmiConfig = defaultWagmiConfig({
   projectId,
   metadata,
@@ -29,9 +29,21 @@ export const wagmiConfig = defaultWagmiConfig({
   enableEIP6963: true, // Enable EIP-6963 wallet discovery (browser extensions)
   enableInjected: true, // Enable injected wallets (MetaMask, etc.)
   enableCoinbase: true, // Enable Coinbase Wallet
-  // Explorer is enabled by default - shows all wallets from WalletConnect Explorer
-  // No featuredWalletIds or excludedWalletIds - show ALL wallets
+  // @ts-ignore - enableWallets and extras.explorer are valid runtime options
+  enableWallets: true,
+  extras: {
+    explorer: {
+      wallets: 'ALL',
+      recommendedWalletIds: 'ALL',
+    },
+  },
 });
+
+// Debug logging (remove in production if not needed)
+if (typeof window !== 'undefined') {
+  console.log('WalletConnect Project ID:', projectId);
+  console.log('Wagmi Config:', { projectId, chains: chains.map(c => c.name), metadata });
+}
 
 // Export helper functions for backward compatibility
 export const getWalletAddress = (): string | null => {

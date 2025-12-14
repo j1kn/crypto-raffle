@@ -9,14 +9,25 @@ import { useState } from 'react';
 // Get WalletConnect Project ID
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc875947064cbb05b25b9b9407cad';
 
+// Debug logging
+if (typeof window !== 'undefined') {
+  console.log('Web3Modal Project ID:', projectId);
+  console.log('Web3Modal Config:', { projectId, enableAnalytics: true, enableWallets: true });
+}
+
 // Initialize Web3Modal with all wallets enabled
-// Ensure explorer is enabled to show all wallets from WalletConnect Explorer
+// Configured to show ALL wallets from WalletConnect Explorer
+// Using type assertion to include explorer config (valid at runtime even if not in types)
 createWeb3Modal({
   projectId,
   wagmiConfig,
   enableAnalytics: true,
-  // Explorer is enabled by default in defaultWagmiConfig
-  // Don't set featuredWalletIds or excludeWalletIds - shows ALL wallets
+  allWallets: 'SHOW',
+  // @ts-ignore - explorer config is valid at runtime for showing all wallets
+  explorer: {
+    wallets: 'ALL',
+    recommendedWalletIds: 'ALL',
+  },
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#00ff88', // Primary green
