@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, User, Menu, Shield } from 'lucide-react';
+import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect } from 'react';
@@ -43,12 +43,17 @@ export default function Header() {
     }
   };
 
-  const handleWalletClick = () => {
-    if (isConnected) {
-      disconnect();
-      setIsAdmin(false);
-    } else {
-      open();
+  const handleConnect = () => {
+    // Always open the modal - Web3Modal will show wallet selection
+    open();
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    setIsAdmin(false);
+    // Redirect to home after disconnect
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
     }
   };
 
@@ -108,15 +113,32 @@ export default function Header() {
             <button className="hidden md:block p-2 text-gray-300 hover:text-primary-green transition-colors">
               <Search className="w-5 h-5" />
             </button>
-            <button
-              onClick={handleWalletClick}
-              className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
-            >
-              <User className="w-4 h-4" />
-              {isConnected && address
-                ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                : 'CONNECT WALLET'}
-            </button>
+            {isConnected && address ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  {address.slice(0, 6)}...{address.slice(-4)}
+                </Link>
+                <button
+                  onClick={handleDisconnect}
+                  className="bg-primary-orange text-white px-4 py-2 rounded font-semibold hover:bg-primary-orange/90 transition-colors text-sm"
+                  title="Disconnect Wallet"
+                >
+                  DISCONNECT
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleConnect}
+                className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                CONNECT WALLET
+              </button>
+            )}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden p-2 text-gray-300 hover:text-primary-green transition-colors"

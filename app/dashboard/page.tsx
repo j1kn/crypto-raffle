@@ -8,7 +8,8 @@ import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { Trophy, Clock, ExternalLink } from 'lucide-react';
+import { Trophy, Clock, ExternalLink, LogOut } from 'lucide-react';
+import { useDisconnect } from 'wagmi';
 import Link from 'next/link';
 
 interface RaffleEntry {
@@ -30,15 +31,21 @@ export default function DashboardPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { open } = useWeb3Modal();
+  const { disconnect } = useDisconnect();
   const [entries, setEntries] = useState<RaffleEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const handleDisconnect = () => {
+    disconnect();
+    router.push('/');
+  };
+
   useEffect(() => {
     if (!isConnected) {
+      // Don't auto-redirect, just show connect modal
       open();
-      router.push('/');
     }
-  }, [isConnected]);
+  }, [isConnected, open]);
 
   useEffect(() => {
     if (address) {
@@ -112,8 +119,28 @@ export default function DashboardPage() {
 
           {/* Wallet Address */}
           <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-semibold text-white mb-2">Connected Wallet</h2>
-            <p className="text-primary-green font-mono">{address}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-2">Connected Wallet</h2>
+                <p className="text-primary-green font-mono">{address}</p>
+              </div>
+              <button
+                onClick={handleDisconnect}
+                className="flex items-center gap-2 bg-primary-orange text-white px-4 py-2 rounded font-semibold hover:bg-primary-orange/90 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                DISCONNECT
+              </button>
+            </div>
+            <div className="mt-4 pt-4 border-t border-primary-lightgray">
+              <button
+                onClick={() => open()}
+                className="text-primary-green hover:text-primary-green/80 text-sm font-medium"
+              >
+                Switch Wallet
+              </button>
+              <p className="text-gray-400 text-xs mt-1">Click to connect a different wallet</p>
+            </div>
           </div>
 
           {/* My Raffles */}
