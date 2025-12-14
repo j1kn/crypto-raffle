@@ -11,11 +11,14 @@ const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7fafc8759
 
 // Initialize Web3Modal with all wallets enabled
 // allWallets: 'SHOW' ensures all wallets from WalletConnect Explorer are displayed
+// No featuredWalletIds means ALL wallets will be shown in the "All Wallets" section
 createWeb3Modal({
   projectId,
   wagmiConfig,
   enableAnalytics: true,
   allWallets: 'SHOW',
+  // Don't set featuredWalletIds - this ensures ALL wallets are visible
+  // featuredWalletIds: [] would limit the display
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#00ff88', // Primary green

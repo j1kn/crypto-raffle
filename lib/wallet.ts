@@ -20,10 +20,16 @@ const chains = [mainnet, polygon, base] as const;
 
 // Create Wagmi config using defaultWagmiConfig
 // This automatically includes all wallets from WalletConnect Explorer
+// No wallet filtering - all supported wallets will be available
 export const wagmiConfig = defaultWagmiConfig({
   projectId,
   metadata,
   chains,
+  // Enable all wallet types
+  enableEIP6963: true, // Enable EIP-6963 wallet discovery (browser extensions)
+  enableInjected: true, // Enable injected wallets (MetaMask, etc.)
+  enableCoinbase: true, // Enable Coinbase Wallet
+  // No featuredWalletIds or excludedWalletIds - show ALL wallets
 });
 
 // Export helper functions for backward compatibility
