@@ -27,7 +27,7 @@ export default function NewRafflePage() {
   const [chains, setChains] = useState<Chain[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -143,31 +143,26 @@ export default function NewRafflePage() {
         imageUrl = await uploadImage();
       }
 
-      // Get or create user
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
-        .select()
-        .single();
+      // Call API to create raffle (bypassing RLS)
+      const response = await fetch('/api/admin/raffles/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          raffleData: {
+            ...formData,
+            image_url: imageUrl,
+          },
+        }),
+      });
 
-      if (userError) throw userError;
+      const result = await response.json();
 
-      // Create raffle
-      const { error: raffleError } = await supabase
-        .from('raffles')
-        .insert({
-          ...formData,
-          image_url: imageUrl,
-          prize_pool_amount: parseFloat(formData.prize_pool_amount),
-          ticket_price: parseFloat(formData.ticket_price),
-          max_tickets: parseInt(formData.max_tickets),
-          chain_uuid: formData.chain_uuid || null,
-          starts_at: formData.starts_at || null,
-          ends_at: formData.ends_at,
-          created_by: userData.id,
-        });
-
-      if (raffleError) throw raffleError;
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create raffle');
+      }
 
       alert('Raffle created successfully!');
       router.push('/admin');
@@ -198,7 +193,7 @@ export default function NewRafflePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-1 py-20 px-4 bg-primary-dark">
         <div className="container mx-auto max-w-4xl">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-8">

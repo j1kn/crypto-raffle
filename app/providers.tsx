@@ -22,12 +22,10 @@ createWeb3Modal({
   projectId,
   wagmiConfig,
   enableAnalytics: true,
-  allWallets: 'SHOW',
-  // @ts-ignore - explorer config is valid at runtime for showing all wallets
-  explorer: {
-    wallets: 'ALL',
-    recommendedWalletIds: 'ALL',
-  },
+  // explorer: {
+  //   wallets: 'ALL',
+  //   recommendedWalletIds: 'ALL', 
+  // },
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#00ff88', // Primary green
