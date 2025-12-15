@@ -3,6 +3,24 @@
 -- =====================================================
 -- This raffle will appear as the hero/featured raffle at the top of the home page
 -- The most recent live raffle automatically becomes the hero raffle
+--
+-- ⚠️ TIME FORMAT GUIDE:
+-- Format: 'YYYY-MM-DD HH:MM:SS+00'
+-- Example: '2025-01-15 10:30:00+00' = January 15, 2025 at 10:30 AM UTC
+-- 
+-- To adjust times:
+-- - Year: 2025, 2026, etc.
+-- - Month: 01-12 (January = 01, December = 12)
+-- - Day: 01-31
+-- - Hour: 00-23 (24-hour format, 00 = midnight, 23 = 11 PM)
+-- - Minute: 00-59
+-- - Second: 00-59 (usually 00)
+-- - +00 = UTC timezone (keep this unless you know your timezone offset)
+--
+-- Examples:
+-- '2025-01-15 09:00:00+00' = Jan 15, 2025 at 9:00 AM
+-- '2025-12-25 23:59:59+00' = Dec 25, 2025 at 11:59:59 PM
+-- '2025-06-01 14:30:00+00' = Jun 1, 2025 at 2:30 PM
 
 -- First, get the Ethereum chain UUID
 WITH ethereum_chain AS (
@@ -36,8 +54,12 @@ SELECT
   'live',  -- Status: 'draft', 'live', 'closed', 'completed'
   ethereum_chain.id,  -- Chain UUID (fetched from chains table)
   '0x842bab27dE95e329eb17733c1f29c082e5dd94c3',  -- ⚠️ REPLACE WITH YOUR RECEIVING WALLET ADDRESS
-  NOW(),  -- Start time (starts immediately)
-  NOW() + INTERVAL '7 days',  -- End time (7 days from now - adjust as needed)
+  '2025-01-15 10:00:00+00'::timestamptz,  -- ⚠️ START TIME: Format: 'YYYY-MM-DD HH:MM:SS+00'
+                                           -- Example: '2025-01-15 10:00:00+00' = Jan 15, 2025 at 10:00 AM UTC
+                                           -- Adjust: Year, Month, Day, Hour (24h), Minute, Second
+  '2025-01-22 18:00:00+00'::timestamptz,  -- ⚠️ END TIME: Format: 'YYYY-MM-DD HH:MM:SS+00'
+                                           -- Example: '2025-01-22 18:00:00+00' = Jan 22, 2025 at 6:00 PM UTC
+                                           -- Adjust: Year, Month, Day, Hour (24h), Minute, Second
   NULL  -- created_by (NULL for admin-created raffles)
 FROM ethereum_chain;
 

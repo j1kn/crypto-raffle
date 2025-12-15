@@ -3,6 +3,24 @@
 -- =====================================================
 -- These raffles will appear in the 6-raffle grid on the home page
 -- The hero raffle is automatically excluded from this list
+--
+-- ⚠️ TIME FORMAT GUIDE:
+-- Format: 'YYYY-MM-DD HH:MM:SS+00'
+-- Example: '2025-01-15 10:30:00+00' = January 15, 2025 at 10:30 AM UTC
+-- 
+-- To adjust times:
+-- - Year: 2025, 2026, etc.
+-- - Month: 01-12 (January = 01, December = 12)
+-- - Day: 01-31
+-- - Hour: 00-23 (24-hour format, 00 = midnight, 23 = 11 PM)
+-- - Minute: 00-59
+-- - Second: 00-59 (usually 00)
+-- - +00 = UTC timezone (keep this unless you know your timezone offset)
+--
+-- Examples:
+-- '2025-01-15 09:00:00+00' = Jan 15, 2025 at 9:00 AM
+-- '2025-12-25 23:59:59+00' = Dec 25, 2025 at 11:59:59 PM
+-- '2025-06-01 14:30:00+00' = Jun 1, 2025 at 2:30 PM
 
 -- First, get the Ethereum chain UUID
 WITH ethereum_chain AS (
@@ -36,8 +54,8 @@ SELECT
   'live',  -- Status
   ethereum_chain.id,  -- Chain UUID
   '0x842bab27dE95e329eb17733c1f29c082e5dd94c3',  -- ⚠️ REPLACE WITH YOUR RECEIVING WALLET ADDRESS
-  NOW(),  -- Start time
-  NOW() + INTERVAL '5 days',  -- End time (5 days from now)
+  '2025-01-15 10:00:00+00'::timestamptz,  -- ⚠️ START TIME: 'YYYY-MM-DD HH:MM:SS+00'
+  '2025-01-20 18:00:00+00'::timestamptz,  -- ⚠️ END TIME: 'YYYY-MM-DD HH:MM:SS+00'
   NULL  -- created_by
 FROM ethereum_chain;
 
@@ -68,8 +86,8 @@ SELECT
   'live',
   ethereum_chain.id,
   '0x842bab27dE95e329eb17733c1f29c082e5dd94c3',  -- ⚠️ REPLACE WITH YOUR RECEIVING WALLET ADDRESS
-  NOW(),
-  NOW() + INTERVAL '6 days',
+  '2025-01-15 11:00:00+00'::timestamptz,  -- ⚠️ START TIME: 'YYYY-MM-DD HH:MM:SS+00'
+  '2025-01-21 20:00:00+00'::timestamptz,  -- ⚠️ END TIME: 'YYYY-MM-DD HH:MM:SS+00'
   NULL
 FROM ethereum_chain;
 
@@ -100,8 +118,8 @@ SELECT
   'live',
   ethereum_chain.id,
   '0x842bab27dE95e329eb17733c1f29c082e5dd94c3',  -- ⚠️ REPLACE WITH YOUR RECEIVING WALLET ADDRESS
-  NOW(),
-  NOW() + INTERVAL '3 days',
+  '2025-01-15 12:00:00+00'::timestamptz,  -- ⚠️ START TIME: 'YYYY-MM-DD HH:MM:SS+00'
+  '2025-01-18 15:00:00+00'::timestamptz,  -- ⚠️ END TIME: 'YYYY-MM-DD HH:MM:SS+00'
   NULL
 FROM ethereum_chain;
 
@@ -132,8 +150,8 @@ SELECT
   'live',
   ethereum_chain.id,
   '0x842bab27dE95e329eb17733c1f29c082e5dd94c3',  -- ⚠️ REPLACE WITH YOUR RECEIVING WALLET ADDRESS
-  NOW(),
-  NOW() + INTERVAL '10 days',
+  '2025-01-15 13:00:00+00'::timestamptz,  -- ⚠️ START TIME: 'YYYY-MM-DD HH:MM:SS+00'
+  '2025-01-25 22:00:00+00'::timestamptz,  -- ⚠️ END TIME: 'YYYY-MM-DD HH:MM:SS+00'
   NULL
 FROM ethereum_chain;
 
@@ -164,8 +182,8 @@ SELECT
   'live',
   ethereum_chain.id,
   '0x842bab27dE95e329eb17733c1f29c082e5dd94c3',  -- ⚠️ REPLACE WITH YOUR RECEIVING WALLET ADDRESS
-  NOW(),
-  NOW() + INTERVAL '4 days',
+  '2025-01-15 14:00:00+00'::timestamptz,  -- ⚠️ START TIME: 'YYYY-MM-DD HH:MM:SS+00'
+  '2025-01-19 16:00:00+00'::timestamptz,  -- ⚠️ END TIME: 'YYYY-MM-DD HH:MM:SS+00'
   NULL
 FROM ethereum_chain;
 
@@ -196,8 +214,8 @@ SELECT
   'live',
   ethereum_chain.id,
   '0x842bab27dE95e329eb17733c1f29c082e5dd94c3',  -- ⚠️ REPLACE WITH YOUR RECEIVING WALLET ADDRESS
-  NOW(),
-  NOW() + INTERVAL '14 days',
+  '2025-01-15 15:00:00+00'::timestamptz,  -- ⚠️ START TIME: 'YYYY-MM-DD HH:MM:SS+00'
+  '2025-01-29 23:59:59+00'::timestamptz,  -- ⚠️ END TIME: 'YYYY-MM-DD HH:MM:SS+00'
   NULL
 FROM ethereum_chain;
 
