@@ -38,3 +38,5 @@ next-env.d.ts
 
 ADMIN_PIN_REMINDER.md
 ADMIN_PIN_SETUP.txt
+.env.tokens
+*.token
