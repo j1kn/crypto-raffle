@@ -3,7 +3,18 @@ import { createServerClient } from '@/lib/supabase';
 
 // API endpoint to check and draw winners for all ended raffles
 // This can be called by a cron job or manually
+// Vercel Cron Jobs will call this endpoint automatically
+export async function GET(request: NextRequest) {
+  // Handle both GET (for Vercel cron) and POST (for manual triggers)
+  return handleCheckWinners(request);
+}
+
 export async function POST(request: NextRequest) {
+  // Handle both GET (for Vercel cron) and POST (for manual triggers)
+  return handleCheckWinners(request);
+}
+
+async function handleCheckWinners(request: NextRequest) {
   try {
     const supabase = createServerClient();
     const now = new Date().toISOString();
@@ -96,11 +107,15 @@ export async function POST(request: NextRequest) {
       message: `Drew winners for ${results.length} raffle(s)`,
       drawn: results.length,
       results,
+      timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
     console.error('Error checking winners:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to check winners' },
+      { 
+        error: error.message || 'Failed to check winners',
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
