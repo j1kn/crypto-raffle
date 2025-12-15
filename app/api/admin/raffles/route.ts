@@ -75,6 +75,29 @@ export async function POST(request: NextRequest) {
     });
     
     console.log('✅ Supabase client created directly with service role key');
+    console.log('🔍 Verifying service role key is being used...');
+    console.log('🔍 Key length:', serviceRoleKey.length);
+    console.log('🔍 Key starts with:', serviceRoleKey.substring(0, 10));
+    
+    // Test the connection first
+    const { data: testData, error: testError } = await supabase
+      .from('raffles')
+      .select('id')
+      .limit(1);
+    
+    if (testError) {
+      console.error('❌ Test query failed:', testError);
+      if (testError.code === '42501' || testError.message?.includes('row-level security')) {
+        console.error('🚨 RLS is STILL ENABLED even with service role key!');
+        console.error('🚨 This should not happen - service role key should bypass RLS');
+        console.error('🚨 Possible causes:');
+        console.error('   1. RLS was not properly disabled');
+        console.error('   2. Service role key is incorrect');
+        console.error('   3. There are additional RLS policies blocking');
+      }
+    } else {
+      console.log('✅ Test query successful - service role key is working');
+    }
 
     // Prepare raffle data with all required fields
     // IMPORTANT: Remove undefined values - they trigger RLS failures
