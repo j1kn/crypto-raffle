@@ -152,15 +152,18 @@ export async function POST(request: NextRequest) {
         console.error('   3. Project was not redeployed after adding the key');
         console.error('   4. RLS needs to be disabled temporarily');
         console.error('');
-        console.error('🔧 SOLUTION: Run this SQL in Supabase to disable RLS:');
+        console.error('🔧 IMMEDIATE SOLUTION: Run this SQL in Supabase SQL Editor:');
         console.error('   ALTER TABLE raffles DISABLE ROW LEVEL SECURITY;');
+        console.error('');
+        console.error('📖 See FIX_RLS_ERROR_COMPLETE.md for detailed instructions');
         
         return NextResponse.json(
           { 
-            error: 'RLS Policy Violation: The service role key is not bypassing RLS. Please run this SQL in Supabase: ALTER TABLE raffles DISABLE ROW LEVEL SECURITY;',
+            error: 'RLS Policy Violation: Row-level security is blocking the insert.',
             details: error.message,
             code: error.code,
-            solution: 'Disable RLS temporarily by running: ALTER TABLE raffles DISABLE ROW LEVEL SECURITY; in Supabase SQL Editor',
+            solution: 'Go to Supabase SQL Editor and run: ALTER TABLE raffles DISABLE ROW LEVEL SECURITY;',
+            instructions: 'See FIX_RLS_ERROR_COMPLETE.md file for step-by-step guide',
           },
           { status: 500 }
         );
