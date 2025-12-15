@@ -59,7 +59,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createServerClient();
+    // Create Supabase client with service role key
+    let supabase;
+    try {
+      supabase = createServerClient();
+      console.log('✅ Supabase client created, attempting insert...');
+    } catch (clientError: any) {
+      console.error('❌ Failed to create Supabase client:', clientError);
+      return NextResponse.json(
+        { error: `Failed to initialize database connection: ${clientError.message}` },
+        { status: 500 }
+      );
+    }
 
     // Prepare raffle data with all required fields
     // IMPORTANT: Remove undefined values - they trigger RLS failures
@@ -102,6 +113,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Create raffle using SERVICE ROLE KEY (bypasses RLS)
+    console.log('📝 Attempting to insert raffle into database...');
+    console.log('📝 Using service role key (should bypass RLS)');
+    
     const { data, error } = await supabase
       .from('raffles')
       .insert(raffleData)
@@ -109,15 +123,38 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Supabase insert error:', error);
-      console.error('Error details:', {
+      console.error('❌ Supabase insert error:', error);
+      console.error('❌ Error details:', {
         message: error.message,
         code: error.code,
         details: error.details,
         hint: error.hint,
       });
+      
+      // Check if it's an RLS error
+      if (error.message?.includes('row-level security') || error.message?.includes('RLS') || error.code === '42501') {
+        console.error('🚨 RLS POLICY VIOLATION DETECTED!');
+        console.error('🚨 This means the service role key is NOT being used correctly');
+        console.error('🚨 Check:');
+        console.error('   1. Is SUPABASE_SERVICE_ROLE_KEY set in Vercel?');
+        console.error('   2. Is it the correct service_role key (not anon key)?');
+        console.error('   3. Has the project been redeployed after adding the key?');
+        return NextResponse.json(
+          { 
+            error: 'RLS Policy Violation: Service role key may not be configured correctly. Check Vercel logs for details.',
+            details: error.message,
+            code: error.code,
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: error.message || 'Failed to create raffle in database' },
+        { 
+          error: error.message || 'Failed to create raffle in database',
+          code: error.code,
+          details: error.details,
+        },
         { status: 500 }
       );
     }

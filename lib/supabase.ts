@@ -37,9 +37,20 @@ export const createServerClient = () => {
   // REQUIRED: Use SERVICE ROLE KEY only (no fallback to anon key)
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
+  // Debug: Log all environment variables (without exposing values)
+  console.log('🔍 Environment Check:', {
+    hasSUPABASE_URL: !!process.env.SUPABASE_URL,
+    hasNEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasSUPABASE_SERVICE_ROLE_KEY: !!serviceRoleKey,
+    serviceRoleKeyLength: serviceRoleKey ? serviceRoleKey.length : 0,
+    serviceRoleKeyPrefix: serviceRoleKey ? serviceRoleKey.substring(0, 20) + '...' : 'MISSING',
+    url: url.substring(0, 30) + '...',
+  });
+  
   if (!serviceRoleKey) {
     console.error('❌ SUPABASE_SERVICE_ROLE_KEY is REQUIRED for admin operations');
     console.error('❌ Anon key cannot bypass RLS policies');
+    console.error('❌ Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is required. Anon key will be blocked by RLS.');
   }
   
@@ -48,17 +59,29 @@ export const createServerClient = () => {
     throw new Error('Supabase URL not configured');
   }
   
-  console.log('✅ Creating Supabase client with SERVICE ROLE KEY:', {
-    url: url.substring(0, 30) + '...',
-    hasServiceRoleKey: true,
-  });
+  // Verify service role key format (should start with eyJ...)
+  if (!serviceRoleKey.startsWith('eyJ')) {
+    console.error('❌ Service role key format appears invalid (should start with eyJ)');
+    console.error('❌ Key prefix:', serviceRoleKey.substring(0, 10));
+  }
+  
+  console.log('✅ Creating Supabase client with SERVICE ROLE KEY');
   
   // Create client with SERVICE ROLE KEY (bypasses all RLS policies)
-  return createClient(url, serviceRoleKey, {
+  const client = createClient(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
   });
+  
+  // Verify client was created
+  if (!client) {
+    throw new Error('Failed to create Supabase client');
+  }
+  
+  console.log('✅ Supabase client created successfully');
+  
+  return client;
 };
 
