@@ -52,13 +52,23 @@ export default function RaffleDetailPage() {
   const [winner, setWinner] = useState<Winner | null>(null);
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
-  const { address, isConnected, chain } = useAccount();
+  const { address, isConnected, chain, connector } = useAccount();
   
   // Payment transaction
   const { data: hash, sendTransaction, isPending: isSending, error: sendError } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
+
+  // Debug wallet connection
+  useEffect(() => {
+    console.log('Wallet Connection Debug:', {
+      address,
+      isConnected,
+      chain: chain?.name,
+      connector: connector?.name,
+    });
+  }, [address, isConnected, chain, connector]);
 
   useEffect(() => {
     if (params.id) {
@@ -229,9 +239,15 @@ export default function RaffleDetailPage() {
   const handleEnterRaffle = async () => {
     if (!raffle) return;
 
-    if (!isConnected || !address) {
-      alert('Please connect your wallet to enter the raffle');
+    // Enhanced wallet connection check
+    if (!address) {
+      alert('Please connect your wallet to enter the raffle. Click "CONNECT WALLET" button.');
       return;
+    }
+
+    if (!isConnected) {
+      console.warn('Address exists but isConnected is false. This may be a connection state issue.');
+      // Still allow if address exists
     }
 
     if (userEntry) {

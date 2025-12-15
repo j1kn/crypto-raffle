@@ -17,15 +17,13 @@ if (typeof window !== 'undefined') {
 
 // Initialize Web3Modal with all wallets enabled
 // Configured to show ALL wallets from WalletConnect Explorer
-// Using type assertion to include explorer config (valid at runtime even if not in types)
 createWeb3Modal({
   projectId,
   wagmiConfig,
   enableAnalytics: true,
-  // explorer: {
-  //   wallets: 'ALL',
-  //   recommendedWalletIds: 'ALL', 
-  // },
+  enableAccountView: true,
+  enableNetworkView: true,
+  allWallets: 'SHOW', // Show all wallets
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#00ff88', // Primary green
@@ -33,10 +31,16 @@ createWeb3Modal({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+      },
+    },
+  }));
 
   return (
-    <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
+    <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

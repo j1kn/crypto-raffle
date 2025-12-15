@@ -10,18 +10,27 @@ import { useState, useEffect } from 'react';
 export default function Header() {
   const pathname = usePathname();
   const { open } = useWeb3Modal();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connector } = useAccount();
   const { disconnect } = useDisconnect();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Debug wallet connection
   useEffect(() => {
-    if (isConnected && address) {
+    console.log('Header Wallet Debug:', {
+      address,
+      isConnected,
+      connector: connector?.name,
+    });
+  }, [address, isConnected, connector]);
+
+  useEffect(() => {
+    if (address) {
       checkAdminStatus(address);
     } else {
       setIsAdmin(false);
     }
-  }, [isConnected, address]);
+  }, [address]);
 
   const checkAdminStatus = async (address: string | null) => {
     if (!address) {
@@ -111,7 +120,7 @@ export default function Header() {
             <button className="hidden md:block p-2 text-gray-300 hover:text-primary-green transition-colors">
               <Search className="w-5 h-5" />
             </button>
-            {isConnected && address ? (
+            {address ? (
               <div className="flex items-center gap-2">
                 <Link
                   href="/dashboard"
