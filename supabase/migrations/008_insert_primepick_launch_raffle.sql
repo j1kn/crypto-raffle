@@ -6,6 +6,10 @@
 -- =====================================================
 
 -- Insert the raffle
+-- First, get the Ethereum chain UUID (if it exists)
+WITH ethereum_chain AS (
+  SELECT id FROM chains WHERE slug = 'ethereum' LIMIT 1
+)
 INSERT INTO raffles (
   title,
   description,
@@ -20,7 +24,8 @@ INSERT INTO raffles (
   starts_at,
   ends_at,
   created_by
-) VALUES (
+)
+SELECT 
   'PrimePick Launch Raffle',
   'Win 1 ETH in our first official PrimePick raffle. Entries are open immediately. Each ticket costs 0.001 ETH. Winner takes the entire prize pool.',
   NULL, -- No image URL provided
@@ -29,12 +34,11 @@ INSERT INTO raffles (
   0.001, -- 0.001 ETH per ticket
   1000, -- Max 1000 tickets
   'live', -- Status: live (entries are open)
-  NULL, -- chain_uuid (NULL works, or use: SELECT id FROM chains WHERE slug = 'ethereum')
+  (SELECT id FROM ethereum_chain), -- Get Ethereum chain UUID if it exists, otherwise NULL
   '0x842bab27de95e329eb17733c1f29c082e5dd94c3', -- Receiving address
   '2025-12-15 10:50:00+00'::timestamptz, -- Starts at: 15/12/2025, 10:50
   '2025-12-15 13:00:00+00'::timestamptz, -- Ends at: 15/12/2025, 13:00
   NULL -- created_by (PIN-based admin, no user ID)
-)
 RETURNING id, title, status, created_at;
 
 -- Verify the raffle was created
