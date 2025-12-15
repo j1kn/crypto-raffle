@@ -29,7 +29,7 @@ INSERT INTO raffles (
   0.001, -- 0.001 ETH per ticket
   1000, -- Max 1000 tickets
   'live', -- Status: live (entries are open)
-  NULL, -- chain_uuid (can be set to 'ethereum' if needed, but NULL works)
+  'ethereum', -- chain_uuid (using text ID 'ethereum' from chains table)
   '0x842bab27de95e329eb17733c1f29c082e5dd94c3', -- Receiving address
   '2025-12-15 10:50:00+00'::timestamptz, -- Starts at: 15/12/2025, 10:50
   '2025-12-15 13:00:00+00'::timestamptz, -- Ends at: 15/12/2025, 13:00
