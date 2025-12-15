@@ -70,37 +70,43 @@ export default function HomePage() {
 
   const fetchHeroRaffle = async () => {
     try {
-      // Fetch the most recent live raffle as hero
+      // Fetch the most recent live raffle as hero (always shows at top)
+      // Only shows live raffles, completed raffles are automatically excluded
       const { data, error } = await supabase
         .from('public_raffles')
         .select('*')
-        .eq('status', 'live')
+        .eq('status', 'live')  // Only live raffles
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (!error && data) {
         setHeroRaffle(data);
+      } else {
+        // No hero raffle available
+        setHeroRaffle(null);
       }
     } catch (error) {
       console.error('Error fetching hero raffle:', error);
+      setHeroRaffle(null);
     }
   };
 
   const fetchRaffles = async () => {
     try {
-      // Fetch live raffles from public_raffles view (skip hero raffle)
+      // Fetch live raffles only (completed raffles are automatically excluded)
+      // Completed raffles are moved to winners section automatically
       const { data, error } = await supabase
         .from('public_raffles')
         .select('*')
-        .eq('status', 'live')
+        .eq('status', 'live')  // Only show live raffles, completed ones are removed
         .order('created_at', { ascending: false })
         .limit(7); // Fetch 7 to account for hero raffle exclusion
 
       if (error) {
         console.error('Error fetching raffles:', error);
       } else {
-        // Exclude hero raffle from the list
+        // Exclude hero raffle from the regular raffles list
         const heroId = heroRaffle?.id;
         const filteredRaffles = heroId 
           ? (data || []).filter(r => r.id !== heroId).slice(0, 6)
@@ -158,7 +164,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      {/* Hero Raffle Section */}
+      {/* Hero Raffle Section - Always at Top */}
       {heroRaffle && (
         <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-12 px-4">
           <div className="container mx-auto">
