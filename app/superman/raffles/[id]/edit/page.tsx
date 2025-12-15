@@ -16,13 +16,31 @@ interface Chain {
   native_symbol: string;
 }
 
+// Hardcoded chains for admin panel
+const AVAILABLE_CHAINS: Chain[] = [
+  {
+    id: 'ethereum',
+    name: 'Ethereum',
+    slug: 'ethereum',
+    chain_id: 1,
+    native_symbol: 'ETH',
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    slug: 'solana',
+    chain_id: 101,
+    native_symbol: 'SOL',
+  },
+];
+
 export default function EditRafflePage() {
   const params = useParams();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [chains, setChains] = useState<Chain[]>([]);
+  const [chains] = useState<Chain[]>(AVAILABLE_CHAINS); // Use hardcoded chains
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
@@ -42,7 +60,7 @@ export default function EditRafflePage() {
 
   useEffect(() => {
     checkAuth();
-    fetchChains();
+    // Chains are now hardcoded, no need to fetch
     if (params.id) {
       fetchRaffle();
     }
@@ -71,24 +89,7 @@ export default function EditRafflePage() {
   };
 
 
-  const fetchChains = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('chains')
-        .select('*')
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching chains:', error);
-        throw error;
-      }
-      console.log('Chains loaded:', data);
-      setChains(data || []);
-    } catch (error) {
-      console.error('Error fetching chains:', error);
-      alert('Failed to load blockchain networks. Please refresh the page.');
-    }
-  };
+  // Chains are now hardcoded, no need to fetch from database
 
   const fetchRaffle = async () => {
     try {
@@ -334,28 +335,19 @@ export default function EditRafflePage() {
                 <select
                   value={formData.chain_uuid}
                   onChange={(e) => {
-                    console.log('Chain selected:', e.target.value);
                     setFormData({ ...formData, chain_uuid: e.target.value });
                   }}
                   required
-                  disabled={chains.length === 0}
-                  className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green"
                 >
-                  <option value="">
-                    {chains.length === 0 ? 'Loading chains...' : 'Select Chain (ETH, SOL, etc.)'}
-                  </option>
+                  <option value="">Select Chain</option>
                   {chains.map((chain) => (
                     <option key={chain.id} value={chain.id}>
                       {chain.name} ({chain.native_symbol})
                     </option>
                   ))}
                 </select>
-                {chains.length === 0 && (
-                  <p className="text-xs text-yellow-400 mt-1">Loading blockchain networks...</p>
-                )}
-                {chains.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">Select the blockchain for this raffle</p>
-                )}
+                <p className="text-xs text-gray-400 mt-1">Select Ethereum or Solana</p>
               </div>
               <div>
                 <label className="block text-white font-semibold mb-2">Status *</label>

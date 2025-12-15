@@ -16,12 +16,30 @@ interface Chain {
   native_symbol: string;
 }
 
+// Hardcoded chains for admin panel
+const AVAILABLE_CHAINS: Chain[] = [
+  {
+    id: 'ethereum',
+    name: 'Ethereum',
+    slug: 'ethereum',
+    chain_id: 1,
+    native_symbol: 'ETH',
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    slug: 'solana',
+    chain_id: 101,
+    native_symbol: 'SOL',
+  },
+];
+
 export default function NewRafflePage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [chains, setChains] = useState<Chain[]>([]);
+  const [chains] = useState<Chain[]>(AVAILABLE_CHAINS); // Use hardcoded chains
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
@@ -41,7 +59,7 @@ export default function NewRafflePage() {
 
   useEffect(() => {
     checkAuth();
-    fetchChains();
+    // Chains are now hardcoded, no need to fetch
   }, []);
 
   const checkAuth = async () => {
@@ -67,25 +85,7 @@ export default function NewRafflePage() {
   };
 
 
-  const fetchChains = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('chains')
-        .select('*')
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching chains:', error);
-        throw error;
-      }
-      console.log('Chains loaded:', data);
-      setChains(data || []);
-    } catch (error) {
-      console.error('Error fetching chains:', error);
-      // Show user-friendly error
-      alert('Failed to load blockchain networks. Please refresh the page.');
-    }
-  };
+  // Chains are now hardcoded, no need to fetch from database
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -145,7 +145,7 @@ export default function NewRafflePage() {
           prize_pool_amount: parseFloat(formData.prize_pool_amount),
           ticket_price: parseFloat(formData.ticket_price),
           max_tickets: parseInt(formData.max_tickets),
-          chain_uuid: formData.chain_uuid || null,
+          chain_uuid: formData.chain_uuid || null, // Will be 'ethereum' or 'solana'
           starts_at: formData.starts_at || null,
           ends_at: formData.ends_at,
           created_by: null, // PIN-based admin doesn't require user
@@ -307,28 +307,19 @@ export default function NewRafflePage() {
                 <select
                   value={formData.chain_uuid}
                   onChange={(e) => {
-                    console.log('Chain selected:', e.target.value);
                     setFormData({ ...formData, chain_uuid: e.target.value });
                   }}
                   required
-                  disabled={chains.length === 0}
-                  className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green"
                 >
-                  <option value="">
-                    {chains.length === 0 ? 'Loading chains...' : 'Select Chain (ETH, SOL, etc.)'}
-                  </option>
+                  <option value="">Select Chain</option>
                   {chains.map((chain) => (
                     <option key={chain.id} value={chain.id}>
                       {chain.name} ({chain.native_symbol})
                     </option>
                   ))}
                 </select>
-                {chains.length === 0 && (
-                  <p className="text-xs text-yellow-400 mt-1">Loading blockchain networks...</p>
-                )}
-                {chains.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">Select the blockchain for this raffle</p>
-                )}
+                <p className="text-xs text-gray-400 mt-1">Select Ethereum or Solana</p>
               </div>
               <div>
                 <label className="block text-white font-semibold mb-2">Status *</label>
