@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // Verify Supabase credentials are set
     // REQUIRED: Use SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (not NEXT_PUBLIC_ vars)
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseUrl) {
@@ -61,8 +61,6 @@ export async function POST(request: NextRequest) {
 
     // Create Supabase client DIRECTLY with service role key (bypasses RLS)
     // DO NOT use createServerClient() - create directly to ensure service role key is used
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!serviceRoleKey) {
       console.error('❌ SUPABASE_SERVICE_ROLE_KEY is MISSING in environment variables');
@@ -221,10 +219,22 @@ export async function GET(request: NextRequest) {
     // The /superman route already verified the PIN
     // PIN verification is done via /api/admin/login before accessing these routes
 
-    // Note: This will still be subject to RLS with anon key
-    // For full admin access, use service role key:
-    // const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const supabase = createServerClient();
+    // Create Supabase client with service role key for admin access
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceRoleKey) {
+      return NextResponse.json({ 
+        error: 'SUPABASE_SERVICE_ROLE_KEY is required for admin operations' 
+      }, { status: 500 });
+    }
+    
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
     
     const { data, error } = await supabase
       .from('raffles')
