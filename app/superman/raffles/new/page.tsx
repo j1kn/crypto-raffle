@@ -135,39 +135,54 @@ export default function NewRafflePage() {
         imageUrl = await uploadImage();
       }
 
+      // Validate required fields before submitting
+      if (!formData.title || !formData.ends_at || !formData.receiving_address) {
+        alert('Please fill in all required fields (Title, Ends At, Receiving Address)');
+        return;
+      }
+
+      // Prepare request body with all required fields
+      const requestBody = {
+        title: formData.title.trim(),
+        description: formData.description?.trim() || null,
+        image_url: imageUrl || null,
+        prize_pool_amount: formData.prize_pool_amount,
+        prize_pool_symbol: formData.prize_pool_symbol.trim().toUpperCase(),
+        ticket_price: formData.ticket_price,
+        max_tickets: formData.max_tickets,
+        status: formData.status,
+        chain_uuid: formData.chain_uuid || null,
+        receiving_address: formData.receiving_address.trim(),
+        starts_at: formData.starts_at || null,
+        ends_at: formData.ends_at,
+      };
+
+      console.log('Submitting raffle creation request:', {
+        ...requestBody,
+        receiving_address: '***', // Hide in console
+      });
+
       // Create raffle via API route (bypasses RLS)
       const response = await fetch('/api/admin/raffles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          image_url: imageUrl,
-          prize_pool_amount: parseFloat(formData.prize_pool_amount),
-          prize_pool_symbol: formData.prize_pool_symbol,
-          ticket_price: parseFloat(formData.ticket_price),
-          max_tickets: parseInt(formData.max_tickets),
-          status: formData.status,
-          chain_uuid: formData.chain_uuid || null,
-          receiving_address: formData.receiving_address,
-          starts_at: formData.starts_at || null,
-          ends_at: formData.ends_at,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create raffle');
+        console.error('API Error Response:', responseData);
+        throw new Error(responseData.error || `Failed to create raffle (${response.status})`);
       }
 
-      const result = await response.json();
-      if (result.success) {
+      if (responseData.success) {
         alert('Raffle created successfully!');
         router.push('/superman/dashboard');
       } else {
-        throw new Error(result.error || 'Failed to create raffle');
+        throw new Error(responseData.error || 'Failed to create raffle');
       }
     } catch (error: any) {
       console.error('Error creating raffle:', error);

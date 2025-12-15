@@ -119,6 +119,12 @@ DROP POLICY IF EXISTS "Authenticated users can create raffles" ON raffles;
 CREATE POLICY "Authenticated users can create raffles" ON raffles
   FOR INSERT WITH CHECK (true);
 
+-- Allow public inserts (for API routes using service role key)
+DROP POLICY IF EXISTS "public_insert" ON raffles;
+CREATE POLICY "public_insert" ON raffles
+  FOR INSERT
+  WITH CHECK (true);
+
 DROP POLICY IF EXISTS "Authenticated users can update raffles" ON raffles;
 CREATE POLICY "Authenticated users can update raffles" ON raffles
   FOR UPDATE USING (true);
