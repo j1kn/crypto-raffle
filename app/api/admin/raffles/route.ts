@@ -66,37 +66,92 @@ export async function POST(request: NextRequest) {
     console.log('🔑 Service Role Key exists:', !!serviceRoleKey);
     console.log('🔑 Service Role Key length:', serviceRoleKey.length);
     
+    // CRITICAL: Verify service role key is actually a service role key
+    // Service role keys are much longer than anon keys (typically 500+ characters)
+    if (serviceRoleKey.length < 200) {
+      console.error('❌ WARNING: Service role key seems too short!');
+      console.error('❌ Service role keys are typically 500+ characters');
+      console.error('❌ You might be using anon key instead of service_role key');
+      console.error('❌ Get the service_role key from Supabase → Settings → API');
+    }
+    
     // Create client DIRECTLY with service role key - this MUST bypass RLS
+    // Use service_role key which has admin privileges and bypasses ALL RLS
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
+      // Ensure we're using the service role key with admin privileges
+      global: {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+        },
+      },
     });
     
-    console.log('✅ Supabase client created directly with service role key');
-    console.log('🔍 Verifying service role key is being used...');
-    console.log('🔍 Key length:', serviceRoleKey.length);
-    console.log('🔍 Key starts with:', serviceRoleKey.substring(0, 10));
+    console.log('✅ Supabase client created with SERVICE ROLE KEY');
+    console.log('🔍 Service Role Key verified:');
+    console.log('   - Length:', serviceRoleKey.length, 'characters');
+    console.log('   - Prefix:', serviceRoleKey.substring(0, 20) + '...');
+    console.log('   - Should bypass RLS: YES (service role key has admin privileges)');
     
-    // Test the connection first
-    const { data: testData, error: testError } = await supabase
+    // Test insert capability BEFORE attempting actual insert
+    // This helps identify RLS issues early
+    console.log('🧪 Testing insert capability...');
+    const testInsertData = {
+      title: '__TEST_DELETE_ME__' + Date.now(),
+      prize_pool_amount: 0,
+      prize_pool_symbol: 'ETH',
+      ticket_price: 0,
+      max_tickets: 1,
+      status: 'draft',
+      receiving_address: '0x0000000000000000000000000000000000000000',
+      ends_at: new Date(Date.now() + 86400000).toISOString(),
+    };
+    
+    const { data: testInsert, error: testInsertError } = await supabase
       .from('raffles')
-      .select('id')
-      .limit(1);
+      .insert(testInsertData)
+      .select()
+      .single();
     
-    if (testError) {
-      console.error('❌ Test query failed:', testError);
-      if (testError.code === '42501' || testError.message?.includes('row-level security')) {
-        console.error('🚨 RLS is STILL ENABLED even with service role key!');
-        console.error('🚨 This should not happen - service role key should bypass RLS');
+    if (testInsertError) {
+      const isRLSError = testInsertError.code === '42501' || 
+                        testInsertError.message?.includes('row-level security') ||
+                        testInsertError.message?.includes('violates row-level security');
+      
+      if (isRLSError) {
+        console.error('🚨🚨🚨 CRITICAL: RLS is blocking even with SERVICE ROLE KEY! 🚨🚨🚨');
+        console.error('🚨 This should NEVER happen with a valid service role key!');
         console.error('🚨 Possible causes:');
-        console.error('   1. RLS was not properly disabled');
-        console.error('   2. Service role key is incorrect');
-        console.error('   3. There are additional RLS policies blocking');
+        console.error('   1. SUPABASE_SERVICE_ROLE_KEY is wrong (using anon key instead)');
+        console.error('   2. Service role key is not set in Vercel environment variables');
+        console.error('   3. Project was not redeployed after adding service role key');
+        console.error('   4. RLS must be disabled manually in Supabase');
+        console.error('');
+        console.error('🔧 IMMEDIATE FIX: Run this SQL in Supabase:');
+        console.error('   ALTER TABLE raffles DISABLE ROW LEVEL SECURITY;');
+        console.error('   See: supabase/migrations/007_DEFINITIVE_RLS_FIX.sql');
+        
+        return NextResponse.json({
+          error: 'RLS Policy Violation: Even with service role key, RLS is blocking. This means either the service role key is incorrect or RLS must be disabled manually.',
+          details: testInsertError.message,
+          code: testInsertError.code,
+          solution: 'Run: ALTER TABLE raffles DISABLE ROW LEVEL SECURITY; in Supabase SQL Editor',
+          sqlFile: 'See supabase/migrations/007_DEFINITIVE_RLS_FIX.sql for complete fix',
+        }, { status: 500 });
       }
+      
+      // Other error (not RLS)
+      console.error('❌ Test insert failed (non-RLS error):', testInsertError);
     } else {
-      console.log('✅ Test query successful - service role key is working');
+      // Test insert succeeded - delete the test row
+      if (testInsert?.id) {
+        await supabase.from('raffles').delete().eq('id', testInsert.id);
+        console.log('✅ Test insert successful - service role key is working, RLS is bypassed');
+      }
     }
 
     // Prepare raffle data with all required fields
