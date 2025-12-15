@@ -92,35 +92,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Check RLS status via SQL (if we can)
-    let rlsStatus = null;
-    if (serviceRoleKey) {
-      try {
-        const supabaseService = createClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false },
-        });
-        
-        const { data: rlsData, error: rlsError } = await supabaseService.rpc('exec_sql', {
-          sql: `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'raffles';`
-        }).catch(() => ({ data: null, error: { message: 'Cannot check RLS via RPC' } }));
-        
-        if (!rlsError && rlsData) {
-          rlsStatus = rlsData;
-        } else {
-          // Try direct query
-          const { data: directData } = await supabaseService
-            .from('pg_tables')
-            .select('tablename, rowsecurity')
-            .eq('tablename', 'raffles')
-            .single()
-            .catch(() => ({ data: null }));
-          
-          rlsStatus = directData || { note: 'Cannot query pg_tables directly' };
-        }
-      } catch (err: any) {
-        rlsStatus = { error: err.message };
-      }
-    }
+    // Check RLS status - simplified (can't query pg_tables directly via Supabase)
+    let rlsStatus = {
+      note: 'RLS status check requires direct SQL query in Supabase SQL Editor',
+      sqlToRun: 'SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = \'public\' AND tablename = \'raffles\';'
+    };
 
     return NextResponse.json({
       environment: envStatus,
