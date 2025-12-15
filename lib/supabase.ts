@@ -28,21 +28,19 @@ export const supabase = createClient(
 );
 
 // Server-side client for admin operations
-// Uses SERVICE ROLE KEY to bypass RLS policies
+// REQUIRES SERVICE ROLE KEY to bypass RLS policies
+// DO NOT use anon key - it will be blocked by RLS
 export const createServerClient = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
-  // Use SERVICE ROLE KEY for admin operations (bypasses RLS)
+  // Use SUPABASE_URL (not NEXT_PUBLIC_SUPABASE_URL) for server-side
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
+  
+  // REQUIRED: Use SERVICE ROLE KEY only (no fallback to anon key)
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-  const key = serviceRoleKey || anonKey || '';
   
-  if (!key) {
-    console.error('❌ SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY is not set');
-    throw new Error('Supabase credentials not configured');
-  }
-  
-  if (!serviceRoleKey && anonKey) {
-    console.warn('⚠️ Using anon key instead of service role key - RLS policies may block operations');
+  if (!serviceRoleKey) {
+    console.error('❌ SUPABASE_SERVICE_ROLE_KEY is REQUIRED for admin operations');
+    console.error('❌ Anon key cannot bypass RLS policies');
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required. Anon key will be blocked by RLS.');
   }
   
   if (!url) {
@@ -50,13 +48,13 @@ export const createServerClient = () => {
     throw new Error('Supabase URL not configured');
   }
   
-  console.log('✅ Creating Supabase client:', {
+  console.log('✅ Creating Supabase client with SERVICE ROLE KEY:', {
     url: url.substring(0, 30) + '...',
-    hasServiceRoleKey: !!serviceRoleKey,
-    hasAnonKey: !!anonKey,
+    hasServiceRoleKey: true,
   });
   
-  return createClient(url, key, {
+  // Create client with SERVICE ROLE KEY (bypasses all RLS policies)
+  return createClient(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

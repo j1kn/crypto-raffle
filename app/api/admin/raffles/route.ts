@@ -12,23 +12,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify Supabase credentials are set
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    // REQUIRED: Use SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (not NEXT_PUBLIC_ vars)
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     
     if (!supabaseUrl) {
       console.error('SUPABASE_URL environment variable is not set');
       return NextResponse.json({ error: 'Supabase URL not configured' }, { status: 500 });
     }
     
-    if (!serviceRoleKey && !anonKey) {
-      console.error('Neither SUPABASE_SERVICE_ROLE_KEY nor SUPABASE_ANON_KEY is set');
-      return NextResponse.json({ error: 'Supabase credentials not configured' }, { status: 500 });
-    }
-
     if (!serviceRoleKey) {
-      console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set, using anon key (may be blocked by RLS)');
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY is REQUIRED for admin operations');
+      console.error('❌ Anon key cannot bypass RLS policies');
+      return NextResponse.json({ 
+        error: 'SUPABASE_SERVICE_ROLE_KEY is required. Anon key will be blocked by RLS.' 
+      }, { status: 500 });
     }
+    
+    console.log('✅ Using SERVICE ROLE KEY for admin operation (bypasses RLS)');
 
     let body;
     try {
@@ -61,10 +62,11 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient();
 
     // Prepare raffle data with all required fields
-    const raffleData = {
+    // IMPORTANT: Remove undefined values - they trigger RLS failures
+    const raffleData: any = {
       title: body.title || '',
-      description: body.description || null,
-      image_url: body.image_url || null,
+      description: body.description !== undefined ? body.description : null,
+      image_url: body.image_url !== undefined ? body.image_url : null,
       prize_pool_amount: parseFloat(body.prize_pool_amount) || 0,
       prize_pool_symbol: body.prize_pool_symbol || 'ETH',
       ticket_price: parseFloat(body.ticket_price) || 0,
@@ -76,6 +78,23 @@ export async function POST(request: NextRequest) {
       ends_at: body.ends_at ? new Date(body.ends_at).toISOString() : new Date().toISOString(),
       created_by: null, // PIN-based admin
     };
+    
+    // Remove any undefined values (they cause RLS violations)
+    Object.keys(raffleData).forEach(key => {
+      if (raffleData[key] === undefined) {
+        console.warn(`⚠️ Removing undefined value for field: ${key}`);
+        delete raffleData[key];
+      }
+    });
+    
+    // Validate no critical fields are missing
+    if (!raffleData.title || !raffleData.receiving_address || !raffleData.ends_at) {
+      console.error('Critical fields missing after cleanup:', raffleData);
+      return NextResponse.json(
+        { error: 'Critical fields are missing or invalid' },
+        { status: 400 }
+      );
+    }
 
     console.log('Inserting raffle with data:', {
       ...raffleData,
