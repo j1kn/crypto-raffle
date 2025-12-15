@@ -42,19 +42,35 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, project: newProject, created: true });
       }
 
-      // Trigger deployment
-      const deployRes = await fetch('https://api.vercel.com/v13/deployments', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${VERCEL_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: project.name,
-          project: project.id,
-          target: 'production',
-        }),
-      });
+      // Trigger deployment by redeploying latest
+      // Since project is connected to GitHub, we can trigger a redeploy
+      const latestDeployment = project.latestDeployments?.[0];
+      
+      if (latestDeployment) {
+        // Redeploy existing deployment
+        const deployRes = await fetch(`https://api.vercel.com/v13/deployments/${latestDeployment.id}/redeploy`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${VERCEL_TOKEN}`,
+          },
+        });
+
+        const deployment = await deployRes.json();
+        
+        return NextResponse.json({
+          success: true,
+          deployment,
+          url: deployment.url || latestDeployment.url,
+          message: 'Redeployment triggered',
+        });
+      } else {
+        // No existing deployment, trigger new one via GitHub
+        return NextResponse.json({
+          success: true,
+          message: 'Project connected to GitHub. Push to main branch to deploy.',
+          url: `https://${project.name}.vercel.app`,
+        });
+      }
 
       const deployment = await deployRes.json();
       
