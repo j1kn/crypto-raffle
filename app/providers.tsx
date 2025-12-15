@@ -21,8 +21,6 @@ createWeb3Modal({
   projectId,
   wagmiConfig,
   enableAnalytics: true,
-  enableAccountView: true,
-  enableNetworkView: true,
   allWallets: 'SHOW', // Show all wallets
   themeMode: 'dark',
   themeVariables: {
