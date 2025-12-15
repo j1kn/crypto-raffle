@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering to avoid SSR issues with Wagmi
+export const dynamic = 'force-dynamic';
+
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -25,11 +28,22 @@ interface Raffle {
   starts_at: string | null;
 }
 
+interface Winner {
+  raffle_id: string;
+  raffle_title: string;
+  winner_wallet: string;
+  drawn_at: string;
+  prize_pool_amount: number;
+  prize_pool_symbol: string;
+}
+
 export default function HomePage() {
   const { open } = useWeb3Modal();
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const [heroRaffle, setHeroRaffle] = useState<Raffle | null>(null);
   const [raffles, setRaffles] = useState<Raffle[]>([]);
+  const [recentWinners, setRecentWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,23 +53,59 @@ export default function HomePage() {
   }, [isConnected, address, router]);
 
   useEffect(() => {
-    fetchRaffles();
+    const loadData = async () => {
+      await fetchHeroRaffle();
+      await fetchRaffles();
+      await fetchRecentWinners();
+    };
+    loadData();
   }, []);
 
-  const fetchRaffles = async () => {
+  useEffect(() => {
+    // Refetch raffles when hero raffle changes to exclude it
+    if (heroRaffle) {
+      fetchRaffles();
+    }
+  }, [heroRaffle]);
+
+  const fetchHeroRaffle = async () => {
     try {
-      // Fetch live raffles from public_raffles view
+      // Fetch the most recent live raffle as hero
       const { data, error } = await supabase
         .from('public_raffles')
         .select('*')
         .eq('status', 'live')
         .order('created_at', { ascending: false })
-        .limit(3); // Show only 3 raffles on home page
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        setHeroRaffle(data);
+      }
+    } catch (error) {
+      console.error('Error fetching hero raffle:', error);
+    }
+  };
+
+  const fetchRaffles = async () => {
+    try {
+      // Fetch live raffles from public_raffles view (skip hero raffle)
+      const { data, error } = await supabase
+        .from('public_raffles')
+        .select('*')
+        .eq('status', 'live')
+        .order('created_at', { ascending: false })
+        .limit(7); // Fetch 7 to account for hero raffle exclusion
 
       if (error) {
         console.error('Error fetching raffles:', error);
       } else {
-        setRaffles(data || []);
+        // Exclude hero raffle from the list
+        const heroId = heroRaffle?.id;
+        const filteredRaffles = heroId 
+          ? (data || []).filter(r => r.id !== heroId).slice(0, 6)
+          : (data || []).slice(0, 6);
+        setRaffles(filteredRaffles);
       }
     } catch (error) {
       console.error('Error fetching raffles:', error);
@@ -64,12 +114,116 @@ export default function HomePage() {
     }
   };
 
+  const fetchRecentWinners = async () => {
+    try {
+      // Fetch recent winners
+      const { data, error } = await supabase
+        .from('raffles')
+        .select(`
+          id,
+          title,
+          winner_user_id,
+          winner_drawn_at,
+          prize_pool_amount,
+          prize_pool_symbol,
+          users!winner_user_id (
+            wallet_address
+          )
+        `)
+        .not('winner_user_id', 'is', null)
+        .eq('status', 'completed')
+        .order('winner_drawn_at', { ascending: false })
+        .limit(6);
+
+      if (error) throw error;
+
+      const winnersList: Winner[] = (data || [])
+        .filter((raffle: any) => raffle.users)
+        .map((raffle: any) => ({
+          raffle_id: raffle.id,
+          raffle_title: raffle.title,
+          winner_wallet: raffle.users.wallet_address,
+          drawn_at: raffle.winner_drawn_at,
+          prize_pool_amount: raffle.prize_pool_amount,
+          prize_pool_symbol: raffle.prize_pool_symbol,
+        }));
+
+      setRecentWinners(winnersList);
+    } catch (error) {
+      console.error('Error fetching recent winners:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 px-4">
+      {/* Hero Raffle Section */}
+      {heroRaffle && (
+        <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-12 px-4">
+          <div className="container mx-auto">
+            <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                {/* Image */}
+                {heroRaffle.image_url && (
+                  <div className="relative h-64 lg:h-full min-h-[300px] bg-primary-darker">
+                    <img
+                      src={heroRaffle.image_url}
+                      alt={heroRaffle.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/80 to-transparent"></div>
+                  </div>
+                )}
+                
+                {/* Content */}
+                <div className="p-8 lg:p-12 flex flex-col justify-center">
+                  <div className="mb-4">
+                    <span className="bg-primary-green text-primary-darker px-3 py-1 rounded-full text-xs font-bold">
+                      FEATURED RAFFLE
+                    </span>
+                  </div>
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+                    {heroRaffle.title}
+                  </h1>
+                  <div className="flex items-center gap-6 mb-6">
+                    <div>
+                      <p className="text-gray-400 text-sm mb-1">Prize Pool</p>
+                      <p className="text-2xl font-bold text-primary-green">
+                        {heroRaffle.prize_pool_symbol} {heroRaffle.prize_pool_amount.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm mb-1">Entry Price</p>
+                      <p className="text-xl font-bold text-white">
+                        {heroRaffle.prize_pool_symbol} {heroRaffle.ticket_price}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Link
+                      href={`/raffles/${heroRaffle.id}`}
+                      className="bg-primary-green text-primary-darker px-8 py-4 rounded font-bold text-lg hover:bg-primary-green/90 transition-colors inline-flex items-center justify-center gap-2"
+                    >
+                      ENTER NOW
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
+                    <button
+                      onClick={() => open()}
+                      className="bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors inline-flex items-center justify-center gap-2"
+                    >
+                      CONNECT WALLET
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Title Section */}
+      <section className="relative bg-gradient-to-b from-primary-dark to-primary-dark py-12 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">
             TOURNAMENT
@@ -77,23 +231,7 @@ export default function HomePage() {
           <p className="text-gray-400 text-lg mb-8">
             HOME • TOURNAMENT
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/raffles"
-              className="bg-primary-green text-primary-darker px-8 py-4 rounded font-bold text-lg hover:bg-primary-green/90 transition-colors inline-flex items-center justify-center gap-2"
-            >
-              VIEW LIVE RAFFLES
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <button
-              onClick={() => open()}
-              className="bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors inline-flex items-center justify-center gap-2"
-            >
-              CONNECT WALLET
-            </button>
-          </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-primary-dark to-transparent"></div>
       </section>
 
       {/* Play to Earn Games Section - Now Shows Live Raffles */}
@@ -117,7 +255,7 @@ export default function HomePage() {
               <p className="text-sm">Check back soon for new tournaments!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {raffles.map((raffle, index) => {
                 // Alternate badge colors for visual variety
                 const badgeColor = index === 1 ? 'orange' : 'green';
@@ -154,6 +292,80 @@ export default function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Recent Winners Section */}
+      {recentWinners.length > 0 && (
+        <section className="py-20 px-4 bg-primary-darker">
+          <div className="container mx-auto">
+            <div className="text-center mb-12">
+              <p className="text-primary-orange text-sm font-semibold mb-2">RECENT WINNERS</p>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                CELEBRATING OUR CHAMPIONS
+              </h2>
+              <div className="w-24 h-1 bg-primary-orange mx-auto"></div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentWinners.slice(0, 6).map((winner, index) => (
+                <div
+                  key={winner.raffle_id}
+                  className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 hover:border-primary-orange transition-all"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      index === 0 
+                        ? 'bg-primary-orange text-white' 
+                        : 'bg-primary-green/20 text-primary-green'
+                    }`}>
+                      <span className="font-bold">{index + 1}</span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Winner #{index + 1}</p>
+                      <p className="text-sm font-semibold text-white">Champion</p>
+                    </div>
+                  </div>
+
+                  <h3 className="text-white font-bold text-lg mb-3 line-clamp-2">
+                    {winner.raffle_title}
+                  </h3>
+
+                  <div className="bg-primary-darker rounded-lg p-3 mb-3">
+                    <p className="text-gray-400 text-xs mb-1">Winner Address</p>
+                    <p className="text-primary-green font-mono text-xs break-all">
+                      {winner.winner_wallet.slice(0, 6)}...{winner.winner_wallet.slice(-4)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-400 text-xs mb-1">Prize Won</p>
+                      <p className="text-primary-orange font-bold">
+                        {winner.prize_pool_symbol} {winner.prize_pool_amount.toLocaleString()}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/raffles/${winner.raffle_id}`}
+                      className="text-primary-green hover:text-primary-green/80 text-sm"
+                    >
+                      View →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-12">
+              <Link
+                href="/winners"
+                className="inline-flex items-center gap-2 text-primary-orange hover:text-primary-orange/80 font-semibold transition-colors"
+              >
+                View All Winners
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <Footer />
     </div>

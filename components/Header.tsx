@@ -61,9 +61,7 @@ export default function Header() {
     { href: '/', label: 'HOME' },
     { href: '/about', label: 'ABOUT US' },
     { href: '/raffles', label: 'TOURNAMENT' },
-    { href: '/pages', label: 'PAGES' },
-    { href: '/news', label: 'NEWS' },
-    { href: '/contact', label: 'CONTACT' },
+    { href: '/winners', label: 'WINNERS' },
   ];
 
   return (

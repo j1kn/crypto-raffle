@@ -7,7 +7,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
-import { useAccount } from 'wagmi';
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
 
 interface Raffle {
@@ -22,6 +23,7 @@ interface Raffle {
   status: string;
   ends_at: string;
   starts_at: string | null;
+  receiving_address?: string | null;
   winner_user_id?: string | null;
   winner_drawn_at?: string | null;
 }
@@ -50,7 +52,13 @@ export default function RaffleDetailPage() {
   const [winner, setWinner] = useState<Winner | null>(null);
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
+  
+  // Payment transaction
+  const { data: hash, sendTransaction, isPending: isSending, error: sendError } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   useEffect(() => {
     if (params.id) {
@@ -85,25 +93,15 @@ export default function RaffleDetailPage() {
 
   const fetchRaffle = async () => {
     try {
-      // Try to get from public_raffles first (for live raffles)
-      let { data, error } = await supabase
-        .from('public_raffles')
+      // For payment, we need receiving_address, so fetch from raffles table directly
+      // This requires RLS to allow reading raffles (which should be allowed for public)
+      const { data, error } = await supabase
+        .from('raffles')
         .select('*')
         .eq('id', params.id)
         .single();
 
-      // If not found, try raffles table (for completed raffles)
-      if (error || !data) {
-        const { data: raffleData, error: raffleError } = await supabase
-          .from('raffles')
-          .select('*')
-          .eq('id', params.id)
-          .single();
-        
-        if (raffleError) throw raffleError;
-        data = raffleData;
-      }
-
+      if (error) throw error;
       setRaffle(data);
     } catch (error) {
       console.error('Error fetching raffle:', error);
@@ -249,8 +247,51 @@ export default function RaffleDetailPage() {
       return;
     }
 
+    // Check if receiving address is set
+    if (!raffle.receiving_address) {
+      alert('Raffle receiving address not configured. Please contact support.');
+      return;
+    }
+
     setEntering(true);
+    
     try {
+      // Convert ticket price to wei (assuming ETH/ETH-based chains)
+      const ticketPriceWei = parseEther(raffle.ticket_price.toString());
+      
+      // Send payment transaction
+      sendTransaction({
+        to: raffle.receiving_address as `0x${string}`,
+        value: ticketPriceWei,
+      });
+    } catch (error: any) {
+      console.error('Error initiating payment:', error);
+      alert(error.message || 'Failed to initiate payment');
+      setEntering(false);
+    }
+  };
+
+  // Handle successful payment confirmation
+  useEffect(() => {
+    if (isConfirmed && hash && raffle) {
+      handlePaymentSuccess();
+    }
+  }, [isConfirmed, hash]);
+
+  // Handle payment errors
+  useEffect(() => {
+    if (sendError) {
+      console.error('Payment error:', sendError);
+      alert(sendError.message || 'Payment failed. Please try again.');
+      setEntering(false);
+    }
+  }, [sendError]);
+
+  const handlePaymentSuccess = async () => {
+    if (!raffle || !address) return;
+
+    try {
+      // Create/update user
       const { data: userData, error: userError } = await supabase
         .from('users')
         .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
@@ -259,6 +300,7 @@ export default function RaffleDetailPage() {
 
       if (userError) throw userError;
 
+      // Create raffle entry
       const { error: entryError } = await supabase
         .from('raffle_entries')
         .insert({
@@ -274,14 +316,14 @@ export default function RaffleDetailPage() {
           throw entryError;
         }
       } else {
-        alert('Successfully entered the raffle! Your ticket is now in your profile.');
+        alert('Payment successful! You have entered the raffle. Your ticket is now in your profile.');
         fetchEntryCount();
         fetchEntries();
         fetchUserEntry();
       }
     } catch (error: any) {
-      console.error('Error entering raffle:', error);
-      alert(error.message || 'Failed to enter raffle');
+      console.error('Error creating entry after payment:', error);
+      alert('Payment successful but failed to create entry. Please contact support with your transaction hash: ' + hash);
     } finally {
       setEntering(false);
     }
@@ -479,21 +521,25 @@ export default function RaffleDetailPage() {
                 {!isRaffleEnded && (
                   <button
                     onClick={handleEnterRaffle}
-                    disabled={entering || userEntry !== null}
+                    disabled={entering || userEntry !== null || isSending || isConfirming}
                     className={`w-full py-4 rounded font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
-                      userEntry
+                      userEntry || isSending || isConfirming
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                         : 'bg-primary-green text-primary-darker hover:bg-primary-green/90'
                     }`}
                   >
-                    {entering ? (
+                    {isSending ? (
+                      'Confirming Payment...'
+                    ) : isConfirming ? (
+                      'Processing Entry...'
+                    ) : entering ? (
                       'Entering...'
                     ) : userEntry ? (
                       'Already Entered'
                     ) : (
                       <>
                         <Play className="w-5 h-5" />
-                        ENTER NOW
+                        ENTER NOW - {raffle.prize_pool_symbol} {raffle.ticket_price}
                       </>
                     )}
                   </button>
