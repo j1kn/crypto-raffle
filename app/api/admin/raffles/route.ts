@@ -7,10 +7,36 @@ export async function POST(request: NextRequest) {
     // Verify admin PIN is configured
     const adminPin = process.env.ADMIN_PIN;
     if (!adminPin) {
+      console.error('ADMIN_PIN environment variable is not set');
       return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
-    const body = await request.json();
+    // Verify Supabase credentials are set
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl) {
+      console.error('SUPABASE_URL environment variable is not set');
+      return NextResponse.json({ error: 'Supabase URL not configured' }, { status: 500 });
+    }
+    
+    if (!serviceRoleKey && !anonKey) {
+      console.error('Neither SUPABASE_SERVICE_ROLE_KEY nor SUPABASE_ANON_KEY is set');
+      return NextResponse.json({ error: 'Supabase credentials not configured' }, { status: 500 });
+    }
+
+    if (!serviceRoleKey) {
+      console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set, using anon key (may be blocked by RLS)');
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError: any) {
+      console.error('Failed to parse request body:', jsonError);
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
     
     // Debug logging
     console.log('Creating raffle with data:', {

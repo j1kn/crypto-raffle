@@ -163,19 +163,39 @@ export default function NewRafflePage() {
       });
 
       // Create raffle via API route (bypasses RLS)
-      const response = await fetch('/api/admin/raffles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      let response: Response;
+      let responseData: any;
+      
+      try {
+        response = await fetch('/api/admin/raffles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+      } catch (fetchError: any) {
+        console.error('Network error during fetch:', fetchError);
+        throw new Error(`Network error: ${fetchError.message || 'Failed to connect to server'}`);
+      }
 
-      const responseData = await response.json();
+      // Try to parse response as JSON
+      try {
+        responseData = await response.json();
+      } catch (jsonError) {
+        console.error('Failed to parse response as JSON:', jsonError);
+        const textResponse = await response.text();
+        console.error('Response text:', textResponse);
+        throw new Error(`Server returned invalid response: ${textResponse.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
-        console.error('API Error Response:', responseData);
-        throw new Error(responseData.error || `Failed to create raffle (${response.status})`);
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData,
+        });
+        throw new Error(responseData?.error || `Failed to create raffle (${response.status} ${response.statusText})`);
       }
 
       if (responseData.success) {
@@ -185,8 +205,12 @@ export default function NewRafflePage() {
         throw new Error(responseData.error || 'Failed to create raffle');
       }
     } catch (error: any) {
-      console.error('Error creating raffle:', error);
-      alert(error.message || 'Failed to create raffle. Please check console for details.');
+      console.error('❌ Error creating raffle:', error);
+      console.error('Error stack:', error.stack);
+      
+      // Show detailed error message
+      const errorMessage = error.message || 'Failed to create raffle. Please check console for details.';
+      alert(`Error: ${errorMessage}\n\nCheck browser console and Vercel logs for more details.`);
     } finally {
       setSubmitting(false);
     }
