@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 // POST - Create new raffle (PIN-based admin)
 export async function POST(request: NextRequest) {
@@ -59,18 +59,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Supabase client with service role key
-    let supabase;
-    try {
-      supabase = createServerClient();
-      console.log('✅ Supabase client created, attempting insert...');
-    } catch (clientError: any) {
-      console.error('❌ Failed to create Supabase client:', clientError);
+    // Create Supabase client DIRECTLY with service role key (bypasses RLS)
+    // DO NOT use createServerClient() - create directly to ensure service role key is used
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceRoleKey) {
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY is MISSING in environment variables');
       return NextResponse.json(
-        { error: `Failed to initialize database connection: ${clientError.message}` },
+        { error: 'SUPABASE_SERVICE_ROLE_KEY is required. Please add it to Vercel environment variables.' },
         { status: 500 }
       );
     }
+    
+    if (!supabaseUrl) {
+      console.error('❌ SUPABASE_URL is MISSING');
+      return NextResponse.json(
+        { error: 'Supabase URL not configured' },
+        { status: 500 }
+      );
+    }
+    
+    console.log('🔑 Creating Supabase client with SERVICE ROLE KEY directly...');
+    console.log('🔑 URL:', supabaseUrl);
+    console.log('🔑 Service Role Key exists:', !!serviceRoleKey);
+    console.log('🔑 Service Role Key length:', serviceRoleKey.length);
+    
+    // Create client DIRECTLY with service role key - this MUST bypass RLS
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+    
+    console.log('✅ Supabase client created directly with service role key');
 
     // Prepare raffle data with all required fields
     // IMPORTANT: Remove undefined values - they trigger RLS failures
@@ -114,8 +137,12 @@ export async function POST(request: NextRequest) {
 
     // Create raffle using SERVICE ROLE KEY (bypasses RLS)
     console.log('📝 Attempting to insert raffle into database...');
-    console.log('📝 Using service role key (should bypass RLS)');
+    console.log('📝 Data being inserted:', {
+      ...raffleData,
+      receiving_address: '***',
+    });
     
+    // Insert with service role key - this MUST bypass RLS
     const { data, error } = await supabase
       .from('raffles')
       .insert(raffleData)
@@ -124,26 +151,35 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('❌ Supabase insert error:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error details:', error.details);
+      console.error('❌ Error hint:', error.hint);
       
       // Check if it's an RLS error
-      if (error.message?.includes('row-level security') || error.message?.includes('RLS') || error.code === '42501') {
-        console.error('🚨 RLS POLICY VIOLATION DETECTED!');
-        console.error('🚨 This means the service role key is NOT being used correctly');
-        console.error('🚨 Check:');
-        console.error('   1. Is SUPABASE_SERVICE_ROLE_KEY set in Vercel?');
-        console.error('   2. Is it the correct service_role key (not anon key)?');
-        console.error('   3. Has the project been redeployed after adding the key?');
+      const isRLSError = error.message?.includes('row-level security') || 
+                        error.message?.includes('RLS') || 
+                        error.code === '42501' ||
+                        error.message?.includes('violates row-level security');
+      
+      if (isRLSError) {
+        console.error('🚨🚨🚨 RLS POLICY VIOLATION DETECTED! 🚨🚨🚨');
+        console.error('🚨 Service role key is NOT bypassing RLS!');
+        console.error('🚨 This means either:');
+        console.error('   1. SUPABASE_SERVICE_ROLE_KEY is not set in Vercel');
+        console.error('   2. SUPABASE_SERVICE_ROLE_KEY is wrong (using anon key instead)');
+        console.error('   3. Project was not redeployed after adding the key');
+        console.error('   4. RLS needs to be disabled temporarily');
+        console.error('');
+        console.error('🔧 SOLUTION: Run this SQL in Supabase to disable RLS:');
+        console.error('   ALTER TABLE raffles DISABLE ROW LEVEL SECURITY;');
+        
         return NextResponse.json(
           { 
-            error: 'RLS Policy Violation: Service role key may not be configured correctly. Check Vercel logs for details.',
+            error: 'RLS Policy Violation: The service role key is not bypassing RLS. Please run this SQL in Supabase: ALTER TABLE raffles DISABLE ROW LEVEL SECURITY;',
             details: error.message,
             code: error.code,
+            solution: 'Disable RLS temporarily by running: ALTER TABLE raffles DISABLE ROW LEVEL SECURITY; in Supabase SQL Editor',
           },
           { status: 500 }
         );
