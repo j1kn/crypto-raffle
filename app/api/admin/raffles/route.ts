@@ -61,23 +61,6 @@ export async function POST(request: NextRequest) {
 
     // Create Supabase client DIRECTLY with service role key (bypasses RLS)
     // DO NOT use createServerClient() - create directly to ensure service role key is used
-    
-    if (!serviceRoleKey) {
-      console.error('❌ SUPABASE_SERVICE_ROLE_KEY is MISSING in environment variables');
-      return NextResponse.json(
-        { error: 'SUPABASE_SERVICE_ROLE_KEY is required. Please add it to Vercel environment variables.' },
-        { status: 500 }
-      );
-    }
-    
-    if (!supabaseUrl) {
-      console.error('❌ SUPABASE_URL is MISSING');
-      return NextResponse.json(
-        { error: 'Supabase URL not configured' },
-        { status: 500 }
-      );
-    }
-    
     console.log('🔑 Creating Supabase client with SERVICE ROLE KEY directly...');
     console.log('🔑 URL:', supabaseUrl);
     console.log('🔑 Service Role Key exists:', !!serviceRoleKey);
