@@ -23,13 +23,18 @@ export async function POST(request: NextRequest) {
       case 'query':
         if (sql) {
           // Execute raw SQL
-          const { data: result, error } = await supabase.rpc('exec_sql', { sql }).catch(() => {
-            // If RPC doesn't exist, try direct query
-            return { data: null, error: { message: 'SQL execution not available via RPC' } };
-          });
-          
-          if (error) throw error;
-          return NextResponse.json({ success: true, data: result });
+          try {
+            const { data: result, error } = await supabase.rpc('exec_sql', { sql });
+            
+            if (error) throw error;
+            return NextResponse.json({ success: true, data: result });
+          } catch (rpcError: any) {
+            // If RPC doesn't exist or fails, return error
+            return NextResponse.json({ 
+              success: false, 
+              error: rpcError.message || 'SQL execution not available via RPC' 
+            }, { status: 500 });
+          }
         } else if (table) {
           // Query table
           let query = supabase.from(table).select('*');

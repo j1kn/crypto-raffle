@@ -71,14 +71,6 @@ export async function POST(request: NextRequest) {
           url: `https://${project.name}.vercel.app`,
         });
       }
-
-      const deployment = await deployRes.json();
-      
-      return NextResponse.json({
-        success: true,
-        deployment,
-        url: deployment.url || `https://${project.name}.vercel.app`,
-      });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
