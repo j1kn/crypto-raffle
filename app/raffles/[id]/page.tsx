@@ -11,6 +11,7 @@ import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
 
@@ -266,7 +267,6 @@ export default function RaffleDetailPage() {
     if (!address) {
       const connect = confirm('Please connect your wallet to enter the raffle.\n\nClick OK to open wallet connection.');
       if (connect) {
-        const { open } = await import('@web3modal/wagmi/react');
         open();
       }
       return;
