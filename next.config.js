@@ -12,7 +12,7 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // Ignore all optional connector dependencies that aren't installed
     const optionalDeps = [
       'porto/internal',
@@ -34,10 +34,24 @@ const nextConfig = {
       }, {}),
     };
     
+    // Fix for indexedDB during SSR
+    if (isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    
     return config;
   },
-  // Netlify plugin handles the build output
-  // Don't use 'standalone' output for Netlify
+  // Disable static optimization for pages using Web3Modal
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
 };
 
 module.exports = nextConfig;

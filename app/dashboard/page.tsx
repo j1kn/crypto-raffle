@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering to avoid SSR issues with Wagmi
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';

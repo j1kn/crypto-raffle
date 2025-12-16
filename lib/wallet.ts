@@ -20,18 +20,26 @@ const chains = [mainnet, polygon, base] as const;
 
 // Create Wagmi config using defaultWagmiConfig
 // Configured to show ALL wallets from WalletConnect Explorer
-export const wagmiConfig = defaultWagmiConfig({
-  projectId,
-  metadata,
-  chains,
-  // Enable all wallet types
-  enableEIP6963: true, // Enable EIP-6963 wallet discovery (browser extensions)
-  enableInjected: true, // Enable injected wallets (MetaMask, etc.)
-  enableCoinbase: true, // Enable Coinbase Wallet
-  ssr: false, // Disable SSR for wallet connections
-});
+// Only initialize on client side to avoid SSR issues
+let wagmiConfigInstance: ReturnType<typeof defaultWagmiConfig> | null = null;
 
-// Debug logging (remove in production if not needed)
+function createWagmiConfig() {
+  return defaultWagmiConfig({
+    projectId,
+    metadata,
+    chains,
+    // Enable all wallet types
+    enableEIP6963: true, // Enable EIP-6963 wallet discovery (browser extensions)
+    enableInjected: true, // Enable injected wallets (MetaMask, etc.)
+    enableCoinbase: true, // Enable Coinbase Wallet
+    ssr: false, // Disable SSR for wallet connections
+  });
+}
+
+// Export wagmiConfig - create config (Wagmi handles SSR internally)
+export const wagmiConfig = wagmiConfigInstance || (wagmiConfigInstance = createWagmiConfig());
+
+// Debug logging (only on client side)
 if (typeof window !== 'undefined') {
   console.log('WalletConnect Project ID:', projectId);
   console.log('Wagmi Config:', { projectId, chains: chains.map(c => c.name), metadata });
