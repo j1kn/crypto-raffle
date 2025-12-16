@@ -46,11 +46,8 @@ export default function HomePage() {
   const [recentWinners, setRecentWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isConnected && address) {
-      router.push('/dashboard');
-    }
-  }, [isConnected, address, router]);
+  // Removed auto-redirect - let users browse raffles even when connected
+  // They can access dashboard via header button
 
   useEffect(() => {
     const loadData = async () => {
@@ -120,6 +117,26 @@ export default function HomePage() {
     }
   };
 
+  const convertGoogleDriveUrl = (url: string | null): string | null => {
+    if (!url) return null;
+    
+    // Check if it's a Google Drive URL
+    if (url.includes('drive.google.com')) {
+      // Convert Google Drive share link to direct image URL
+      const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch) {
+        return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+      }
+      // Try alternative format
+      const altMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (altMatch) {
+        return `https://drive.google.com/uc?export=view&id=${altMatch[1]}`;
+      }
+    }
+    
+    return url;
+  };
+
   const fetchRecentWinners = async () => {
     try {
       // Fetch recent winners
@@ -174,7 +191,7 @@ export default function HomePage() {
                 {heroRaffle.image_url && (
                   <div className="relative h-64 lg:h-full min-h-[300px] bg-primary-darker">
                     <img
-                      src={heroRaffle.image_url}
+                      src={convertGoogleDriveUrl(heroRaffle.image_url) || heroRaffle.image_url}
                       alt={heroRaffle.title}
                       className="w-full h-full object-cover"
                     />

@@ -181,6 +181,26 @@ export default function RaffleDetailPage() {
     }
   };
 
+  const convertGoogleDriveUrl = (url: string | null): string | null => {
+    if (!url) return null;
+    
+    // Check if it's a Google Drive URL
+    if (url.includes('drive.google.com')) {
+      // Convert Google Drive share link to direct image URL
+      const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch) {
+        return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+      }
+      // Try alternative format
+      const altMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (altMatch) {
+        return `https://drive.google.com/uc?export=view&id=${altMatch[1]}`;
+      }
+    }
+    
+    return url;
+  };
+
   const fetchUserEntry = async () => {
     if (!raffle || !address) return;
     try {
@@ -244,17 +264,16 @@ export default function RaffleDetailPage() {
 
     // Enhanced wallet connection check
     if (!address) {
-      alert('Please connect your wallet to enter the raffle. Click "CONNECT WALLET" button.');
+      const connect = confirm('Please connect your wallet to enter the raffle.\n\nClick OK to open wallet connection.');
+      if (connect) {
+        const { open } = await import('@web3modal/wagmi/react');
+        open();
+      }
       return;
     }
 
-    if (!isConnected) {
-      console.warn('Address exists but isConnected is false. This may be a connection state issue.');
-      // Still allow if address exists
-    }
-
     if (userEntry) {
-      alert('You have already entered this raffle!');
+      alert('You have already entered this raffle! Check your dashboard to see your ticket.');
       return;
     }
 
@@ -262,13 +281,32 @@ export default function RaffleDetailPage() {
     const now = new Date();
     const endsAt = new Date(raffle.ends_at);
     if (endsAt <= now) {
-      alert('This raffle has ended!');
+      alert('This raffle has ended! Check the Ended Raffles page.');
+      router.push('/ended');
+      return;
+    }
+
+    // Check if raffle is full
+    if (entryCount >= raffle.max_tickets) {
+      alert('This raffle is full! All tickets have been sold.');
       return;
     }
 
     // Check if receiving address is set
     if (!raffle.receiving_address) {
       alert('Raffle receiving address not configured. Please contact support.');
+      return;
+    }
+
+    // Confirm purchase
+    const confirmPurchase = confirm(
+      `Enter Raffle: ${raffle.title}\n\n` +
+      `Entry Price: ${raffle.prize_pool_symbol} ${raffle.ticket_price}\n` +
+      `Prize Pool: ${raffle.prize_pool_symbol} ${raffle.prize_pool_amount.toLocaleString()}\n\n` +
+      `Click OK to proceed with payment.`
+    );
+
+    if (!confirmPurchase) {
       return;
     }
 
@@ -285,7 +323,7 @@ export default function RaffleDetailPage() {
       });
     } catch (error: any) {
       console.error('Error initiating payment:', error);
-      alert(error.message || 'Failed to initiate payment');
+      alert(error.message || 'Failed to initiate payment. Please try again.');
       setEntering(false);
     }
   };
@@ -383,10 +421,11 @@ export default function RaffleDetailPage() {
         {raffle.image_url && (
           <div className="relative w-full h-64 md:h-96 bg-primary-darker">
             <Image
-              src={raffle.image_url}
+              src={convertGoogleDriveUrl(raffle.image_url) || raffle.image_url}
               alt={raffle.title}
               fill
               className="object-cover"
+              unoptimized
             />
             <div className="absolute inset-0 bg-gradient-to-t from-primary-dark to-transparent"></div>
           </div>

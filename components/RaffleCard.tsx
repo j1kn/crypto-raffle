@@ -30,6 +30,28 @@ export default function RaffleCard({
   prizePlaces,
   badgeColor = 'green',
 }: RaffleCardProps) {
+  const convertGoogleDriveUrl = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    
+    // Check if it's a Google Drive URL
+    if (url.includes('drive.google.com')) {
+      // Convert Google Drive share link to direct image URL
+      const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch) {
+        return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+      }
+      // Try alternative format
+      const altMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (altMatch) {
+        return `https://drive.google.com/uc?export=view&id=${altMatch[1]}`;
+      }
+    }
+    
+    return url;
+  };
+
+  const finalImageUrl = convertGoogleDriveUrl(imageUrl);
+
   return (
     <Link href={`/raffles/${id}`}>
       <div className="bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20">
@@ -49,13 +71,14 @@ export default function RaffleCard({
         </div>
 
         {/* Image */}
-        {imageUrl && (
+        {finalImageUrl && (
           <div className="relative w-full h-48 bg-primary-darker">
             <Image
-              src={imageUrl}
+              src={finalImageUrl}
               alt={title}
               fill
               className="object-cover"
+              unoptimized
             />
           </div>
         )}

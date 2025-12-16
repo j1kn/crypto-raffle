@@ -44,11 +44,12 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!isConnected) {
-      // Don't auto-redirect, just show connect modal
-      open();
+    if (!isConnected && !address) {
+      // Only show modal if not connected and no address
+      // Don't auto-open to prevent getting stuck
+      // User can manually click connect
     }
-  }, [isConnected, open]);
+  }, [isConnected, address]);
 
   useEffect(() => {
     if (address) {

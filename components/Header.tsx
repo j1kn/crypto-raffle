@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { open } = useWeb3Modal();
   const { address, isConnected, connector } = useAccount();
   const { disconnect } = useDisconnect();
@@ -57,12 +58,21 @@ export default function Header() {
     open();
   };
 
-  const handleDisconnect = () => {
-    disconnect();
-    setIsAdmin(false);
-    // Redirect to home after disconnect
-    if (typeof window !== 'undefined') {
-      window.location.href = '/';
+  const handleDisconnect = async () => {
+    try {
+      await disconnect();
+      setIsAdmin(false);
+      // Use Next.js router for smooth navigation
+      if (pathname !== '/') {
+        router.push('/');
+      } else {
+        // If already on home, just refresh the page state
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      // Force redirect if disconnect fails
+      router.push('/');
     }
   };
 
@@ -70,6 +80,7 @@ export default function Header() {
     { href: '/', label: 'HOME' },
     { href: '/about', label: 'ABOUT US' },
     { href: '/raffles', label: 'TOURNAMENT' },
+    { href: '/ended', label: 'ENDED' },
     { href: '/winners', label: 'WINNERS' },
   ];
 
