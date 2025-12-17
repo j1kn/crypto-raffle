@@ -49,6 +49,7 @@ interface Winner {
 export default function RaffleDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { open } = useWeb3Modal();
   const [raffle, setRaffle] = useState<Raffle | null>(null);
   const [entryCount, setEntryCount] = useState(0);
   const [userEntry, setUserEntry] = useState<any>(null);
