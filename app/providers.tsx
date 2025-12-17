@@ -51,7 +51,7 @@ try {
     console.log('[Web3Modal] Env var available:', !!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);
     console.log('[Web3Modal] Configuration:', {
       allWallets: 'SHOW',
-      enableAnalytics: true,
+      enableAnalytics: false, // Disabled to prevent 403 errors
       themeMode: 'dark',
       currentURL: window.location.href,
     });
