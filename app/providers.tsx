@@ -32,8 +32,6 @@ try {
     themeMode: 'dark',
     themeVariables: {
       '--w3m-accent': '#00ff88', // Primary green
-      '--w3m-background-color': '#0a0a0a',
-      '--w3m-container-border-radius': '12px',
     },
     // Metadata for WalletConnect
     metadata: {
