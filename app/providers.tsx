@@ -30,8 +30,27 @@ try {
   // Debug logging (client-side only)
   if (typeof window !== 'undefined') {
     console.log('[Web3Modal] Project ID:', projectId);
+    console.log('[Web3Modal] Project ID length:', projectId.length);
+    console.log('[Web3Modal] Expected length: 32');
     console.log('[Web3Modal] Env var available:', !!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);
     console.log('[Web3Modal] Initialized successfully with allWallets: SHOW');
+    console.log('[Web3Modal] Current URL:', window.location.href);
+    console.log('[Web3Modal] Wagmi Config:', { projectId, chains: wagmiConfig.chains?.map((c: any) => c.name) });
+    
+    // Check if WalletConnect Explorer API is accessible
+    fetch('https://explorer-api.walletconnect.com/v3/wallets?projectId=' + projectId)
+      .then(res => res.json())
+      .then(data => {
+        console.log('[Web3Modal] Explorer API Response:', {
+          count: data?.count || data?.length || 0,
+          hasWallets: !!(data?.count || data?.length),
+          sample: data?.slice?.(0, 3) || 'N/A'
+        });
+      })
+      .catch(err => {
+        console.error('[Web3Modal] Explorer API Error:', err);
+        console.error('[Web3Modal] This might indicate a CORS or network issue');
+      });
   }
 } catch (error) {
   // Silently fail during SSR - will be initialized on client
