@@ -331,10 +331,10 @@ export default function RaffleDetailPage() {
 
   // Handle successful payment confirmation
   useEffect(() => {
-    if (isConfirmed && hash && raffle) {
+    if (isConfirmed && hash && raffle && address) {
       handlePaymentSuccess();
     }
-  }, [isConfirmed, hash]);
+  }, [isConfirmed, hash, raffle, address]);
 
   // Handle payment errors
   useEffect(() => {
@@ -346,7 +346,7 @@ export default function RaffleDetailPage() {
   }, [sendError]);
 
   const handlePaymentSuccess = async () => {
-    if (!raffle || !address) return;
+    if (!raffle || !address || !hash) return;
 
     try {
       // Create/update user
@@ -358,17 +358,30 @@ export default function RaffleDetailPage() {
 
       if (userError) throw userError;
 
-      // Create raffle entry
-      const { error: entryError } = await supabase
+      // Create raffle entry with transaction hash
+      const { data: entryData, error: entryError } = await supabase
         .from('raffle_entries')
         .insert({
           raffle_id: raffle.id,
           user_id: userData.id,
-        });
+          tx_hash: hash, // Save transaction hash
+        })
+        .select()
+        .single();
 
       if (entryError) {
         if (entryError.code === '23505') {
-          alert('You have already entered this raffle!');
+          // User already entered - update with tx hash
+          const { error: updateError } = await supabase
+            .from('raffle_entries')
+            .update({ tx_hash: hash })
+            .eq('raffle_id', raffle.id)
+            .eq('user_id', userData.id);
+          
+          if (updateError) {
+            console.error('Error updating entry:', updateError);
+          }
+          alert('You have already entered this raffle! Transaction hash updated.');
           fetchUserEntry();
         } else {
           throw entryError;

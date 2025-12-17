@@ -44,16 +44,20 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!isConnected && !address) {
-      // Only show modal if not connected and no address
-      // Don't auto-open to prevent getting stuck
-      // User can manually click connect
+    // If no wallet is connected, redirect to home
+    // This prevents getting stuck on dashboard
+    if (!address && !isConnected) {
+      router.push('/');
+      return;
     }
-  }, [isConnected, address]);
+  }, [address, isConnected, router]);
 
   useEffect(() => {
     if (address) {
       fetchEntries();
+    } else {
+      // If address is lost, stop loading and show message
+      setLoading(false);
     }
   }, [address]);
 
@@ -98,6 +102,27 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
+
+  // Show connect wallet message if no address
+  if (!address && !loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center text-gray-400">
+          <div className="text-center">
+            <p className="mb-4">Please connect your wallet to view your dashboard.</p>
+            <button
+              onClick={() => open()}
+              className="bg-primary-green text-primary-darker px-6 py-3 rounded font-semibold hover:bg-primary-green/90 transition-colors"
+            >
+              CONNECT WALLET
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
