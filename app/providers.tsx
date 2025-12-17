@@ -23,7 +23,8 @@ try {
   createWeb3Modal({
     projectId,
     wagmiConfig,
-    enableAnalytics: true,
+    // Disable analytics to avoid 403 errors (not critical for wallet functionality)
+    enableAnalytics: false,
     // Show all wallets from WalletConnect Explorer - this is the key setting
     allWallets: 'SHOW',
     // Enable wallet features
