@@ -18,7 +18,8 @@ try {
     projectId,
     wagmiConfig,
     enableAnalytics: true,
-    allWallets: 'SHOW', // Show all wallets
+    // Show all wallets from WalletConnect Explorer
+    allWallets: 'SHOW',
     themeMode: 'dark',
     themeVariables: {
       '--w3m-accent': '#00ff88', // Primary green
