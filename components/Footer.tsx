@@ -36,31 +36,57 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Column 2: Quick Links */}
+          {/* Column 2: Essential Links */}
           <div>
-            <h3 className="text-white font-semibold mb-4">QUICK LINK</h3>
+            <h3 className="text-white font-semibold mb-4">LINKS</h3>
             <ul className="space-y-2">
-              {['Gaming', 'Product', 'All NFTs', 'Social Network', 'Domain Names', 'Collectibles'].map((link) => (
-                <li key={link}>
-                  <Link href="#" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
-                    {link}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link href="/about" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/help" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  Help & Support
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Column 3: Supports */}
+          {/* Column 3: Quick Access */}
           <div>
-            <h3 className="text-white font-semibold mb-4">SUPPORTS</h3>
+            <h3 className="text-white font-semibold mb-4">QUICK ACCESS</h3>
             <ul className="space-y-2">
-              {['Setting & Privacy', 'Help & Support', 'Live Auctions', 'Item Details', '24/7 Supports', 'Our News'].map((link) => (
-                <li key={link}>
-                  <Link href="#" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
-                    {link}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link href="/raffles" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  Active Raffles
+                </Link>
+              </li>
+              <li>
+                <Link href="/winners" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  Winners
+                </Link>
+              </li>
+              <li>
+                <Link href="/ended" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  Ended Raffles
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                  My Dashboard
+                </Link>
+              </li>
             </ul>
           </div>
 
