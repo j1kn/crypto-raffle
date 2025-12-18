@@ -53,15 +53,6 @@ export default function RafflesPage() {
       
       <main className="flex-1 py-20 px-4 bg-primary-dark">
         <div className="container mx-auto">
-          {/* Hero heading */}
-          <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
-              <span className="bg-gradient-to-r from-primary-green via-white to-primary-orange bg-clip-text text-transparent">
-                WIN PRIZES BEFORE CLOCK RUNS OUT
-              </span>
-            </h1>
-          </div>
-
           {loading ? (
             <div className="text-center text-gray-400 py-20">Loading raffles...</div>
           ) : raffles.length === 0 ? (

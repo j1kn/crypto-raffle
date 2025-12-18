@@ -245,29 +245,18 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Title Section */}
+      {/* Main Heading Section */}
       <section className="relative bg-gradient-to-b from-primary-dark to-primary-dark py-12 px-4">
         <div className="container mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">
-            TOURNAMENT
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight">
+            WIN PRIZES BEFORE CLOCK RUNS OUT
           </h1>
-          <p className="text-gray-400 text-lg mb-8">
-            HOME • TOURNAMENT
-          </p>
         </div>
       </section>
 
-      {/* Play to Earn Games Section - Now Shows Live Raffles */}
+      {/* Play to Earn Games Section - Now Shows Live Raffles (cards only) */}
       <section className="py-20 px-4 bg-primary-dark">
         <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-primary-green text-sm font-semibold mb-2">OUR TOURNAMENT</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              PLAY TO EARN GAMES
-            </h2>
-            <div className="w-24 h-1 bg-primary-green mx-auto"></div>
-          </div>
-
           {loading ? (
             <div className="text-center text-gray-400 py-12">
               Loading raffles...
