@@ -10,7 +10,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
@@ -58,6 +58,7 @@ export default function RaffleDetailPage() {
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
   const { address, isConnected, chain, connector } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
   
   // Payment transaction
   const { data: hash, sendTransaction, isPending: isSending, error: sendError } = useSendTransaction();
@@ -299,15 +300,29 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // Enforce correct network for ETH raffles
-    // If the raffle prize is in ETH, user must be on Ethereum mainnet (chain id 1)
+    // Ensure correct network for ETH raffles
+    // If the raffle prize is in ETH, automatically switch to Ethereum mainnet (chain id 1) when needed
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
       if (!chain || chain.id !== 1) {
-        alert(
-          'This raffle is on Ethereum.\n\n' +
-          'Please switch your wallet network to Ethereum Mainnet before entering.'
+        const confirmSwitch = confirm(
+          'This raffle is on Ethereum Mainnet (ETH).\n\n' +
+          'Click OK to switch your wallet network to Ethereum automatically.'
         );
-        return;
+        if (!confirmSwitch) {
+          setEntering(false);
+          return;
+        }
+        try {
+          await switchChainAsync({ chainId: 1 });
+        } catch (error: any) {
+          console.error('Error switching network:', error);
+          alert(
+            error?.message ||
+              'Failed to switch network to Ethereum. Please switch your wallet to Ethereum Mainnet and try again.'
+          );
+          setEntering(false);
+          return;
+        }
       }
     }
 
@@ -361,52 +376,39 @@ export default function RaffleDetailPage() {
     if (!raffle || !address || !hash) return;
 
     try {
-      // Create/update user
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
-        .select()
-        .single();
+      const response = await fetch(`/api/raffles/${raffle.id}/enter`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          txHash: hash,
+        }),
+      });
 
-      if (userError) throw userError;
+      const data = await response.json();
 
-      // Create raffle entry with transaction hash
-      const { data: entryData, error: entryError } = await supabase
-        .from('raffle_entries')
-        .insert({
-          raffle_id: raffle.id,
-          user_id: userData.id,
-          tx_hash: hash, // Save transaction hash
-        })
-        .select()
-        .single();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create raffle entry');
+      }
 
-      if (entryError) {
-        if (entryError.code === '23505') {
-          // User already entered - update with tx hash
-          const { error: updateError } = await supabase
-            .from('raffle_entries')
-            .update({ tx_hash: hash })
-            .eq('raffle_id', raffle.id)
-            .eq('user_id', userData.id);
-          
-          if (updateError) {
-            console.error('Error updating entry:', updateError);
-          }
-          alert('You have already entered this raffle! Transaction hash updated.');
-          fetchUserEntry();
-        } else {
-          throw entryError;
-        }
+      if (data.duplicate) {
+        alert('You have already entered this raffle! Transaction hash updated.');
       } else {
         alert('Payment successful! You have entered the raffle. Your ticket is now in your profile.');
-        fetchEntryCount();
-        fetchEntries();
-        fetchUserEntry();
       }
+
+      // Refresh UI data
+      fetchEntryCount();
+      fetchEntries();
+      fetchUserEntry();
     } catch (error: any) {
       console.error('Error creating entry after payment:', error);
-      alert('Payment successful but failed to create entry. Please contact support with your transaction hash: ' + hash);
+      alert(
+        'Payment successful but failed to create entry. Please contact support with your transaction hash: ' +
+          hash
+      );
     } finally {
       setEntering(false);
     }
