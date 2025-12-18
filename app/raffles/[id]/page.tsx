@@ -299,6 +299,18 @@ export default function RaffleDetailPage() {
       return;
     }
 
+    // Enforce correct network for ETH raffles
+    // If the raffle prize is in ETH, user must be on Ethereum mainnet (chain id 1)
+    if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
+      if (!chain || chain.id !== 1) {
+        alert(
+          'This raffle is on Ethereum.\n\n' +
+          'Please switch your wallet network to Ethereum Mainnet before entering.'
+        );
+        return;
+      }
+    }
+
     // Confirm purchase
     const confirmPurchase = confirm(
       `Enter Raffle: ${raffle.title}\n\n` +
