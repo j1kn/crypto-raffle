@@ -309,27 +309,18 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // Ensure correct network for ETH raffles
-    // If the raffle prize is in ETH, automatically switch to Ethereum mainnet (chain id 1) when needed
+    // Ensure we are on the correct network for this raffle.
+    // For ETH raffles we require Ethereum mainnet (chainId 1) and auto-switch once.
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
       if (!chain || chain.id !== 1) {
-        const confirmSwitch = confirm(
-          'This raffle is on Ethereum Mainnet (ETH).\n\n' +
-          'Click OK to switch your wallet network to Ethereum automatically.'
-        );
-        if (!confirmSwitch) {
-          setEntering(false);
-          return;
-        }
         try {
           await switchChainAsync({ chainId: 1 });
         } catch (error: any) {
           console.error('Error switching network:', error);
           alert(
             error?.message ||
-              'Failed to switch network to Ethereum. Please switch your wallet to Ethereum Mainnet and try again.'
+              'Please switch your wallet network to Ethereum Mainnet and try again.'
           );
-          setEntering(false);
           return;
         }
       }
@@ -356,25 +347,28 @@ export default function RaffleDetailPage() {
       let hash: `0x${string}`;
 
       // Detect if receiving address is a contract (has bytecode)
-      const bytecode = publicClient
-        ? await publicClient.getBytecode({ address: to }).catch(() => undefined)
-        : undefined;
+      const bytecode =
+        publicClient && chain
+          ? await publicClient.getBytecode({ address: to, blockTag: 'latest' }).catch(() => undefined)
+          : undefined;
       const isContract = !!bytecode && bytecode !== '0x';
 
       if (isContract) {
-        // Call contract function (enterRaffle) with value
+        // Contract-based raffle: call enterRaffle with value
         hash = await writeContractAsync({
           address: to,
           abi: RAFFLE_ABI,
           functionName: 'enterRaffle',
           args: [BigInt(raffle.id)],
           value,
+          chainId: chain?.id,
         });
       } else {
-        // Plain ETH transfer to EOA or contract with receive()/fallback
+        // Direct ETH payment to EOA (payout wallet)
         hash = await sendTransactionAsync({
           to,
           value,
+          chainId: chain?.id,
         });
       }
 
