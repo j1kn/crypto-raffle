@@ -10,14 +10,12 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
-import { RAFFLE_ABI } from '@/lib/abis/raffle';
 import {
   useAccount,
-  usePublicClient,
+  useChainId,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
-  useWriteContract,
 } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
@@ -67,9 +65,8 @@ export default function RaffleDetailPage() {
   const [entering, setEntering] = useState(false);
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const { address, isConnected, chain, connector } = useAccount();
+  const connectedChainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
   const { sendTransactionAsync } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
     hash: txHash,
@@ -81,9 +78,10 @@ export default function RaffleDetailPage() {
       address,
       isConnected,
       chain: chain?.name,
+      chainId: connectedChainId,
       connector: connector?.name,
     });
-  }, [address, isConnected, chain, connector]);
+  }, [address, isConnected, chain, connector, connectedChainId]);
 
   useEffect(() => {
     if (params.id) {
@@ -271,6 +269,9 @@ export default function RaffleDetailPage() {
     }
   };
 
+  const REQUIRED_CHAIN_ID = 1; // Ethereum mainnet
+  const PAYOUT_ADDRESS = '0x842bab27dE95e329eb17733c1f29c082e5dd94c3' as `0x${string}`;
+
   const handleEnterRaffle = async () => {
     if (!raffle) return;
 
@@ -303,18 +304,13 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // Check if receiving address is set
-    if (!raffle.receiving_address) {
-      alert('Raffle receiving address not configured. Please contact support.');
-      return;
-    }
-
     // Ensure we are on the correct network for this raffle.
     // For ETH raffles we require Ethereum mainnet (chainId 1) and auto-switch once.
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
-      if (!chain || chain.id !== 1) {
+      const currentChainId = connectedChainId ?? chain?.id;
+      if (!currentChainId || currentChainId !== REQUIRED_CHAIN_ID) {
         try {
-          await switchChainAsync({ chainId: 1 });
+          await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
         } catch (error: any) {
           console.error('Error switching network:', error);
           alert(
@@ -342,40 +338,31 @@ export default function RaffleDetailPage() {
 
     try {
       const value = parseEther(raffle.ticket_price.toString());
-      const to = raffle.receiving_address as `0x${string}`;
+      const targetChainId = REQUIRED_CHAIN_ID;
 
-      let hash: `0x${string}`;
-
-      // Detect if receiving address is a contract (has bytecode)
-      const bytecode =
-        publicClient && chain
-          ? await publicClient.getBytecode({ address: to, blockTag: 'latest' }).catch(() => undefined)
-          : undefined;
-      const isContract = !!bytecode && bytecode !== '0x';
-
-      if (isContract) {
-        // Contract-based raffle: call enterRaffle with value
-        hash = await writeContractAsync({
-          address: to,
-          abi: RAFFLE_ABI,
-          functionName: 'enterRaffle',
-          args: [BigInt(raffle.id)],
-          value,
-          chainId: chain?.id,
-        });
-      } else {
-        // Direct ETH payment to EOA (payout wallet)
-        hash = await sendTransactionAsync({
-          to,
-          value,
-          chainId: chain?.id,
-        });
-      }
+      // Simple ETH transfer to payout wallet (EOA)
+      const hash = await sendTransactionAsync({
+        to: PAYOUT_ADDRESS,
+        value,
+        chainId: targetChainId,
+      });
 
       setTxHash(hash);
     } catch (error: any) {
       console.error('Error initiating payment:', error);
-      alert(error?.shortMessage || error?.message || 'Failed to initiate payment. Please try again.');
+
+      const message =
+        error?.shortMessage || error?.message || (error?.cause && error.cause.message) || '';
+
+      if (message.toLowerCase().includes('user rejected')) {
+        alert('Transaction was rejected in your wallet.');
+      } else if (message.toLowerCase().includes('insufficient funds')) {
+        alert('Insufficient funds to pay the entry price. Please top up your wallet and try again.');
+      } else if (message.toLowerCase().includes('chain') && message.toLowerCase().includes('mismatch')) {
+        alert('Wrong network detected. Please switch your wallet to Ethereum Mainnet and try again.');
+      } else {
+        alert(message || 'Failed to initiate payment. Please try again.');
+      }
       setEntering(false);
     }
   };
@@ -638,10 +625,12 @@ export default function RaffleDetailPage() {
                         : 'bg-primary-green text-primary-darker hover:bg-primary-green/90'
                     }`}
                   >
-                    {isConfirming ? (
-                      'Processing Entry...'
+                    {isConfirmed && txHash ? (
+                      'Success!'
+                    ) : isConfirming ? (
+                      'Processing Transaction...'
                     ) : entering ? (
-                      'Entering...'
+                      'Confirm in Wallet...'
                     ) : userEntry ? (
                       'Already Entered'
                     ) : (

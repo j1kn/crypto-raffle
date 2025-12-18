@@ -3,6 +3,7 @@
 
 import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
 import { base, mainnet, polygon } from 'wagmi/chains';
+import { http } from 'viem';
 
 // Get WalletConnect Project ID
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'f3d84f94db7d9e42a9faeff19847f751';
@@ -15,8 +16,8 @@ const metadata = {
   icons: ['https://crypto-raffle-heys.vercel.app/icon.png'],
 };
 
-// Configure chains
-const chains = [mainnet, polygon, base] as const;
+// Configure chains (make sure mainnet / polygon / base are all included)
+export const chains = [mainnet, polygon, base] as const;
 
 // Create Wagmi config using defaultWagmiConfig
 // Configured to show ALL wallets from WalletConnect Explorer
@@ -28,6 +29,12 @@ function createWagmiConfig() {
     projectId,
     metadata,
     chains,
+    // Explicit RPC transports per chain so chainId is always known to viem/wagmi
+    transports: {
+      [mainnet.id]: http(),
+      [polygon.id]: http(),
+      [base.id]: http(),
+    },
     // Enable all wallet types
     enableEIP6963: true, // Enable EIP-6963 wallet discovery (browser extensions)
     enableInjected: true, // Enable injected wallets (MetaMask, etc.)
