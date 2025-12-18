@@ -338,13 +338,13 @@ export default function RaffleDetailPage() {
 
     try {
       const value = parseEther(raffle.ticket_price.toString());
-      const targetChainId = REQUIRED_CHAIN_ID;
 
-      // Simple ETH transfer to payout wallet (EOA)
+      // Simple ETH transfer to payout wallet (EOA).
+      // We rely on the wallet's active chain (already switched to mainnet above),
+      // so we intentionally do NOT pass chainId here to avoid provider mismatch errors.
       const hash = await sendTransactionAsync({
         to: PAYOUT_ADDRESS,
         value,
-        chainId: targetChainId,
       });
 
       setTxHash(hash);
@@ -381,7 +381,7 @@ export default function RaffleDetailPage() {
       alert(txError.message || 'Payment failed. Please try again.');
       setEntering(false);
     }
-  }, [txError]);
+s  }, [txError]);
 
   const handlePaymentSuccess = async () => {
     if (!raffle || !address || !txHash) return;
