@@ -304,13 +304,22 @@ export default function RaffleDetailPage() {
       return;
     }
 
+    // Determine current chain
+    const currentChainId = connectedChainId ?? chain?.id;
+    if (!currentChainId) {
+      alert('Unable to detect your current network. Please reconnect your wallet and try again.');
+      return;
+    }
+
+    let finalChainId = currentChainId;
+
     // Ensure we are on the correct network for this raffle.
     // For ETH raffles we require Ethereum mainnet (chainId 1) and auto-switch once.
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
-      const currentChainId = connectedChainId ?? chain?.id;
-      if (!currentChainId || currentChainId !== REQUIRED_CHAIN_ID) {
+      if (currentChainId !== REQUIRED_CHAIN_ID) {
         try {
           await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
+          finalChainId = REQUIRED_CHAIN_ID;
         } catch (error: any) {
           console.error('Error switching network:', error);
           alert(
@@ -339,12 +348,20 @@ export default function RaffleDetailPage() {
     try {
       const value = parseEther(raffle.ticket_price.toString());
 
-      // Simple ETH transfer to payout wallet (EOA).
-      // We rely on the wallet's active chain (already switched to mainnet above),
-      // so we intentionally do NOT pass chainId here to avoid provider mismatch errors.
+      // Validate all required transaction fields before sending
+      if (!address) {
+        throw new Error('Missing sender address. Please reconnect your wallet.');
+      }
+      if (!finalChainId) {
+        throw new Error('Missing chainId. Please reconnect your wallet and try again.');
+      }
+
+      // Simple ETH transfer to payout wallet (EOA) with explicit fields.
       const hash = await sendTransactionAsync({
+        account: address as `0x${string}`,
         to: PAYOUT_ADDRESS,
         value,
+        chainId: finalChainId,
       });
 
       setTxHash(hash);
