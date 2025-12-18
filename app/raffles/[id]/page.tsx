@@ -10,7 +10,15 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
+import { RAFFLE_ABI } from '@/lib/abis/raffle';
+import {
+  useAccount,
+  usePublicClient,
+  useSendTransaction,
+  useSwitchChain,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
@@ -57,13 +65,14 @@ export default function RaffleDetailPage() {
   const [winner, setWinner] = useState<Winner | null>(null);
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const { address, isConnected, chain, connector } = useAccount();
   const { switchChainAsync } = useSwitchChain();
-  
-  // Payment transaction
-  const { data: hash, sendTransaction, isPending: isSending, error: sendError } = useSendTransaction();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
+  const { sendTransactionAsync } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
+    hash: txHash,
   });
 
   // Debug wallet connection
@@ -339,41 +348,62 @@ export default function RaffleDetailPage() {
     }
 
     setEntering(true);
-    
+
     try {
-      // Convert ticket price to wei (assuming ETH/ETH-based chains)
-      const ticketPriceWei = parseEther(raffle.ticket_price.toString());
-      
-      // Send payment transaction
-      sendTransaction({
-        to: raffle.receiving_address as `0x${string}`,
-        value: ticketPriceWei,
-      });
+      const value = parseEther(raffle.ticket_price.toString());
+      const to = raffle.receiving_address as `0x${string}`;
+
+      let hash: `0x${string}`;
+
+      // Detect if receiving address is a contract (has bytecode)
+      const bytecode = publicClient
+        ? await publicClient.getBytecode({ address: to }).catch(() => undefined)
+        : undefined;
+      const isContract = !!bytecode && bytecode !== '0x';
+
+      if (isContract) {
+        // Call contract function (enterRaffle) with value
+        hash = await writeContractAsync({
+          address: to,
+          abi: RAFFLE_ABI,
+          functionName: 'enterRaffle',
+          args: [BigInt(raffle.id)],
+          value,
+        });
+      } else {
+        // Plain ETH transfer to EOA or contract with receive()/fallback
+        hash = await sendTransactionAsync({
+          to,
+          value,
+        });
+      }
+
+      setTxHash(hash);
     } catch (error: any) {
       console.error('Error initiating payment:', error);
-      alert(error.message || 'Failed to initiate payment. Please try again.');
+      alert(error?.shortMessage || error?.message || 'Failed to initiate payment. Please try again.');
       setEntering(false);
     }
   };
 
   // Handle successful payment confirmation
   useEffect(() => {
-    if (isConfirmed && hash && raffle && address) {
+    if (isConfirmed && txHash && raffle && address) {
       handlePaymentSuccess();
     }
-  }, [isConfirmed, hash, raffle, address]);
+  }, [isConfirmed, txHash, raffle, address]);
 
   // Handle payment errors
   useEffect(() => {
-    if (sendError) {
-      console.error('Payment error:', sendError);
-      alert(sendError.message || 'Payment failed. Please try again.');
+    if (txError) {
+      console.error('Payment error:', txError);
+      alert(txError.message || 'Payment failed. Please try again.');
       setEntering(false);
     }
-  }, [sendError]);
+  }, [txError]);
 
   const handlePaymentSuccess = async () => {
-    if (!raffle || !address || !hash) return;
+    if (!raffle || !address || !txHash) return;
 
     try {
       const response = await fetch(`/api/raffles/${raffle.id}/enter`, {
@@ -383,7 +413,7 @@ export default function RaffleDetailPage() {
         },
         body: JSON.stringify({
           walletAddress: address,
-          txHash: hash,
+          txHash,
         }),
       });
 
@@ -407,7 +437,7 @@ export default function RaffleDetailPage() {
       console.error('Error creating entry after payment:', error);
       alert(
         'Payment successful but failed to create entry. Please contact support with your transaction hash: ' +
-          hash
+          txHash
       );
     } finally {
       setEntering(false);
@@ -607,16 +637,14 @@ export default function RaffleDetailPage() {
                 {!isRaffleEnded && (
                   <button
                     onClick={handleEnterRaffle}
-                    disabled={entering || userEntry !== null || isSending || isConfirming}
+                    disabled={entering || userEntry !== null || isConfirming}
                     className={`w-full py-4 rounded font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
-                      userEntry || isSending || isConfirming
+                      userEntry || isConfirming
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                         : 'bg-primary-green text-primary-darker hover:bg-primary-green/90'
                     }`}
                   >
-                    {isSending ? (
-                      'Confirming Payment...'
-                    ) : isConfirming ? (
+                    {isConfirming ? (
                       'Processing Entry...'
                     ) : entering ? (
                       'Entering...'
