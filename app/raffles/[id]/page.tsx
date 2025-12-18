@@ -381,7 +381,7 @@ export default function RaffleDetailPage() {
       alert(txError.message || 'Payment failed. Please try again.');
       setEntering(false);
     }
-s  }, [txError]);
+  }, [txError]);
 
   const handlePaymentSuccess = async () => {
     if (!raffle || !address || !txHash) return;
