@@ -72,7 +72,7 @@ export default function RaffleCard({
 
         {/* Image */}
         {finalImageUrl && (
-          <div className="relative w-full h-48 bg-primary-darker">
+          <div className="relative w-full h-48 bg-primary-darker mt-4">
             <Image
               src={finalImageUrl}
               alt={title}

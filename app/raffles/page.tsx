@@ -53,16 +53,13 @@ export default function RafflesPage() {
       
       <main className="flex-1 py-20 px-4 bg-primary-dark">
         <div className="container mx-auto">
+          {/* Hero heading */}
           <div className="text-center mb-12">
-            <p className="text-primary-green text-sm font-semibold mb-2">TOURNAMENT LIST</p>
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-4xl md:text-5xl font-bold text-white">
-                ACTIVE TOURNAMENT
-              </h1>
-              <button className="text-white text-sm hover:text-primary-green transition-colors">
-                EXPLORE MORE →
-              </button>
-            </div>
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
+              <span className="bg-gradient-to-r from-primary-green via-white to-primary-orange bg-clip-text text-transparent">
+                WIN PRIZES BEFORE CLOCK RUNS OUT
+              </span>
+            </h1>
           </div>
 
           {loading ? (
