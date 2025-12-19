@@ -3,7 +3,7 @@
 // Force dynamic rendering to avoid SSR issues with Wagmi
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
@@ -58,8 +58,14 @@ interface Winner {
 }
 
 export default function RaffleDetailPage() {
+  // Debug logging at the very start
+  console.log('[Debug] Component rendering, hooks order check');
+
+  // ALL HOOKS MUST BE AT TOP LEVEL - NO CONDITIONALS
   const params = useParams();
   const router = useRouter();
+  
+  // State hooks - always called
   const [raffle, setRaffle] = useState<Raffle | null>(null);
   const [entryCount, setEntryCount] = useState(0);
   const [userEntry, setUserEntry] = useState<any>(null);
@@ -72,89 +78,60 @@ export default function RaffleDetailPage() {
   const [processingEntry, setProcessingEntry] = useState(false);
   const [mounted, setMounted] = useState(false);
   
-  // Only use Wagmi hooks on client-side to prevent SSR errors
-  const { open } = isClient ? useWeb3Modal() : { open: () => {} };
-  const { address, isConnected, chain, connector } = isClient ? useAccount() : { address: undefined, isConnected: false, chain: undefined, connector: undefined };
-  const connectedChainId = isClient ? useChainId() : 1;
-  const config = isClient ? useConfig() : undefined;
-  const { switchChainAsync } = isClient ? useSwitchChain() : { switchChainAsync: async () => {} };
-  const { sendTransactionAsync } = isClient ? useSendTransaction() : { sendTransactionAsync: async () => Promise.resolve('0x' as `0x${string}`) };
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = isClient ? useWaitForTransactionReceipt({
+  // Wagmi hooks - ALWAYS called (not conditional)
+  const { open } = useWeb3Modal();
+  const { address, isConnected, chain, connector } = useAccount();
+  const connectedChainId = useChainId();
+  const config = useConfig();
+  const { switchChainAsync } = useSwitchChain();
+  const { sendTransactionAsync } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
     hash: txHash,
-  }) : { isLoading: false, isSuccess: false, error: null };
+  });
   
-  // Debug logging
-  console.log('[Raffle] Component render', { address, isConnected, raffle: raffle?.id });
-  
-  // Refs to prevent duplicate calls and React errors
+  // Refs - always called
   const fetchingUserEntryRef = useRef(false);
   const processingEntryRef = useRef(false);
-  const isUpdatingStateRef = useRef(false);
   const isMountedRef = useRef(true);
-  const stateUpdateQueueRef = useRef<Array<() => void>>([]);
-  const isProcessingQueueRef = useRef(false);
   
-  // Track mount status to prevent state updates after unmount
+  // Mount tracking - CRITICAL for preventing state updates after unmount
   useEffect(() => {
     setMounted(true);
     isMountedRef.current = true;
     return () => {
+      setMounted(false);
       isMountedRef.current = false;
-      stateUpdateQueueRef.current = []; // Clear queue on unmount
     };
   }, []);
-  
-  // Process state update queue after render completes
-  useEffect(() => {
-    if (stateUpdateQueueRef.current.length > 0 && !isProcessingQueueRef.current) {
-      isProcessingQueueRef.current = true;
-      // Use requestIdleCallback if available, otherwise setTimeout with longer delay
-      const scheduleUpdate = typeof requestIdleCallback !== 'undefined' 
-        ? requestIdleCallback 
-        : (cb: () => void) => setTimeout(cb, 100);
-      
-      scheduleUpdate(() => {
-        if (!isMountedRef.current) {
-          stateUpdateQueueRef.current = [];
-          isProcessingQueueRef.current = false;
-          return;
-        }
-        
-        const updates = stateUpdateQueueRef.current.slice();
-        stateUpdateQueueRef.current = [];
-        
-        // Batch all updates in a single startTransition
-        startTransition(() => {
-          updates.forEach(update => {
-            if (isMountedRef.current) {
-              update();
-            }
-          });
-        });
-        
-        isProcessingQueueRef.current = false;
-      });
-    }
-  });
-  
-  // Helper function to safely queue state updates (batched and deferred)
+
+  // Safe state setter with mount check
   const safeSetState = useCallback(<T,>(setter: (value: T) => void, value: T) => {
-    if (!isMountedRef.current) return;
-    stateUpdateQueueRef.current.push(() => {
-      if (isMountedRef.current) {
-        setter(value);
+    if (mounted && isMountedRef.current) {
+      setter(value);
+    }
+  }, [mounted]);
+
+  // Safe navigation function
+  const handleNavigation = useCallback((path: string) => {
+    try {
+      if (mounted && isMountedRef.current) {
+        router.push(path);
       }
-    });
-  }, []);
+    } catch (error) {
+      console.error('[Navigation] Error:', error);
+    }
+  }, [mounted, router]);
 
-
+  // Fetch raffle with mount checks
   const fetchRaffle = useCallback(async () => {
     const raffleId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
     if (!raffleId) {
       console.error('[Raffle] No raffle ID found in params:', params);
-      setLoading(false);
+      if (mounted) setLoading(false);
       return;
     }
+    
+    let cancelled = false;
     
     try {
       console.log('[Raffle] Fetching raffle with ID:', raffleId);
@@ -164,6 +141,8 @@ export default function RaffleDetailPage() {
         .eq('id', raffleId)
         .single();
 
+      if (cancelled || !mounted || !isMountedRef.current) return;
+
       if (error) {
         console.error('[Raffle] Supabase error:', error);
         throw error;
@@ -171,46 +150,70 @@ export default function RaffleDetailPage() {
       
       if (!data) {
         console.warn('[Raffle] No data returned for ID:', raffleId);
-        setRaffle(null);
-        setLoading(false);
+        if (mounted) {
+          setRaffle(null);
+          setLoading(false);
+        }
         return;
       }
       
       console.log('[Raffle] Successfully fetched raffle:', data.title);
-      // Direct state updates for initial load - critical for user experience
-      setRaffle(data);
-      setLoading(false);
+      if (mounted && !cancelled) {
+        setRaffle(data);
+        setLoading(false);
+      }
     } catch (error: any) {
+      if (cancelled || !mounted || !isMountedRef.current) return;
       console.error('[Raffle] Error fetching raffle:', error?.message || error);
       setRaffle(null);
       setLoading(false);
     }
-  }, [params.id]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id, mounted]);
 
-  // Memoized fetch functions to prevent React errors
+  // Fetch entry count with mount checks
   const fetchEntryCount = useCallback(async () => {
-    if (!raffle?.id) return;
+    if (!raffle?.id || !mounted) return;
+    
+    let cancelled = false;
+    
     try {
       const { count, error } = await supabase
         .from('raffle_entries')
         .select('*', { count: 'exact', head: true })
         .eq('raffle_id', raffle.id);
 
+      if (cancelled || !mounted || !isMountedRef.current) return;
+
       if (error) {
         if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          return; // Silent fail for 401
+          return;
         }
         throw error;
       }
-      // Queue state update
-      safeSetState(setEntryCount, count || 0);
+      
+      if (mounted && !cancelled) {
+        setEntryCount(count || 0);
+      }
     } catch (error: any) {
+      if (cancelled || !mounted) return;
       console.warn('[Entry Count] Error:', error?.message);
     }
-  }, [raffle?.id]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [raffle?.id, mounted]);
 
+  // Fetch entries with mount checks
   const fetchEntries = useCallback(async () => {
-    if (!raffle?.id) return;
+    if (!raffle?.id || !mounted) return;
+    
+    let cancelled = false;
+    
     try {
       const { data, error } = await supabase
         .from('raffle_entries')
@@ -226,22 +229,40 @@ export default function RaffleDetailPage() {
         .order('created_at', { ascending: false })
         .limit(50);
 
+      if (cancelled || !mounted || !isMountedRef.current) return;
+
       if (error) {
         if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          safeSetState(setEntries, []);
+          if (mounted && !cancelled) {
+            setEntries([]);
+          }
           return;
         }
         throw error;
       }
-      safeSetState(setEntries, (data as any) || []);
+      
+      if (mounted && !cancelled) {
+        setEntries((data as any) || []);
+      }
     } catch (error: any) {
+      if (cancelled || !mounted) return;
       console.warn('[Entries] Error:', error?.message);
-      safeSetState(setEntries, []);
+      if (mounted) {
+        setEntries([]);
+      }
     }
-  }, [raffle?.id]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [raffle?.id, mounted]);
 
+  // Fetch winner with mount checks
   const fetchWinner = useCallback(async () => {
-    if (!raffle?.winner_user_id) return;
+    if (!raffle?.winner_user_id || !mounted) return;
+    
+    let cancelled = false;
+    
     try {
       const { data, error } = await supabase
         .from('users')
@@ -249,28 +270,35 @@ export default function RaffleDetailPage() {
         .eq('id', raffle.winner_user_id)
         .single();
 
+      if (cancelled || !mounted || !isMountedRef.current) return;
+
       if (error) throw error;
-      safeSetState(setWinner, {
-        wallet_address: data.wallet_address,
-        drawn_at: raffle.winner_drawn_at || '',
-      });
+      
+      if (mounted && !cancelled) {
+        setWinner({
+          wallet_address: data.wallet_address,
+          drawn_at: raffle.winner_drawn_at || '',
+        });
+      }
     } catch (error) {
+      if (cancelled || !mounted) return;
       console.warn('[Winner] Error:', error);
     }
-  }, [raffle?.winner_user_id, raffle?.winner_drawn_at]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [raffle?.winner_user_id, raffle?.winner_drawn_at, mounted]);
 
-  // Pure function for Google Drive URL conversion (safe to call during render)
+  // Convert Google Drive URL
   const convertGoogleDriveUrl = (url: string | null): string | null => {
     if (!url) return null;
     
-    // Check if it's a Google Drive URL
     if (url.includes('drive.google.com')) {
-      // Convert Google Drive share link to direct image URL
       const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
       if (fileIdMatch) {
         return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
       }
-      // Try alternative format
       const altMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
       if (altMatch) {
         return `https://drive.google.com/uc?export=view&id=${altMatch[1]}`;
@@ -280,18 +308,19 @@ export default function RaffleDetailPage() {
     return url;
   };
 
-  // Memoize converted image URL to prevent unnecessary recalculations
+  // Memoize converted image URL
   const convertedImageUrl = useMemo(() => {
     return raffle?.image_url ? convertGoogleDriveUrl(raffle.image_url) || raffle.image_url : null;
   }, [raffle?.image_url]);
 
-  // Memoized fetch functions to prevent React errors #418/#423
+  // Fetch user entry with mount checks
   const fetchUserEntry = useCallback(async () => {
-    if (!raffle || !address || fetchingUserEntryRef.current) return;
+    if (!raffle || !address || fetchingUserEntryRef.current || !mounted) return;
     fetchingUserEntryRef.current = true;
     
+    let cancelled = false;
+    
     try {
-      // Use API route to get/create user (bypasses RLS, no 401 errors)
       const response = await fetch(`/api/users/get-or-create`, {
         method: 'POST',
         headers: {
@@ -300,157 +329,185 @@ export default function RaffleDetailPage() {
         body: JSON.stringify({ walletAddress: address }),
       });
 
+      if (cancelled || !mounted || !isMountedRef.current) return;
+
       if (!response.ok) {
-        // If API fails, just skip - user can still pay
         console.warn('[User Entry] API call failed, skipping entry check');
         return;
       }
 
       const { userId } = await response.json();
-      if (!userId) return;
+      if (!userId || cancelled || !mounted) return;
 
-      // Check for existing entry using API route (bypasses RLS)
       const entryResponse = await fetch(`/api/raffles/${raffle.id}/check-entry?userId=${userId}`);
-      if (entryResponse.ok) {
+      if (entryResponse.ok && !cancelled && mounted) {
         const entryData = await entryResponse.json();
-        if (entryData.entry) {
-          safeSetState(setUserEntry, entryData.entry);
+        if (entryData.entry && mounted && !cancelled) {
+          setUserEntry(entryData.entry);
         }
       }
     } catch (error: any) {
-      // Silent fail - don't block payment flow
+      if (cancelled || !mounted) return;
       console.warn('[User Entry] Error:', error?.message || 'Unknown error');
     } finally {
       fetchingUserEntryRef.current = false;
     }
-  }, [raffle?.id, address]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [raffle?.id, address, mounted]);
 
+  // Check and draw winner
   const checkAndDrawWinner = useCallback(async () => {
-    if (!raffle?.id) return;
+    if (!raffle?.id || !mounted) return;
     
     const now = new Date();
     const endsAt = new Date(raffle.ends_at);
     
-    // Check if raffle has ended and winner not drawn
     if (endsAt <= now && !raffle.winner_user_id && raffle.status === 'live') {
       try {
         const response = await fetch(`/api/raffles/${raffle.id}/draw-winner`, {
           method: 'POST',
         });
         
-        if (response.ok) {
+        if (response.ok && mounted) {
           const data = await response.json();
-          if (data.success) {
-            // Refresh raffle data to show winner - use requestAnimationFrame to ensure it happens after render
-            requestAnimationFrame(() => {
-              setTimeout(() => {
+          if (data.success && mounted) {
+            setTimeout(() => {
+              if (mounted && isMountedRef.current) {
                 fetchRaffle();
                 fetchWinner();
-              }, 100);
-            });
+              }
+            }, 100);
           }
         }
       } catch (error) {
+        if (!mounted) return;
         console.warn('[Draw Winner] Error:', error);
       }
     }
-  }, [raffle?.id, raffle?.ends_at, raffle?.winner_user_id, raffle?.status, fetchRaffle, fetchWinner]);
+  }, [raffle?.id, raffle?.ends_at, raffle?.winner_user_id, raffle?.status, fetchRaffle, fetchWinner, mounted]);
 
-  // Separate effects with memoized functions to prevent React errors #418/#423
-  // Use useLayoutEffect for critical initial load, regular useEffect for others
-  // Defer all state updates to next tick to prevent render conflicts
-  // These must be AFTER all function declarations
+  // Effect: Fetch raffle on mount
   useEffect(() => {
     if (!mounted || !isClient) return;
     
+    let cancelled = false;
     const raffleId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
-    if (raffleId && isMountedRef.current) {
-      // Immediate fetch for initial load - user is waiting
+    
+    if (raffleId) {
       fetchRaffle();
     }
+    
+    return () => {
+      cancelled = true;
+    };
   }, [mounted, params.id, fetchRaffle]);
 
+  // Effect: Fetch entry count and entries when raffle loads
   useEffect(() => {
-    if (raffle?.id && isMountedRef.current) {
-      const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
-          fetchEntryCount();
-          fetchEntries();
-        }
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [raffle?.id, fetchEntryCount, fetchEntries]);
+    if (!raffle?.id || !mounted) return;
+    
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled && mounted && isMountedRef.current) {
+        fetchEntryCount();
+        fetchEntries();
+      }
+    }, 0);
+    
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [raffle?.id, fetchEntryCount, fetchEntries, mounted]);
 
+  // Effect: Fetch winner when winner_user_id exists
   useEffect(() => {
-    if (raffle?.winner_user_id && isMountedRef.current) {
-      const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
-          fetchWinner();
-        }
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [raffle?.winner_user_id, fetchWinner]);
+    if (!raffle?.winner_user_id || !mounted) return;
+    
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled && mounted && isMountedRef.current) {
+        fetchWinner();
+      }
+    }, 0);
+    
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [raffle?.winner_user_id, fetchWinner, mounted]);
 
+  // Effect: Check and draw winner
   useEffect(() => {
-    if (raffle?.id && isMountedRef.current) {
-      const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
-          checkAndDrawWinner();
-        }
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [raffle?.id, raffle?.ends_at, checkAndDrawWinner]);
+    if (!raffle?.id || !mounted) return;
+    
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled && mounted && isMountedRef.current) {
+        checkAndDrawWinner();
+      }
+    }, 0);
+    
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [raffle?.id, raffle?.ends_at, checkAndDrawWinner, mounted]);
 
+  // Effect: Fetch user entry when address changes
   useEffect(() => {
-    if (raffle?.id && address && isMountedRef.current) {
-      const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
-          fetchUserEntry();
-        }
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [raffle?.id, address, fetchUserEntry]);
+    if (!raffle?.id || !address || !mounted) return;
+    
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled && mounted && isMountedRef.current) {
+        fetchUserEntry();
+      }
+    }, 0);
+    
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [raffle?.id, address, fetchUserEntry, mounted]);
 
-  // Auto-refresh entries every 5 seconds for live updates
-  // Defer updates to prevent React errors
+  // Effect: Auto-refresh entries every 5 seconds
   useEffect(() => {
-    if (!raffle?.id || !isMountedRef.current) return;
+    if (!raffle?.id || !mounted) return;
+    
+    let cancelled = false;
     const interval = setInterval(() => {
-      if (isMountedRef.current) {
+      if (!cancelled && mounted && isMountedRef.current) {
         setTimeout(() => {
-          if (isMountedRef.current) {
+          if (!cancelled && mounted && isMountedRef.current) {
             fetchEntryCount();
             fetchEntries();
           }
         }, 0);
       }
     }, 5000);
-    return () => clearInterval(interval);
-  }, [raffle?.id, fetchEntryCount, fetchEntries]);
+    
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [raffle?.id, fetchEntryCount, fetchEntries, mounted]);
 
-  const REQUIRED_CHAIN_ID = 1; // Ethereum mainnet (MANDATORY for ETH transfers)
+  const REQUIRED_CHAIN_ID = 1;
   const PAYOUT_ADDRESS = '0x842bab27dE95e329eb17733c1f29c082e5dd94c3' as `0x${string}`;
 
-  /**
-   * Mobile WalletConnect Payment Handler
-   * 
-   * This function handles simple ETH transfers (no smart contracts).
-   * It explicitly enforces chainId = 1 (Ethereum mainnet) and includes
-   * all required transaction fields to work reliably on mobile wallets.
-   */
+  // Handle enter raffle
   const handleEnterRaffle = async () => {
-    if (!raffle) return;
+    if (!raffle || !mounted) return;
 
-    // 1. Wallet connection validation (MANDATORY for mobile wallets)
     if (!address) {
       const connect = confirm(
         'Please connect your wallet to enter the raffle.\n\nClick OK to open wallet connection.'
       );
-      if (connect) {
+      if (connect && mounted) {
         open();
       }
       return;
@@ -461,7 +518,6 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // 2. Business logic checks
     if (userEntry) {
       alert('You have already entered this raffle! Check your dashboard to see your ticket.');
       return;
@@ -471,7 +527,9 @@ export default function RaffleDetailPage() {
     const endsAt = new Date(raffle.ends_at);
     if (endsAt <= now) {
       alert('This raffle has ended! Check the Ended Raffles page.');
-      router.push('/ended');
+      if (mounted) {
+        handleNavigation('/ended');
+      }
       return;
     }
 
@@ -480,11 +538,8 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // 3. Network detection and validation (CRITICAL for mobile wallets)
-    // Get current chain - use multiple sources for reliability
     let currentChainId: number | undefined = connectedChainId ?? chain?.id;
     
-    // If still undefined, try to get from connector
     if (!currentChainId && connector) {
       try {
         const provider = await connector.getProvider();
@@ -504,7 +559,6 @@ export default function RaffleDetailPage() {
       }
     }
     
-    // BLOCK if chain is still undefined (mobile wallets REQUIRE explicit chainId)
     if (!currentChainId) {
       alert(
         'Unable to detect your current network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
@@ -512,29 +566,21 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // 4. Network guard: ALWAYS enforce Ethereum mainnet for ETH raffles
-    // Mobile wallets require explicit chainId, so we MUST switch if not on mainnet
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
       if (currentChainId !== REQUIRED_CHAIN_ID) {
         try {
           console.log(`[Payment] Current chain: ${currentChainId}, required: ${REQUIRED_CHAIN_ID}`);
-          console.log(`[Payment] Switching to Ethereum Mainnet (chainId: ${REQUIRED_CHAIN_ID})...`);
-          
-          // Switch chain
           await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
           
-          // Poll for chain to actually be 1 (mobile wallets need time to sync)
           let verifiedChainId: number | undefined = undefined;
           const maxAttempts = 10;
-          const pollInterval = 500; // 500ms between checks
+          const pollInterval = 500;
           
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
             await new Promise((resolve) => setTimeout(resolve, pollInterval));
             
-            // Check all sources for chainId
             verifiedChainId = connectedChainId ?? chain?.id;
             
-            // If still not found, try connector
             if (!verifiedChainId && connector) {
               try {
                 const provider = await connector.getProvider();
@@ -550,71 +596,43 @@ export default function RaffleDetailPage() {
                   }
                 }
               } catch (e) {
-                // Ignore errors, continue polling
+                // Ignore
               }
             }
             
             if (verifiedChainId === REQUIRED_CHAIN_ID) {
-              console.log(`[Payment] Chain verified as ${REQUIRED_CHAIN_ID} after ${attempt + 1} attempt(s)`);
+              console.log(`[Payment] Chain verified as ${REQUIRED_CHAIN_ID}`);
               break;
             }
-            
-            console.log(`[Payment] Chain check ${attempt + 1}/${maxAttempts}: ${verifiedChainId || 'undefined'}`);
           }
           
-          // Final verification - BLOCK if chain is not 1
           if (verifiedChainId !== REQUIRED_CHAIN_ID) {
             throw new Error(
-              `Failed to switch to Ethereum Mainnet. Current chain: ${verifiedChainId || 'undefined'}. Please manually switch your wallet to Ethereum Mainnet (chainId: 1) and try again.`
+              `Failed to switch to Ethereum Mainnet. Current chain: ${verifiedChainId || 'undefined'}.`
             );
           }
           
           currentChainId = verifiedChainId;
-          console.log(`[Payment] Successfully switched and verified chain: ${currentChainId}`);
         } catch (error: any) {
           console.error('[Payment] Network switch error:', error);
-          const errorMsg = error?.message || 'Failed to switch network';
           alert(
-            `${errorMsg}\n\nPlease switch your wallet to Ethereum Mainnet (chainId: 1) and try again.`
+            `${error?.message || 'Failed to switch network'}\n\nPlease switch your wallet to Ethereum Mainnet (chainId: 1) and try again.`
           );
-          startTransition(() => {
+          if (mounted) {
             setEntering(false);
-          });
+          }
           return;
         }
       }
     }
 
-    // 5. Final chain verification before transaction (mobile wallet safety check)
-    // Re-check one more time right before sending (chain might have changed)
     let finalChainId = connectedChainId ?? chain?.id ?? currentChainId;
     
-    // If still not found, try connector one last time
-    if (!finalChainId && connector) {
-      try {
-        const provider = await connector.getProvider();
-        if (provider && typeof provider === 'object' && provider !== null && 'chainId' in provider) {
-          const chainIdValue = (provider as { chainId?: string | number }).chainId;
-          if (chainIdValue !== undefined) {
-            const providerChainId = typeof chainIdValue === 'string' 
-              ? parseInt(chainIdValue, 16) 
-              : chainIdValue;
-            if (typeof providerChainId === 'number') {
-              finalChainId = providerChainId;
-            }
-          }
-        }
-      } catch (e) {
-        // Ignore errors
-      }
-    }
-    
-    // CRITICAL: Block transaction if chain is undefined or not mainnet
     if (!finalChainId) {
       alert(
         'Unable to verify network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
       );
-      safeSetState(setEntering, false);
+      if (mounted) setEntering(false);
       return;
     }
     
@@ -622,11 +640,10 @@ export default function RaffleDetailPage() {
       alert(
         `This raffle requires Ethereum Mainnet (chainId: 1).\n\nYour current network: chainId ${finalChainId}\n\nPlease switch to Ethereum Mainnet and try again.`
       );
-      safeSetState(setEntering, false);
+      if (mounted) setEntering(false);
       return;
     }
 
-    // 6. Confirm purchase
     const confirmPurchase = confirm(
       `Enter Raffle: ${raffle.title}\n\n` +
         `Entry Price: ${raffle.prize_pool_symbol} ${raffle.ticket_price}\n` +
@@ -639,20 +656,17 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    safeSetState(setEntering, true);
+    if (mounted) setEntering(true);
 
     try {
-      // 7. Final validation - BLOCK if anything is missing (mobile wallet requirement)
       if (!address) {
         throw new Error('Missing sender address. Please reconnect your wallet.');
       }
       
-      // CRITICAL: Re-verify chainId one last time right before sending
-      // Mobile wallets can have timing issues, so we check again
       const lastChainCheck = connectedChainId ?? chain?.id;
       if (!lastChainCheck || lastChainCheck !== REQUIRED_CHAIN_ID) {
         throw new Error(
-          `Chain verification failed. Expected chainId: ${REQUIRED_CHAIN_ID}, got: ${lastChainCheck || 'undefined'}. Please ensure you are on Ethereum Mainnet.`
+          `Chain verification failed. Expected chainId: ${REQUIRED_CHAIN_ID}, got: ${lastChainCheck || 'undefined'}.`
         );
       }
       
@@ -660,10 +674,8 @@ export default function RaffleDetailPage() {
         throw new Error('Missing recipient address. Please contact support.');
       }
 
-      // 8. Parse ETH value to wei (BigInt)
       const value = parseEther(raffle.ticket_price.toString());
       
-      // 9. Log transaction details
       console.log('[Payment] Preparing plain ETH transfer:', {
         from: address,
         to: PAYOUT_ADDRESS,
@@ -672,12 +684,6 @@ export default function RaffleDetailPage() {
         chainId: REQUIRED_CHAIN_ID,
       });
 
-      // 10. SIMPLE ETH TRANSFER - NO CONTRACT, NO ABI, NO DATA
-      // This is a plain ETH transfer to an EOA (Externally Owned Account)
-      // Only required fields: to, value, chainId
-      // NO account field (Wagmi infers from connected wallet)
-      // NO data field (empty data = ETH transfer)
-      // NO ABI (not a contract call)
       console.log('[Payment] Sending plain ETH transfer:', {
         to: PAYOUT_ADDRESS,
         value: value.toString(),
@@ -688,21 +694,19 @@ export default function RaffleDetailPage() {
         to: PAYOUT_ADDRESS,
         value: value,
         chainId: REQUIRED_CHAIN_ID,
-        // NO account - Wagmi uses connected wallet automatically
-        // NO data - empty data = plain ETH transfer
-        // NO ABI - not a contract call
       });
 
       console.log('[Payment] Transaction sent successfully:', hash);
-      if (hash) {
-        safeSetState(setTxHash, hash);
+      if (hash && mounted) {
+        setTxHash(hash);
       } else {
         throw new Error('Transaction hash not returned');
       }
     } catch (error: any) {
+      if (!mounted) return;
+      
       console.error('[Payment] Transaction error:', error);
 
-      // 10. Mobile-friendly error handling
       const message: string =
         error?.shortMessage ||
         error?.message ||
@@ -730,152 +734,127 @@ export default function RaffleDetailPage() {
         );
       } else {
         const userMessage = message || 'Failed to initiate payment. Please check your wallet connection and try again.';
-        safeSetState(setError, userMessage);
-        safeSetState(setEntering, false);
-        safeSetState(setTxHash, undefined); // Reset to allow retry
+        if (mounted) {
+          setError(userMessage);
+          setEntering(false);
+          setTxHash(undefined);
+        }
         setTimeout(() => alert(userMessage), 0);
       }
     }
   };
 
-  // Memoized payment success handler to prevent React errors
-  const handlePaymentSuccess = useCallback(async () => {
-    if (!raffle || !address || !txHash || processingEntryRef.current) return;
+  // Handle payment success - with proper cleanup
+  useEffect(() => {
+    let isActive = true;
     
-    // Check if component is still mounted before proceeding
-    if (!isMountedRef.current) {
-      console.warn('[Payment Success] Component unmounted, skipping entry creation');
-      return;
-    }
-
-    processingEntryRef.current = true;
-    
-    // Only update state if mounted
-    if (isMountedRef.current) {
-      setProcessingEntry(true);
-      setError(null);
-    }
-
-    try {
-      // Call API to create entry - this uses service role key, so no auth needed
-      const response = await fetch(`/api/raffles/${raffle.id}/enter`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: address,
-          txHash,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create entry`);
+    const handleSuccess = async () => {
+      if (!isConfirmed || !txHash || !raffle || !address || !isActive || !mounted) return;
+      if (processingEntryRef.current) return;
+      
+      processingEntryRef.current = true;
+      
+      if (mounted && isActive) {
+        setProcessingEntry(true);
+        setError(null);
       }
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to create raffle entry');
-      }
-
-      // Success - show message
-      if (data.duplicate) {
-        alert('You have already entered this raffle! Transaction hash updated.');
-      } else {
-        alert('Payment successful! You have entered the raffle. Your ticket is now in your profile.');
-      }
-
-      // Only update state if component is still mounted
-      if (isMountedRef.current) {
-        // Refresh UI data (non-blocking) - use startTransition to batch updates
-        startTransition(() => {
-          if (isMountedRef.current) {
-            setTimeout(() => {
-              if (isMountedRef.current) {
-                fetchEntryCount();
-                fetchEntries();
-                fetchUserEntry();
-              }
-            }, 100);
-          }
+      try {
+        const response = await fetch(`/api/raffles/${raffle.id}/enter`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress: address, txHash }),
         });
-      }
-      
-    } catch (error: any) {
-      // Don't throw - payment was successful, entry creation failed
-      const errorMsg = error?.message || 'Unknown error';
-      console.warn('[Payment Success] Entry creation failed:', errorMsg);
-      
-      // Show user-friendly message
-      alert(
-        `Payment successful! However, there was an issue saving your entry.\n\n` +
-        `Transaction Hash: ${txHash}\n\n` +
-        `Please contact support with this transaction hash to verify your entry.`
-      );
-      
-      // Only update state if mounted
-      if (isMountedRef.current) {
-        setError(`Entry creation failed: ${errorMsg}`);
-      }
-    } finally {
-      processingEntryRef.current = false;
-      // Only update state if mounted
-      if (isMountedRef.current) {
-        setProcessingEntry(false);
-        setEntering(false);
-      }
-      // Don't reset txHash - keep it for reference
-    }
-  }, [raffle?.id, address, txHash, fetchEntryCount, fetchEntries, fetchUserEntry]);
 
-  // Handle successful payment confirmation - prevent React errors #418/#423
-  // Defer to next tick to ensure we're not in render cycle
-  useEffect(() => {
-    let isMounted = true;
-    
-    if (isConfirmed && txHash && raffle?.id && address && !processingEntryRef.current && isMountedRef.current) {
-      const timeoutId = setTimeout(() => {
-        if (isMounted && isMountedRef.current) {
-          handlePaymentSuccess();
+        if (!isActive || !mounted) return;
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || `HTTP ${response.status}: Failed to create entry`);
         }
-      }, 0);
-      
-      return () => {
-        isMounted = false;
-        clearTimeout(timeoutId);
-      };
-    }
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [isConfirmed, txHash, raffle?.id, address, handlePaymentSuccess]);
 
-  // Handle payment errors - prevent cascading failures
-  // Defer to next tick to prevent React errors
+        const data = await response.json();
+
+        if (!isActive || !mounted) return;
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to create raffle entry');
+        }
+
+        if (data.duplicate) {
+          alert('You have already entered this raffle! Transaction hash updated.');
+        } else {
+          alert('Payment successful! You have entered the raffle. Your ticket is now in your profile.');
+        }
+
+        if (mounted && isActive) {
+          startTransition(() => {
+            if (mounted && isActive) {
+              setTimeout(() => {
+                if (mounted && isActive) {
+                  fetchEntryCount();
+                  fetchEntries();
+                  fetchUserEntry();
+                }
+              }, 100);
+            }
+          });
+        }
+        
+      } catch (error: any) {
+        if (!isActive || !mounted) return;
+        
+        const errorMsg = error?.message || 'Unknown error';
+        console.warn('[Payment Success] Entry creation failed:', errorMsg);
+        
+        alert(
+          `Payment successful! However, there was an issue saving your entry.\n\n` +
+          `Transaction Hash: ${txHash}\n\n` +
+          `Please contact support with this transaction hash to verify your entry.`
+        );
+        
+        if (mounted && isActive) {
+          setError(`Entry creation failed: ${errorMsg}`);
+        }
+      } finally {
+        processingEntryRef.current = false;
+        if (mounted && isActive) {
+          setProcessingEntry(false);
+          setEntering(false);
+        }
+      }
+    };
+
+    if (isConfirmed && txHash && raffle?.id && address && mounted) {
+      handleSuccess();
+    }
+
+    return () => {
+      isActive = false;
+    };
+  }, [isConfirmed, txHash, raffle?.id, address, mounted]);
+
+  // Handle payment errors
   useEffect(() => {
-    let isMounted = true;
+    let isActive = true;
     
-    if (txError && !processingEntryRef.current && isMountedRef.current) {
+    if (txError && !processingEntryRef.current && mounted) {
       const errorMessage = txError.message || 'Payment failed. Please try again.';
       const timeoutId = setTimeout(() => {
-        if (isMounted && isMountedRef.current) {
+        if (isActive && mounted && isMountedRef.current) {
           queueMicrotask(() => {
-            if (isMounted && isMountedRef.current) {
+            if (isActive && mounted && isMountedRef.current) {
               startTransition(() => {
-                if (isMounted && isMountedRef.current) {
+                if (isActive && mounted && isMountedRef.current) {
                   setError(errorMessage);
                   setEntering(false);
-                  setTxHash(undefined); // Reset to allow retry
+                  setTxHash(undefined);
                 }
               });
             }
           });
-          // Alert outside of state update to avoid blocking
           setTimeout(() => {
-            if (isMounted) {
+            if (isActive && mounted) {
               alert(errorMessage);
             }
           }, 10);
@@ -883,23 +862,23 @@ export default function RaffleDetailPage() {
       }, 0);
       
       return () => {
-        isMounted = false;
+        isActive = false;
         clearTimeout(timeoutId);
       };
     }
     
     return () => {
-      isMounted = false;
+      isActive = false;
     };
-  }, [txError]);
+  }, [txError, mounted]);
 
-  // Memoize derived values to prevent unnecessary recalculations during render
+  // Memoize derived values
   const isRaffleEnded = useMemo(() => {
     if (!raffle?.ends_at) return false;
     return new Date(raffle.ends_at) <= new Date();
   }, [raffle?.ends_at]);
 
-  // Show loading state during SSR or while mounting
+  // Render
   if (!mounted || loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -923,7 +902,7 @@ export default function RaffleDetailPage() {
           <div className="text-center">
             <p className="text-xl mb-4">Raffle not found</p>
             <button
-              onClick={() => router.push('/raffles')}
+              onClick={() => handleNavigation('/raffles')}
               className="text-primary-green hover:underline"
             >
               Browse all raffles
@@ -940,7 +919,6 @@ export default function RaffleDetailPage() {
       <Header />
       
       <main className="flex-1 bg-primary-dark">
-        {/* Banner Image */}
         {raffle.image_url && (
           <div className="relative w-full h-64 md:h-96 bg-primary-darker">
             <Image
@@ -956,7 +934,6 @@ export default function RaffleDetailPage() {
 
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
             <div className="lg:col-span-2">
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 {raffle.title}
@@ -968,7 +945,6 @@ export default function RaffleDetailPage() {
                 </div>
               )}
 
-              {/* Winner Section */}
               {winner && (
                 <div className="bg-gradient-to-r from-primary-orange/20 to-primary-green/20 border-2 border-primary-orange rounded-lg p-6 mb-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -989,7 +965,6 @@ export default function RaffleDetailPage() {
                 </div>
               )}
 
-              {/* Entry Count */}
               <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2 text-gray-400">
@@ -1005,7 +980,6 @@ export default function RaffleDetailPage() {
                 </p>
               </div>
 
-              {/* Live Entries Section */}
               {entries.length > 0 && (
                 <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 mb-6">
                   <div className="flex items-center gap-2 text-gray-400 mb-4">
@@ -1053,10 +1027,8 @@ export default function RaffleDetailPage() {
               )}
             </div>
 
-            {/* Sidebar */}
             <div className="lg:col-span-1">
               <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 sticky top-4">
-                {/* Prize Info */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 text-gray-400 mb-2">
                     <Trophy className="w-5 h-5" />
@@ -1067,7 +1039,6 @@ export default function RaffleDetailPage() {
                   </p>
                 </div>
 
-                {/* Entry Price */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 text-gray-400 mb-2">
                     <span>Entry Price</span>
@@ -1077,7 +1048,6 @@ export default function RaffleDetailPage() {
                   </p>
                 </div>
 
-                {/* Countdown Timer */}
                 {!isRaffleEnded ? (
                   <div className="mb-6">
                     <div className="flex items-center gap-2 text-gray-400 mb-2">
@@ -1098,7 +1068,6 @@ export default function RaffleDetailPage() {
                   </div>
                 )}
 
-                {/* Enter Button */}
                 {!isRaffleEnded && (
                   <button
                     onClick={handleEnterRaffle}
@@ -1126,14 +1095,13 @@ export default function RaffleDetailPage() {
                   </button>
                 )}
 
-                {/* Error Display */}
                 {error && (
                   <div className="mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
                     <p className="text-sm text-red-400 text-center font-semibold">
                       ⚠️ {error}
                     </p>
                     <button
-                      onClick={() => setError(null)}
+                      onClick={() => mounted && setError(null)}
                       className="text-xs text-red-300 hover:text-red-200 mt-2 underline"
                     >
                       Dismiss
@@ -1161,4 +1129,3 @@ export default function RaffleDetailPage() {
     </div>
   );
 }
-
