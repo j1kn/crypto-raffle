@@ -83,6 +83,9 @@ export default function RaffleDetailPage() {
     hash: txHash,
   }) : { isLoading: false, isSuccess: false, error: null };
   
+  // Debug logging
+  console.log('[Raffle] Component render', { address, isConnected, raffle: raffle?.id });
+  
   // Refs to prevent duplicate calls and React errors
   const fetchingUserEntryRef = useRef(false);
   const processingEntryRef = useRef(false);
@@ -738,10 +741,20 @@ export default function RaffleDetailPage() {
   // Memoized payment success handler to prevent React errors
   const handlePaymentSuccess = useCallback(async () => {
     if (!raffle || !address || !txHash || processingEntryRef.current) return;
+    
+    // Check if component is still mounted before proceeding
+    if (!isMountedRef.current) {
+      console.warn('[Payment Success] Component unmounted, skipping entry creation');
+      return;
+    }
 
     processingEntryRef.current = true;
-    safeSetState(setProcessingEntry, true);
-    safeSetState(setError, null);
+    
+    // Only update state if mounted
+    if (isMountedRef.current) {
+      setProcessingEntry(true);
+      setError(null);
+    }
 
     try {
       // Call API to create entry - this uses service role key, so no auth needed
@@ -774,14 +787,21 @@ export default function RaffleDetailPage() {
         alert('Payment successful! You have entered the raffle. Your ticket is now in your profile.');
       }
 
-      // Refresh UI data (non-blocking) - use startTransition to batch updates
-      startTransition(() => {
-        setTimeout(() => {
-          fetchEntryCount();
-          fetchEntries();
-          fetchUserEntry();
-        }, 100);
-      });
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        // Refresh UI data (non-blocking) - use startTransition to batch updates
+        startTransition(() => {
+          if (isMountedRef.current) {
+            setTimeout(() => {
+              if (isMountedRef.current) {
+                fetchEntryCount();
+                fetchEntries();
+                fetchUserEntry();
+              }
+            }, 100);
+          }
+        });
+      }
       
     } catch (error: any) {
       // Don't throw - payment was successful, entry creation failed
@@ -795,11 +815,17 @@ export default function RaffleDetailPage() {
         `Please contact support with this transaction hash to verify your entry.`
       );
       
-      safeSetState(setError, `Entry creation failed: ${errorMsg}`);
+      // Only update state if mounted
+      if (isMountedRef.current) {
+        setError(`Entry creation failed: ${errorMsg}`);
+      }
     } finally {
       processingEntryRef.current = false;
-      safeSetState(setProcessingEntry, false);
-      safeSetState(setEntering, false);
+      // Only update state if mounted
+      if (isMountedRef.current) {
+        setProcessingEntry(false);
+        setEntering(false);
+      }
       // Don't reset txHash - keep it for reference
     }
   }, [raffle?.id, address, txHash, fetchEntryCount, fetchEntries, fetchUserEntry]);
@@ -807,27 +833,39 @@ export default function RaffleDetailPage() {
   // Handle successful payment confirmation - prevent React errors #418/#423
   // Defer to next tick to ensure we're not in render cycle
   useEffect(() => {
+    let isMounted = true;
+    
     if (isConfirmed && txHash && raffle?.id && address && !processingEntryRef.current && isMountedRef.current) {
       const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
+        if (isMounted && isMountedRef.current) {
           handlePaymentSuccess();
         }
       }, 0);
-      return () => clearTimeout(timeoutId);
+      
+      return () => {
+        isMounted = false;
+        clearTimeout(timeoutId);
+      };
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isConfirmed, txHash, raffle?.id, address, handlePaymentSuccess]);
 
   // Handle payment errors - prevent cascading failures
   // Defer to next tick to prevent React errors
   useEffect(() => {
+    let isMounted = true;
+    
     if (txError && !processingEntryRef.current && isMountedRef.current) {
       const errorMessage = txError.message || 'Payment failed. Please try again.';
       const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
+        if (isMounted && isMountedRef.current) {
           queueMicrotask(() => {
-            if (isMountedRef.current) {
+            if (isMounted && isMountedRef.current) {
               startTransition(() => {
-                if (isMountedRef.current) {
+                if (isMounted && isMountedRef.current) {
                   setError(errorMessage);
                   setEntering(false);
                   setTxHash(undefined); // Reset to allow retry
@@ -837,12 +875,22 @@ export default function RaffleDetailPage() {
           });
           // Alert outside of state update to avoid blocking
           setTimeout(() => {
-            alert(errorMessage);
+            if (isMounted) {
+              alert(errorMessage);
+            }
           }, 10);
         }
       }, 0);
-      return () => clearTimeout(timeoutId);
+      
+      return () => {
+        isMounted = false;
+        clearTimeout(timeoutId);
+      };
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [txError]);
 
   // Memoize derived values to prevent unnecessary recalculations during render
