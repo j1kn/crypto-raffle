@@ -151,7 +151,7 @@ export default function RaffleDetailPage() {
     const raffleId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
     if (!raffleId) {
       console.error('[Raffle] No raffle ID found in params:', params);
-      safeSetState(setLoading, false);
+      setLoading(false);
       return;
     }
     
@@ -170,19 +170,19 @@ export default function RaffleDetailPage() {
       
       if (!data) {
         console.warn('[Raffle] No data returned for ID:', raffleId);
-        safeSetState(setRaffle, null);
-        safeSetState(setLoading, false);
+        setRaffle(null);
+        setLoading(false);
         return;
       }
       
       console.log('[Raffle] Successfully fetched raffle:', data.title);
-      // Queue state updates to be batched after render
-      safeSetState(setRaffle, data);
-      safeSetState(setLoading, false);
+      // Direct state updates for initial load - critical for user experience
+      setRaffle(data);
+      setLoading(false);
     } catch (error: any) {
       console.error('[Raffle] Error fetching raffle:', error?.message || error);
-      safeSetState(setRaffle, null);
-      safeSetState(setLoading, false);
+      setRaffle(null);
+      setLoading(false);
     }
   }, [params.id]);
 
@@ -359,18 +359,13 @@ export default function RaffleDetailPage() {
   // Use useLayoutEffect for critical initial load, regular useEffect for others
   // Defer all state updates to next tick to prevent render conflicts
   // These must be AFTER all function declarations
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!mounted || !isClient) return;
     
     const raffleId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
     if (raffleId && isMountedRef.current) {
-      // Use requestIdleCallback or setTimeout to ensure update happens after render
-      const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
-          fetchRaffle();
-        }
-      }, 0);
-      return () => clearTimeout(timeoutId);
+      // Immediate fetch for initial load - user is waiting
+      fetchRaffle();
     }
   }, [mounted, params.id, fetchRaffle]);
 
