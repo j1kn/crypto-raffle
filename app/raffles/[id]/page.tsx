@@ -105,20 +105,18 @@ export default function RaffleDetailPage() {
         .single();
 
       if (error) throw error;
-      setRaffle(data);
+      // Wrap state updates in startTransition to prevent React errors
+      startTransition(() => {
+        setRaffle(data);
+        setLoading(false);
+      });
     } catch (error) {
       console.warn('[Raffle] Error:', error);
-    } finally {
-      setLoading(false);
+      startTransition(() => {
+        setLoading(false);
+      });
     }
   }, [params.id]);
-
-  // useEffect for fetchRaffle - must be after function declaration
-  useEffect(() => {
-    if (params.id) {
-      fetchRaffle();
-    }
-  }, [params.id, fetchRaffle]);
 
   // Memoized fetch functions to prevent React errors
   const fetchEntryCount = useCallback(async () => {
@@ -135,7 +133,10 @@ export default function RaffleDetailPage() {
         }
         throw error;
       }
-      setEntryCount(count || 0);
+      // Wrap state update in startTransition
+      startTransition(() => {
+        setEntryCount(count || 0);
+      });
     } catch (error: any) {
       console.warn('[Entry Count] Error:', error?.message);
     }
@@ -160,15 +161,21 @@ export default function RaffleDetailPage() {
 
       if (error) {
         if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          setEntries([]);
+          startTransition(() => {
+            setEntries([]);
+          });
           return;
         }
         throw error;
       }
-      setEntries((data as any) || []);
+      startTransition(() => {
+        setEntries((data as any) || []);
+      });
     } catch (error: any) {
       console.warn('[Entries] Error:', error?.message);
-      setEntries([]);
+      startTransition(() => {
+        setEntries([]);
+      });
     }
   }, [raffle?.id]);
 
@@ -182,9 +189,11 @@ export default function RaffleDetailPage() {
         .single();
 
       if (error) throw error;
-      setWinner({
-        wallet_address: data.wallet_address,
-        drawn_at: raffle.winner_drawn_at || '',
+      startTransition(() => {
+        setWinner({
+          wallet_address: data.wallet_address,
+          drawn_at: raffle.winner_drawn_at || '',
+        });
       });
     } catch (error) {
       console.warn('[Winner] Error:', error);
@@ -246,7 +255,9 @@ export default function RaffleDetailPage() {
       if (entryResponse.ok) {
         const entryData = await entryResponse.json();
         if (entryData.entry) {
-          setUserEntry(entryData.entry);
+          startTransition(() => {
+            setUserEntry(entryData.entry);
+          });
         }
       }
     } catch (error: any) {
@@ -503,7 +514,9 @@ export default function RaffleDetailPage() {
           alert(
             `${errorMsg}\n\nPlease switch your wallet to Ethereum Mainnet (chainId: 1) and try again.`
           );
-          setEntering(false);
+          startTransition(() => {
+            setEntering(false);
+          });
           return;
         }
       }
@@ -538,7 +551,9 @@ export default function RaffleDetailPage() {
       alert(
         'Unable to verify network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
       );
-      setEntering(false);
+      startTransition(() => {
+        setEntering(false);
+      });
       return;
     }
     
@@ -546,7 +561,9 @@ export default function RaffleDetailPage() {
       alert(
         `This raffle requires Ethereum Mainnet (chainId: 1).\n\nYour current network: chainId ${finalChainId}\n\nPlease switch to Ethereum Mainnet and try again.`
       );
-      setEntering(false);
+      startTransition(() => {
+        setEntering(false);
+      });
       return;
     }
 
@@ -563,7 +580,9 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    setEntering(true);
+    startTransition(() => {
+      setEntering(true);
+    });
 
     try {
       // 7. Final validation - BLOCK if anything is missing (mobile wallet requirement)
@@ -624,7 +643,9 @@ export default function RaffleDetailPage() {
       });
 
       console.log('[Payment] Transaction sent:', hash);
-      setTxHash(hash);
+      startTransition(() => {
+        setTxHash(hash);
+      });
     } catch (error: any) {
       console.error('[Payment] Transaction error:', error);
 
@@ -656,11 +677,13 @@ export default function RaffleDetailPage() {
         );
       } else {
         const userMessage = message || 'Failed to initiate payment. Please check your wallet connection and try again.';
-        setError(userMessage);
-        alert(userMessage);
+        startTransition(() => {
+          setError(userMessage);
+          setEntering(false);
+          setTxHash(undefined); // Reset to allow retry
+        });
+        setTimeout(() => alert(userMessage), 0);
       }
-      setEntering(false);
-      setTxHash(undefined); // Reset to allow retry
     }
   };
 
@@ -669,8 +692,10 @@ export default function RaffleDetailPage() {
     if (!raffle || !address || !txHash || processingEntryRef.current) return;
 
     processingEntryRef.current = true;
-    setProcessingEntry(true);
-    setError(null);
+    startTransition(() => {
+      setProcessingEntry(true);
+      setError(null);
+    });
 
     try {
       // Call API to create entry - this uses service role key, so no auth needed
@@ -724,12 +749,16 @@ export default function RaffleDetailPage() {
         `Please contact support with this transaction hash to verify your entry.`
       );
       
-      setError(`Entry creation failed: ${errorMsg}`);
+      startTransition(() => {
+        setError(`Entry creation failed: ${errorMsg}`);
+      });
     } finally {
       processingEntryRef.current = false;
-      setProcessingEntry(false);
-      setEntering(false);
-      // Don't reset txHash - keep it for reference
+      startTransition(() => {
+        setProcessingEntry(false);
+        setEntering(false);
+        // Don't reset txHash - keep it for reference
+      });
     }
   }, [raffle?.id, address, txHash, fetchEntryCount, fetchEntries, fetchUserEntry]);
 
