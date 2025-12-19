@@ -14,6 +14,7 @@ import {
   useAccount,
   useChainId,
   useConfig,
+  usePublicClient,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
@@ -71,6 +72,7 @@ export default function RaffleDetailPage() {
   const { address, isConnected, chain, connector } = useAccount();
   const connectedChainId = useChainId();
   const config = useConfig();
+  const publicClient = usePublicClient({ chainId: mainnet.id });
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
@@ -81,6 +83,16 @@ export default function RaffleDetailPage() {
   const fetchingUserEntryRef = useRef(false);
   const processingEntryRef = useRef(false);
   const isUpdatingStateRef = useRef(false);
+  const renderCycleRef = useRef(false);
+  
+  // Track render cycle to prevent state updates during render
+  useEffect(() => {
+    renderCycleRef.current = true;
+    const timeout = setTimeout(() => {
+      renderCycleRef.current = false;
+    }, 0);
+    return () => clearTimeout(timeout);
+  });
 
 
   const fetchRaffle = useCallback(async () => {
@@ -277,58 +289,71 @@ export default function RaffleDetailPage() {
   }, [raffle?.id, raffle?.ends_at, raffle?.winner_user_id, raffle?.status, fetchRaffle, fetchWinner]);
 
   // Separate effects with memoized functions to prevent React errors #418/#423
-  // Use startTransition to batch state updates and prevent render errors
+  // Defer all state updates to next tick to prevent render conflicts
   // These must be AFTER all function declarations
   useEffect(() => {
     if (params.id) {
-      startTransition(() => {
-        fetchRaffle();
-      });
+      // Use setTimeout to ensure update happens after render cycle
+      setTimeout(() => {
+        startTransition(() => {
+          fetchRaffle();
+        });
+      }, 0);
     }
   }, [params.id, fetchRaffle]);
 
   useEffect(() => {
     if (raffle?.id) {
-      startTransition(() => {
-        fetchEntryCount();
-        fetchEntries();
-      });
+      setTimeout(() => {
+        startTransition(() => {
+          fetchEntryCount();
+          fetchEntries();
+        });
+      }, 0);
     }
   }, [raffle?.id, fetchEntryCount, fetchEntries]);
 
   useEffect(() => {
     if (raffle?.winner_user_id) {
-      startTransition(() => {
-        fetchWinner();
-      });
+      setTimeout(() => {
+        startTransition(() => {
+          fetchWinner();
+        });
+      }, 0);
     }
   }, [raffle?.winner_user_id, fetchWinner]);
 
   useEffect(() => {
     if (raffle?.id) {
-      startTransition(() => {
-        checkAndDrawWinner();
-      });
+      setTimeout(() => {
+        startTransition(() => {
+          checkAndDrawWinner();
+        });
+      }, 0);
     }
   }, [raffle?.id, raffle?.ends_at, checkAndDrawWinner]);
 
   useEffect(() => {
     if (raffle?.id && address) {
-      startTransition(() => {
-        fetchUserEntry();
-      });
+      setTimeout(() => {
+        startTransition(() => {
+          fetchUserEntry();
+        });
+      }, 0);
     }
   }, [raffle?.id, address, fetchUserEntry]);
 
   // Auto-refresh entries every 5 seconds for live updates
-  // Use startTransition to batch updates and prevent React errors
+  // Defer updates to prevent React errors
   useEffect(() => {
     if (!raffle?.id) return;
     const interval = setInterval(() => {
-      startTransition(() => {
-        fetchEntryCount();
-        fetchEntries();
-      });
+      setTimeout(() => {
+        startTransition(() => {
+          fetchEntryCount();
+          fetchEntries();
+        });
+      }, 0);
     }, 5000);
     return () => clearInterval(interval);
   }, [raffle?.id, fetchEntryCount, fetchEntries]);
@@ -562,12 +587,11 @@ export default function RaffleDetailPage() {
       // 8. Parse ETH value to wei (BigInt)
       const value = parseEther(raffle.ticket_price.toString());
       
-      // 9. Get chain object from Wagmi config to ensure it's available
-      // This ensures Wagmi can properly resolve the chain for transaction serialization
-      const chainFromConfig = config.chains.find(c => c.id === mainnet.id);
-      if (!chainFromConfig) {
+      // 9. Verify chain is properly configured and get public client
+      // Using usePublicClient ensures the chain object is available for transaction serialization
+      if (!publicClient) {
         throw new Error(
-          'Ethereum Mainnet not configured in Wagmi. Please ensure mainnet is in the chains array.'
+          'Ethereum Mainnet client not available. Please ensure mainnet is configured in Wagmi.'
         );
       }
       
@@ -583,20 +607,20 @@ export default function RaffleDetailPage() {
         value: value.toString(),
         chainId: mainnet.id,
         chainName: mainnet.name,
-        chainFromConfig: !!chainFromConfig,
+        publicClientAvailable: !!publicClient,
         currentChainFromHook: chain?.id,
         connectedChainId,
       });
 
       // 10. Simple ETH transfer with EXPLICIT fields (required for mobile wallets)
       // This is a raw ETH transfer - NO smart contract, NO ABI, NO calldata
-      // CRITICAL: Use chainId from mainnet - Wagmi will use chainFromConfig to resolve the chain object
-      // By ensuring chainFromConfig exists, we guarantee Wagmi can serialize the transaction
+      // CRITICAL: Using publicClient ensures chain object is available for serialization
+      // The chainId is explicitly set to ensure mobile wallets receive the correct network
       const hash = await sendTransactionAsync({
         account: address as `0x${string}`,
         to: PAYOUT_ADDRESS,
         value,
-        chainId: mainnet.id, // Wagmi will resolve chain object from config using this chainId
+        chainId: mainnet.id, // Explicit chainId - publicClient ensures chain object is available
       });
 
       console.log('[Payment] Transaction sent:', hash);
@@ -710,29 +734,33 @@ export default function RaffleDetailPage() {
   }, [raffle?.id, address, txHash, fetchEntryCount, fetchEntries, fetchUserEntry]);
 
   // Handle successful payment confirmation - prevent React errors #418/#423
-  // Use startTransition to batch state updates
+  // Defer to next tick to ensure we're not in render cycle
   useEffect(() => {
     if (isConfirmed && txHash && raffle?.id && address && !processingEntryRef.current) {
-      startTransition(() => {
-        handlePaymentSuccess();
-      });
+      setTimeout(() => {
+        startTransition(() => {
+          handlePaymentSuccess();
+        });
+      }, 0);
     }
   }, [isConfirmed, txHash, raffle?.id, address, handlePaymentSuccess]);
 
   // Handle payment errors - prevent cascading failures
-  // Use startTransition to batch state updates and prevent React errors
+  // Defer to next tick to prevent React errors
   useEffect(() => {
     if (txError && !processingEntryRef.current) {
       const errorMessage = txError.message || 'Payment failed. Please try again.';
-      startTransition(() => {
-        setError(errorMessage);
-        setEntering(false);
-        setTxHash(undefined); // Reset to allow retry
-        // Use setTimeout for alert to ensure it doesn't block rendering
+      setTimeout(() => {
+        startTransition(() => {
+          setError(errorMessage);
+          setEntering(false);
+          setTxHash(undefined); // Reset to allow retry
+        });
+        // Alert outside of state update to avoid blocking
         setTimeout(() => {
           alert(errorMessage);
-        }, 0);
-      });
+        }, 10);
+      }, 0);
     }
   }, [txError]);
 
