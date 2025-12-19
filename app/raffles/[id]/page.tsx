@@ -14,7 +14,6 @@ import {
   useAccount,
   useChainId,
   useConfig,
-  usePublicClient,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
@@ -78,7 +77,6 @@ export default function RaffleDetailPage() {
   const { address, isConnected, chain, connector } = isClient ? useAccount() : { address: undefined, isConnected: false, chain: undefined, connector: undefined };
   const connectedChainId = isClient ? useChainId() : 1;
   const config = isClient ? useConfig() : undefined;
-  const publicClient = isClient ? usePublicClient({ chainId: mainnet.id }) : undefined;
   const { switchChainAsync } = isClient ? useSwitchChain() : { switchChainAsync: async () => {} };
   const { sendTransactionAsync } = isClient ? useSendTransaction() : { sendTransactionAsync: async () => Promise.resolve('0x' as `0x${string}`) };
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = isClient ? useWaitForTransactionReceipt({
@@ -662,43 +660,37 @@ export default function RaffleDetailPage() {
       // 8. Parse ETH value to wei (BigInt)
       const value = parseEther(raffle.ticket_price.toString());
       
-      // 9. Verify chain is properly configured and get public client
-      // Using usePublicClient ensures the chain object is available for transaction serialization
-      if (!publicClient) {
-        throw new Error(
-          'Ethereum Mainnet client not available. Please ensure mainnet is configured in Wagmi.'
-        );
-      }
-      
-      // Ensure chain is properly synced before sending (mobile wallets can be slow)
-      if (!chain || chain.id !== REQUIRED_CHAIN_ID) {
-        console.log('[Payment] Chain object not immediately available, waiting for sync...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
-      console.log('[Payment] Final transaction payload:', {
+      // 9. Log transaction details
+      console.log('[Payment] Preparing plain ETH transfer:', {
         from: address,
         to: PAYOUT_ADDRESS,
         value: value.toString(),
-        chainId: mainnet.id,
-        chainName: mainnet.name,
-        publicClientAvailable: !!publicClient,
-        currentChainFromHook: chain?.id,
-        connectedChainId,
+        valueInEth: raffle.ticket_price.toString(),
+        chainId: REQUIRED_CHAIN_ID,
       });
 
-      // 10. Simple ETH transfer with EXPLICIT fields (required for mobile wallets)
-      // This is a raw ETH transfer - NO smart contract, NO ABI, NO calldata
-      // CRITICAL: Using publicClient ensures chain object is available for serialization
-      // The chainId is explicitly set to ensure mobile wallets receive the correct network
-      const hash = await sendTransactionAsync({
-        account: address as `0x${string}`,
+      // 10. SIMPLE ETH TRANSFER - NO CONTRACT, NO ABI, NO DATA
+      // This is a plain ETH transfer to an EOA (Externally Owned Account)
+      // Only required fields: to, value, chainId
+      // NO account field (Wagmi infers from connected wallet)
+      // NO data field (empty data = ETH transfer)
+      // NO ABI (not a contract call)
+      console.log('[Payment] Sending plain ETH transfer:', {
         to: PAYOUT_ADDRESS,
-        value,
-        chainId: mainnet.id, // Explicit chainId - publicClient ensures chain object is available
+        value: value.toString(),
+        chainId: REQUIRED_CHAIN_ID,
       });
 
-      console.log('[Payment] Transaction sent:', hash);
+      const hash = await sendTransactionAsync({
+        to: PAYOUT_ADDRESS,
+        value: value,
+        chainId: REQUIRED_CHAIN_ID,
+        // NO account - Wagmi uses connected wallet automatically
+        // NO data - empty data = plain ETH transfer
+        // NO ABI - not a contract call
+      });
+
+      console.log('[Payment] Transaction sent successfully:', hash);
       if (hash) {
         safeSetState(setTxHash, hash);
       } else {
@@ -1121,3 +1113,4 @@ export default function RaffleDetailPage() {
     </div>
   );
 }
+
