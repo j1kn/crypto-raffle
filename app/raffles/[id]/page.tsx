@@ -3,7 +3,7 @@
 // Force dynamic rendering to avoid SSR issues with Wagmi
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
@@ -73,53 +73,15 @@ export default function RaffleDetailPage() {
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
     hash: txHash,
   });
+  
+  // Refs to prevent duplicate calls and React errors
+  const fetchingUserEntryRef = useRef(false);
+  const processingEntryRef = useRef(false);
 
-  useEffect(() => {
-    if (params.id) {
-      fetchRaffle();
-    }
-  }, [params.id]);
 
-  // Separate effects to prevent React errors #418/#423
-  useEffect(() => {
-    if (raffle) {
-      fetchEntryCount();
-      fetchEntries();
-    }
-  }, [raffle?.id]); // Only depend on raffle ID to prevent infinite loops
-
-  useEffect(() => {
-    if (raffle?.winner_user_id) {
-      fetchWinner();
-    }
-  }, [raffle?.winner_user_id]);
-
-  useEffect(() => {
-    if (raffle && address) {
-      fetchUserEntry();
-    }
-  }, [raffle?.id, address]); // Only depend on raffle ID and address
-
-  useEffect(() => {
-    if (raffle) {
-      checkAndDrawWinner();
-    }
-  }, [raffle?.id, raffle?.ends_at]); // Only depend on relevant raffle fields
-
-  // Auto-refresh entries every 5 seconds for live updates
-  useEffect(() => {
-    if (!raffle) return;
-    const interval = setInterval(() => {
-      fetchEntryCount();
-      fetchEntries();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [raffle]);
-
-  const fetchRaffle = async () => {
+  const fetchRaffle = useCallback(async () => {
+    if (!params.id) return;
     try {
-      // For payment, we need receiving_address, so fetch from raffles table directly
-      // This requires RLS to allow reading raffles (which should be allowed for public)
       const { data, error } = await supabase
         .from('raffles')
         .select('*')
@@ -129,14 +91,22 @@ export default function RaffleDetailPage() {
       if (error) throw error;
       setRaffle(data);
     } catch (error) {
-      console.error('Error fetching raffle:', error);
+      console.warn('[Raffle] Error:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
 
-  const fetchEntryCount = async () => {
-    if (!raffle) return;
+  // useEffect for fetchRaffle - must be after function declaration
+  useEffect(() => {
+    if (params.id) {
+      fetchRaffle();
+    }
+  }, [params.id, fetchRaffle]);
+
+  // Memoized fetch functions to prevent React errors
+  const fetchEntryCount = useCallback(async () => {
+    if (!raffle?.id) return;
     try {
       const { count, error } = await supabase
         .from('raffle_entries')
@@ -144,22 +114,19 @@ export default function RaffleDetailPage() {
         .eq('raffle_id', raffle.id);
 
       if (error) {
-        // 401 is OK - just means we can't count, but don't block UI
         if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          console.warn('[Entry Count] Not authenticated - using default count');
-          return;
+          return; // Silent fail for 401
         }
         throw error;
       }
       setEntryCount(count || 0);
     } catch (error: any) {
-      // Don't throw - just log and continue
-      console.warn('[Entry Count] Error:', error?.message || 'Unknown error');
+      console.warn('[Entry Count] Error:', error?.message);
     }
-  };
+  }, [raffle?.id]);
 
-  const fetchEntries = async () => {
-    if (!raffle) return;
+  const fetchEntries = useCallback(async () => {
+    if (!raffle?.id) return;
     try {
       const { data, error } = await supabase
         .from('raffle_entries')
@@ -173,27 +140,24 @@ export default function RaffleDetailPage() {
         `)
         .eq('raffle_id', raffle.id)
         .order('created_at', { ascending: false })
-        .limit(50); // Show last 50 entries
+        .limit(50);
 
       if (error) {
-        // 401 is OK - just means we can't show entries, but don't block UI
         if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          console.warn('[Entries] Not authenticated - entries list unavailable');
-          setEntries([]); // Set empty array instead of failing
+          setEntries([]);
           return;
         }
         throw error;
       }
       setEntries((data as any) || []);
     } catch (error: any) {
-      // Don't throw - just log and set empty array
-      console.warn('[Entries] Error:', error?.message || 'Unknown error');
+      console.warn('[Entries] Error:', error?.message);
       setEntries([]);
     }
-  };
+  }, [raffle?.id]);
 
-  const fetchWinner = async () => {
-    if (!raffle || !raffle.winner_user_id) return;
+  const fetchWinner = useCallback(async () => {
+    if (!raffle?.winner_user_id) return;
     try {
       const { data, error } = await supabase
         .from('users')
@@ -207,9 +171,9 @@ export default function RaffleDetailPage() {
         drawn_at: raffle.winner_drawn_at || '',
       });
     } catch (error) {
-      console.error('Error fetching winner:', error);
+      console.warn('[Winner] Error:', error);
     }
-  };
+  }, [raffle?.winner_user_id, raffle?.winner_drawn_at]);
 
   const convertGoogleDriveUrl = (url: string | null): string | null => {
     if (!url) return null;
@@ -231,102 +195,48 @@ export default function RaffleDetailPage() {
     return url;
   };
 
-  const fetchUserEntry = async () => {
-    if (!raffle || !address) return;
+  // Memoized fetch functions to prevent React errors #418/#423
+  const fetchUserEntry = useCallback(async () => {
+    if (!raffle || !address || fetchingUserEntryRef.current) return;
+    fetchingUserEntryRef.current = true;
     
     try {
-      // Try to get or create user - handle 401 gracefully
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
-        .select()
-        .single();
+      // Use API route to get/create user (bypasses RLS, no 401 errors)
+      const response = await fetch(`/api/users/get-or-create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ walletAddress: address }),
+      });
 
-      // If 401 or auth error, user is not authenticated - this is OK for wallet users
-      if (userError) {
-        // 401 means unauthenticated - wallet users don't need Supabase auth
-        if (userError.code === 'PGRST301' || userError.message?.includes('401')) {
-          console.warn('[User Entry] User not authenticated (wallet-only user) - this is OK');
-          // Still try to check for entry using wallet address directly
-          await fetchUserEntryByWallet();
-          return;
+      if (!response.ok) {
+        // If API fails, just skip - user can still pay
+        console.warn('[User Entry] API call failed, skipping entry check');
+        return;
+      }
+
+      const { userId } = await response.json();
+      if (!userId) return;
+
+      // Check for existing entry using API route (bypasses RLS)
+      const entryResponse = await fetch(`/api/raffles/${raffle.id}/check-entry?userId=${userId}`);
+      if (entryResponse.ok) {
+        const entryData = await entryResponse.json();
+        if (entryData.entry) {
+          setUserEntry(entryData.entry);
         }
-        // Other errors - log but don't block
-        console.warn('[User Entry] Error getting user:', userError.message);
-        return;
-      }
-
-      if (!userData) {
-        return;
-      }
-
-      // Check for existing entry
-      const { data, error } = await supabase
-        .from('raffle_entries')
-        .select('*')
-        .eq('raffle_id', raffle.id)
-        .eq('user_id', userData.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        // 401 or other errors - don't block, just log
-        if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          console.warn('[User Entry] Not authenticated - checking by wallet address');
-          await fetchUserEntryByWallet();
-          return;
-        }
-        console.warn('[User Entry] Error fetching entry:', error.message);
-        return;
-      }
-      
-      setUserEntry(data);
-    } catch (error: any) {
-      // Don't throw - just log and continue
-      console.warn('[User Entry] Error:', error?.message || 'Unknown error');
-      // Try fallback method
-      await fetchUserEntryByWallet();
-    }
-  };
-
-  // Fallback: Check entry by wallet address (works without auth)
-  const fetchUserEntryByWallet = async () => {
-    if (!raffle || !address) return;
-    
-    try {
-      // Query entries and join with users to find by wallet address
-      const { data, error } = await supabase
-        .from('raffle_entries')
-        .select(`
-          *,
-          users!inner (
-            wallet_address
-          )
-        `)
-        .eq('raffle_id', raffle.id)
-        .eq('users.wallet_address', address)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        // 401 is OK - just means we can't check, user can still pay
-        if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          console.warn('[User Entry] Cannot check entry (unauthenticated) - user can still pay');
-          return;
-        }
-        console.warn('[User Entry] Error checking by wallet:', error.message);
-        return;
-      }
-      
-      if (data) {
-        setUserEntry(data);
       }
     } catch (error: any) {
       // Silent fail - don't block payment flow
-      console.warn('[User Entry] Fallback check failed:', error?.message);
+      console.warn('[User Entry] Error:', error?.message || 'Unknown error');
+    } finally {
+      fetchingUserEntryRef.current = false;
     }
-  };
+  }, [raffle?.id, address]);
 
-  const checkAndDrawWinner = async () => {
-    if (!raffle) return;
+  const checkAndDrawWinner = useCallback(async () => {
+    if (!raffle?.id) return;
     
     const now = new Date();
     const endsAt = new Date(raffle.ends_at);
@@ -341,16 +251,61 @@ export default function RaffleDetailPage() {
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
-            // Refresh raffle data to show winner
-            fetchRaffle();
-            fetchWinner();
+            // Refresh raffle data to show winner (use setTimeout to prevent React errors)
+            setTimeout(() => {
+              fetchRaffle();
+              fetchWinner();
+            }, 100);
           }
         }
       } catch (error) {
-        console.error('Error drawing winner:', error);
+        console.warn('[Draw Winner] Error:', error);
       }
     }
-  };
+  }, [raffle?.id, raffle?.ends_at, raffle?.winner_user_id, raffle?.status, fetchRaffle, fetchWinner]);
+
+  // Separate effects with memoized functions to prevent React errors #418/#423
+  // These must be AFTER all function declarations
+  useEffect(() => {
+    if (params.id) {
+      fetchRaffle();
+    }
+  }, [params.id, fetchRaffle]);
+
+  useEffect(() => {
+    if (raffle?.id) {
+      fetchEntryCount();
+      fetchEntries();
+    }
+  }, [raffle?.id, fetchEntryCount, fetchEntries]);
+
+  useEffect(() => {
+    if (raffle?.winner_user_id) {
+      fetchWinner();
+    }
+  }, [raffle?.winner_user_id, fetchWinner]);
+
+  useEffect(() => {
+    if (raffle?.id) {
+      checkAndDrawWinner();
+    }
+  }, [raffle?.id, raffle?.ends_at, checkAndDrawWinner]);
+
+  useEffect(() => {
+    if (raffle?.id && address) {
+      fetchUserEntry();
+    }
+  }, [raffle?.id, address, fetchUserEntry]);
+
+  // Auto-refresh entries every 5 seconds for live updates
+  useEffect(() => {
+    if (!raffle?.id) return;
+    const interval = setInterval(() => {
+      fetchEntryCount();
+      fetchEntries();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [raffle?.id, fetchEntryCount, fetchEntries]);
 
   const REQUIRED_CHAIN_ID = 1; // Ethereum mainnet (MANDATORY for ETH transfers)
   const PAYOUT_ADDRESS = '0x842bab27dE95e329eb17733c1f29c082e5dd94c3' as `0x${string}`;
@@ -643,27 +598,11 @@ export default function RaffleDetailPage() {
     }
   };
 
-  // Handle successful payment confirmation - prevent React errors #418/#423
-  useEffect(() => {
-    if (isConfirmed && txHash && raffle?.id && address && !processingEntry) {
-      handlePaymentSuccess();
-    }
-  }, [isConfirmed, txHash, raffle?.id, address]); // Only depend on stable values
+  // Memoized payment success handler to prevent React errors
+  const handlePaymentSuccess = useCallback(async () => {
+    if (!raffle || !address || !txHash || processingEntryRef.current) return;
 
-  // Handle payment errors - prevent cascading failures
-  useEffect(() => {
-    if (txError && !processingEntry) {
-      const errorMessage = txError.message || 'Payment failed. Please try again.';
-      setError(errorMessage);
-      alert(errorMessage);
-      setEntering(false);
-      setTxHash(undefined); // Reset to allow retry
-    }
-  }, [txError]);
-
-  const handlePaymentSuccess = async () => {
-    if (!raffle || !address || !txHash || processingEntry) return;
-
+    processingEntryRef.current = true;
     setProcessingEntry(true);
     setError(null);
 
@@ -719,11 +658,30 @@ export default function RaffleDetailPage() {
       
       setError(`Entry creation failed: ${errorMsg}`);
     } finally {
+      processingEntryRef.current = false;
       setProcessingEntry(false);
       setEntering(false);
       // Don't reset txHash - keep it for reference
     }
-  };
+  }, [raffle?.id, address, txHash, fetchEntryCount, fetchEntries, fetchUserEntry]);
+
+  // Handle successful payment confirmation - prevent React errors #418/#423
+  useEffect(() => {
+    if (isConfirmed && txHash && raffle?.id && address && !processingEntryRef.current) {
+      handlePaymentSuccess();
+    }
+  }, [isConfirmed, txHash, raffle?.id, address, handlePaymentSuccess]);
+
+  // Handle payment errors - prevent cascading failures
+  useEffect(() => {
+    if (txError && !processingEntryRef.current) {
+      const errorMessage = txError.message || 'Payment failed. Please try again.';
+      setError(errorMessage);
+      alert(errorMessage);
+      setEntering(false);
+      setTxHash(undefined); // Reset to allow retry
+    }
+  }, [txError]);
 
   const isRaffleEnded = raffle ? new Date(raffle.ends_at) <= new Date() : false;
 
