@@ -143,21 +143,35 @@ export default function RaffleDetailPage() {
   const fetchRaffle = useCallback(async () => {
     if (!params.id) return;
     try {
+      // Use public_raffles view which includes both live and completed raffles
+      // This view has proper RLS policies and is accessible to all users
       const { data, error } = await supabase
-        .from('raffles')
+        .from('public_raffles')
         .select('*')
         .eq('id', params.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Raffle] Fetch error:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.warn('[Raffle] No raffle found with id:', params.id);
+        safeSetState(setRaffle, null);
+        safeSetState(setLoading, false);
+        return;
+      }
+      
       // Queue state updates to be batched after render
       safeSetState(setRaffle, data);
       safeSetState(setLoading, false);
-    } catch (error) {
-      console.warn('[Raffle] Error:', error);
+    } catch (error: any) {
+      console.error('[Raffle] Error fetching raffle:', error?.message || error);
+      safeSetState(setRaffle, null);
       safeSetState(setLoading, false);
     }
-  }, [params.id]);
+  }, [params.id, safeSetState]);
 
   // Memoized fetch functions to prevent React errors
   const fetchEntryCount = useCallback(async () => {
