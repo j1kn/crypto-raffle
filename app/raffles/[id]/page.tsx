@@ -3,7 +3,7 @@
 // Force dynamic rendering to avoid SSR issues with Wagmi
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
@@ -77,6 +77,7 @@ export default function RaffleDetailPage() {
   // Refs to prevent duplicate calls and React errors
   const fetchingUserEntryRef = useRef(false);
   const processingEntryRef = useRef(false);
+  const isUpdatingStateRef = useRef(false);
 
 
   const fetchRaffle = useCallback(async () => {
@@ -175,6 +176,7 @@ export default function RaffleDetailPage() {
     }
   }, [raffle?.winner_user_id, raffle?.winner_drawn_at]);
 
+  // Pure function for Google Drive URL conversion (safe to call during render)
   const convertGoogleDriveUrl = (url: string | null): string | null => {
     if (!url) return null;
     
@@ -194,6 +196,11 @@ export default function RaffleDetailPage() {
     
     return url;
   };
+
+  // Memoize converted image URL to prevent unnecessary recalculations
+  const convertedImageUrl = useMemo(() => {
+    return raffle?.image_url ? convertGoogleDriveUrl(raffle.image_url) || raffle.image_url : null;
+  }, [raffle?.image_url]);
 
   // Memoized fetch functions to prevent React errors #418/#423
   const fetchUserEntry = useCallback(async () => {
@@ -251,11 +258,13 @@ export default function RaffleDetailPage() {
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
-            // Refresh raffle data to show winner (use setTimeout to prevent React errors)
-            setTimeout(() => {
-              fetchRaffle();
-              fetchWinner();
-            }, 100);
+            // Refresh raffle data to show winner - use requestAnimationFrame to ensure it happens after render
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                fetchRaffle();
+                fetchWinner();
+              }, 100);
+            });
           }
         }
       } catch (error) {
@@ -637,12 +646,14 @@ export default function RaffleDetailPage() {
         alert('Payment successful! You have entered the raffle. Your ticket is now in your profile.');
       }
 
-      // Refresh UI data (non-blocking)
-      setTimeout(() => {
-        fetchEntryCount();
-        fetchEntries();
-        fetchUserEntry();
-      }, 500); // Small delay to prevent React errors
+      // Refresh UI data (non-blocking) - use requestAnimationFrame to ensure it happens after render
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          fetchEntryCount();
+          fetchEntries();
+          fetchUserEntry();
+        }, 100);
+      });
       
     } catch (error: any) {
       // Don't throw - payment was successful, entry creation failed
@@ -673,17 +684,25 @@ export default function RaffleDetailPage() {
   }, [isConfirmed, txHash, raffle?.id, address, handlePaymentSuccess]);
 
   // Handle payment errors - prevent cascading failures
+  // Use setTimeout to ensure state updates happen after render
   useEffect(() => {
     if (txError && !processingEntryRef.current) {
       const errorMessage = txError.message || 'Payment failed. Please try again.';
-      setError(errorMessage);
-      alert(errorMessage);
-      setEntering(false);
-      setTxHash(undefined); // Reset to allow retry
+      // Batch all state updates in a single setTimeout to prevent React errors
+      setTimeout(() => {
+        setError(errorMessage);
+        setEntering(false);
+        setTxHash(undefined); // Reset to allow retry
+        alert(errorMessage);
+      }, 0);
     }
   }, [txError]);
 
-  const isRaffleEnded = raffle ? new Date(raffle.ends_at) <= new Date() : false;
+  // Memoize derived values to prevent unnecessary recalculations during render
+  const isRaffleEnded = useMemo(() => {
+    if (!raffle?.ends_at) return false;
+    return new Date(raffle.ends_at) <= new Date();
+  }, [raffle?.ends_at]);
 
   if (loading) {
     return (
@@ -718,7 +737,7 @@ export default function RaffleDetailPage() {
         {raffle.image_url && (
           <div className="relative w-full h-64 md:h-96 bg-primary-darker">
             <Image
-              src={convertGoogleDriveUrl(raffle.image_url) || raffle.image_url}
+              src={convertedImageUrl || raffle.image_url}
               alt={raffle.title}
               fill
               className="object-cover"

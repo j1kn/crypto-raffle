@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
@@ -25,16 +25,9 @@ export default function Header() {
     });
   }, [address, isConnected, connector]);
 
-  useEffect(() => {
-    if (address) {
-      checkAdminStatus(address);
-    } else {
-      setIsAdmin(false);
-    }
-  }, [address]);
-
-  const checkAdminStatus = async (address: string | null) => {
-    if (!address) {
+  // Memoize checkAdminStatus to prevent React errors
+  const checkAdminStatus = useCallback(async (walletAddress: string | null) => {
+    if (!walletAddress) {
       setIsAdmin(false);
       return;
     }
@@ -43,7 +36,7 @@ export default function Header() {
       const response = await fetch('/api/admin/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: address }),
+        body: JSON.stringify({ walletAddress }),
       });
       const data = await response.json();
       setIsAdmin(data.isAdmin || false);
@@ -51,7 +44,15 @@ export default function Header() {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (address) {
+      checkAdminStatus(address);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [address, checkAdminStatus]);
 
   const handleConnect = () => {
     // Always open the modal - Web3Modal will show wallet selection
