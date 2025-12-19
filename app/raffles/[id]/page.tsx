@@ -24,6 +24,9 @@ import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
 
+// Client-side check to prevent SSR issues
+const isClient = typeof window !== 'undefined';
+
 interface Raffle {
   id: string;
   title: string;
@@ -58,7 +61,6 @@ interface Winner {
 export default function RaffleDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { open } = useWeb3Modal();
   const [raffle, setRaffle] = useState<Raffle | null>(null);
   const [entryCount, setEntryCount] = useState(0);
   const [userEntry, setUserEntry] = useState<any>(null);
@@ -69,15 +71,19 @@ export default function RaffleDetailPage() {
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [processingEntry, setProcessingEntry] = useState(false);
-  const { address, isConnected, chain, connector } = useAccount();
-  const connectedChainId = useChainId();
-  const config = useConfig();
-  const publicClient = usePublicClient({ chainId: mainnet.id });
-  const { switchChainAsync } = useSwitchChain();
-  const { sendTransactionAsync } = useSendTransaction();
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
+  const [mounted, setMounted] = useState(false);
+  
+  // Only use Wagmi hooks on client-side to prevent SSR errors
+  const { open } = isClient ? useWeb3Modal() : { open: () => {} };
+  const { address, isConnected, chain, connector } = isClient ? useAccount() : { address: undefined, isConnected: false, chain: undefined, connector: undefined };
+  const connectedChainId = isClient ? useChainId() : 1;
+  const config = isClient ? useConfig() : undefined;
+  const publicClient = isClient ? usePublicClient({ chainId: mainnet.id }) : undefined;
+  const { switchChainAsync } = isClient ? useSwitchChain() : { switchChainAsync: async () => {} };
+  const { sendTransactionAsync } = isClient ? useSendTransaction() : { sendTransactionAsync: async () => Promise.resolve('0x' as `0x${string}`) };
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = isClient ? useWaitForTransactionReceipt({
     hash: txHash,
-  });
+  }) : { isLoading: false, isSuccess: false, error: null };
   
   // Refs to prevent duplicate calls and React errors
   const fetchingUserEntryRef = useRef(false);
@@ -89,6 +95,7 @@ export default function RaffleDetailPage() {
   
   // Track mount status to prevent state updates after unmount
   useEffect(() => {
+    setMounted(true);
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
@@ -141,28 +148,34 @@ export default function RaffleDetailPage() {
 
 
   const fetchRaffle = useCallback(async () => {
-    if (!params.id) return;
+    const raffleId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
+    if (!raffleId) {
+      console.error('[Raffle] No raffle ID found in params:', params);
+      safeSetState(setLoading, false);
+      return;
+    }
+    
     try {
-      // Use public_raffles view which includes both live and completed raffles
-      // This view has proper RLS policies and is accessible to all users
+      console.log('[Raffle] Fetching raffle with ID:', raffleId);
       const { data, error } = await supabase
-        .from('public_raffles')
+        .from('raffles')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', raffleId)
         .single();
 
       if (error) {
-        console.error('[Raffle] Fetch error:', error);
+        console.error('[Raffle] Supabase error:', error);
         throw error;
       }
       
       if (!data) {
-        console.warn('[Raffle] No raffle found with id:', params.id);
+        console.warn('[Raffle] No data returned for ID:', raffleId);
         safeSetState(setRaffle, null);
         safeSetState(setLoading, false);
         return;
       }
       
+      console.log('[Raffle] Successfully fetched raffle:', data.title);
       // Queue state updates to be batched after render
       safeSetState(setRaffle, data);
       safeSetState(setLoading, false);
@@ -171,7 +184,7 @@ export default function RaffleDetailPage() {
       safeSetState(setRaffle, null);
       safeSetState(setLoading, false);
     }
-  }, [params.id, safeSetState]);
+  }, [params.id]);
 
   // Memoized fetch functions to prevent React errors
   const fetchEntryCount = useCallback(async () => {
@@ -347,7 +360,10 @@ export default function RaffleDetailPage() {
   // Defer all state updates to next tick to prevent render conflicts
   // These must be AFTER all function declarations
   useLayoutEffect(() => {
-    if (params.id && isMountedRef.current) {
+    if (!mounted || !isClient) return;
+    
+    const raffleId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
+    if (raffleId && isMountedRef.current) {
       // Use requestIdleCallback or setTimeout to ensure update happens after render
       const timeoutId = setTimeout(() => {
         if (isMountedRef.current) {
@@ -356,7 +372,7 @@ export default function RaffleDetailPage() {
       }, 0);
       return () => clearTimeout(timeoutId);
     }
-  }, [params.id, fetchRaffle]);
+  }, [mounted, params.id, fetchRaffle]);
 
   useEffect(() => {
     if (raffle?.id && isMountedRef.current) {
@@ -844,12 +860,16 @@ export default function RaffleDetailPage() {
     return new Date(raffle.ends_at) <= new Date();
   }, [raffle?.ends_at]);
 
-  if (loading) {
+  // Show loading state during SSR or while mounting
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center text-gray-400">
-          Loading...
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-green mx-auto mb-4"></div>
+            <p>Loading raffle...</p>
+          </div>
         </div>
         <Footer />
       </div>
@@ -861,7 +881,15 @@ export default function RaffleDetailPage() {
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center text-gray-400">
-          Raffle not found
+          <div className="text-center">
+            <p className="text-xl mb-4">Raffle not found</p>
+            <button
+              onClick={() => router.push('/raffles')}
+              className="text-primary-green hover:underline"
+            >
+              Browse all raffles
+            </button>
+          </div>
         </div>
         <Footer />
       </div>
