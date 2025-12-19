@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, startTransition, queueMicrotask } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
@@ -28,7 +28,11 @@ export default function Header() {
   // Memoize checkAdminStatus to prevent React errors
   const checkAdminStatus = useCallback(async (walletAddress: string | null) => {
     if (!walletAddress) {
-      setIsAdmin(false);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setIsAdmin(false);
+        });
+      });
       return;
     }
     
@@ -39,10 +43,18 @@ export default function Header() {
         body: JSON.stringify({ walletAddress }),
       });
       const data = await response.json();
-      setIsAdmin(data.isAdmin || false);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setIsAdmin(data.isAdmin || false);
+        });
+      });
     } catch (error) {
       console.error('Error checking admin status:', error);
-      setIsAdmin(false);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setIsAdmin(false);
+        });
+      });
     }
   }, []);
 
@@ -50,7 +62,11 @@ export default function Header() {
     if (address) {
       checkAdminStatus(address);
     } else {
-      setIsAdmin(false);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setIsAdmin(false);
+        });
+      });
     }
   }, [address, checkAdminStatus]);
 

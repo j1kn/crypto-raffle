@@ -105,15 +105,19 @@ export default function RaffleDetailPage() {
         .single();
 
       if (error) throw error;
-      // Wrap state updates in startTransition to prevent React errors
-      startTransition(() => {
-        setRaffle(data);
-        setLoading(false);
+      // Defer state updates to after render cycle using queueMicrotask
+      queueMicrotask(() => {
+        startTransition(() => {
+          setRaffle(data);
+          setLoading(false);
+        });
       });
     } catch (error) {
       console.warn('[Raffle] Error:', error);
-      startTransition(() => {
-        setLoading(false);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setLoading(false);
+        });
       });
     }
   }, [params.id]);
@@ -133,9 +137,11 @@ export default function RaffleDetailPage() {
         }
         throw error;
       }
-      // Wrap state update in startTransition
-      startTransition(() => {
-        setEntryCount(count || 0);
+      // Defer state update to after render cycle
+      queueMicrotask(() => {
+        startTransition(() => {
+          setEntryCount(count || 0);
+        });
       });
     } catch (error: any) {
       console.warn('[Entry Count] Error:', error?.message);
@@ -161,20 +167,26 @@ export default function RaffleDetailPage() {
 
       if (error) {
         if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          startTransition(() => {
-            setEntries([]);
+          queueMicrotask(() => {
+            startTransition(() => {
+              setEntries([]);
+            });
           });
           return;
         }
         throw error;
       }
-      startTransition(() => {
-        setEntries((data as any) || []);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setEntries((data as any) || []);
+        });
       });
     } catch (error: any) {
       console.warn('[Entries] Error:', error?.message);
-      startTransition(() => {
-        setEntries([]);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setEntries([]);
+        });
       });
     }
   }, [raffle?.id]);
@@ -189,10 +201,12 @@ export default function RaffleDetailPage() {
         .single();
 
       if (error) throw error;
-      startTransition(() => {
-        setWinner({
-          wallet_address: data.wallet_address,
-          drawn_at: raffle.winner_drawn_at || '',
+      queueMicrotask(() => {
+        startTransition(() => {
+          setWinner({
+            wallet_address: data.wallet_address,
+            drawn_at: raffle.winner_drawn_at || '',
+          });
         });
       });
     } catch (error) {
@@ -255,8 +269,10 @@ export default function RaffleDetailPage() {
       if (entryResponse.ok) {
         const entryData = await entryResponse.json();
         if (entryData.entry) {
-          startTransition(() => {
-            setUserEntry(entryData.entry);
+          queueMicrotask(() => {
+            startTransition(() => {
+              setUserEntry(entryData.entry);
+            });
           });
         }
       }
@@ -551,8 +567,10 @@ export default function RaffleDetailPage() {
       alert(
         'Unable to verify network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
       );
-      startTransition(() => {
-        setEntering(false);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setEntering(false);
+        });
       });
       return;
     }
@@ -561,8 +579,10 @@ export default function RaffleDetailPage() {
       alert(
         `This raffle requires Ethereum Mainnet (chainId: 1).\n\nYour current network: chainId ${finalChainId}\n\nPlease switch to Ethereum Mainnet and try again.`
       );
-      startTransition(() => {
-        setEntering(false);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setEntering(false);
+        });
       });
       return;
     }
@@ -580,8 +600,10 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    startTransition(() => {
-      setEntering(true);
+    queueMicrotask(() => {
+      startTransition(() => {
+        setEntering(true);
+      });
     });
 
     try {
@@ -643,8 +665,10 @@ export default function RaffleDetailPage() {
       });
 
       console.log('[Payment] Transaction sent:', hash);
-      startTransition(() => {
-        setTxHash(hash);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setTxHash(hash);
+        });
       });
     } catch (error: any) {
       console.error('[Payment] Transaction error:', error);
@@ -677,10 +701,12 @@ export default function RaffleDetailPage() {
         );
       } else {
         const userMessage = message || 'Failed to initiate payment. Please check your wallet connection and try again.';
-        startTransition(() => {
-          setError(userMessage);
-          setEntering(false);
-          setTxHash(undefined); // Reset to allow retry
+        queueMicrotask(() => {
+          startTransition(() => {
+            setError(userMessage);
+            setEntering(false);
+            setTxHash(undefined); // Reset to allow retry
+          });
         });
         setTimeout(() => alert(userMessage), 0);
       }
@@ -692,9 +718,11 @@ export default function RaffleDetailPage() {
     if (!raffle || !address || !txHash || processingEntryRef.current) return;
 
     processingEntryRef.current = true;
-    startTransition(() => {
-      setProcessingEntry(true);
-      setError(null);
+    queueMicrotask(() => {
+      startTransition(() => {
+        setProcessingEntry(true);
+        setError(null);
+      });
     });
 
     try {
@@ -749,15 +777,19 @@ export default function RaffleDetailPage() {
         `Please contact support with this transaction hash to verify your entry.`
       );
       
-      startTransition(() => {
-        setError(`Entry creation failed: ${errorMsg}`);
+      queueMicrotask(() => {
+        startTransition(() => {
+          setError(`Entry creation failed: ${errorMsg}`);
+        });
       });
     } finally {
       processingEntryRef.current = false;
-      startTransition(() => {
-        setProcessingEntry(false);
-        setEntering(false);
-        // Don't reset txHash - keep it for reference
+      queueMicrotask(() => {
+        startTransition(() => {
+          setProcessingEntry(false);
+          setEntering(false);
+          // Don't reset txHash - keep it for reference
+        });
       });
     }
   }, [raffle?.id, address, txHash, fetchEntryCount, fetchEntries, fetchUserEntry]);
