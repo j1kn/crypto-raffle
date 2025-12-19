@@ -318,8 +318,30 @@ export default function RaffleDetailPage() {
     }
 
     // 3. Network detection and validation (CRITICAL for mobile wallets)
-    let currentChainId = connectedChainId ?? chain?.id;
+    // Get current chain - use multiple sources for reliability
+    let currentChainId: number | undefined = connectedChainId ?? chain?.id;
     
+    // If still undefined, try to get from connector
+    if (!currentChainId && connector) {
+      try {
+        const provider = await connector.getProvider();
+        if (provider && typeof provider === 'object' && provider !== null && 'chainId' in provider) {
+          const chainIdValue = (provider as { chainId?: string | number }).chainId;
+          if (chainIdValue !== undefined) {
+            const providerChainId = typeof chainIdValue === 'string' 
+              ? parseInt(chainIdValue, 16) 
+              : chainIdValue;
+            if (typeof providerChainId === 'number') {
+              currentChainId = providerChainId;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Payment] Could not get chainId from connector:', e);
+      }
+    }
+    
+    // BLOCK if chain is still undefined (mobile wallets REQUIRE explicit chainId)
     if (!currentChainId) {
       alert(
         'Unable to detect your current network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
@@ -332,27 +354,60 @@ export default function RaffleDetailPage() {
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
       if (currentChainId !== REQUIRED_CHAIN_ID) {
         try {
-          console.log(`[Payment] Switching from chain ${currentChainId} to ${REQUIRED_CHAIN_ID} (Ethereum Mainnet)`);
+          console.log(`[Payment] Current chain: ${currentChainId}, required: ${REQUIRED_CHAIN_ID}`);
+          console.log(`[Payment] Switching to Ethereum Mainnet (chainId: ${REQUIRED_CHAIN_ID})...`);
+          
+          // Switch chain
           await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
           
-          // Wait for chain switch to complete (mobile wallets need a moment)
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          // Poll for chain to actually be 1 (mobile wallets need time to sync)
+          let verifiedChainId: number | undefined = undefined;
+          const maxAttempts = 10;
+          const pollInterval = 500; // 500ms between checks
           
-          // Re-verify chain after switch (mobile wallets may take time)
-          currentChainId = connectedChainId ?? chain?.id;
-          if (currentChainId !== REQUIRED_CHAIN_ID) {
-            // Force re-check after another moment
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            currentChainId = connectedChainId ?? chain?.id;
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            
+            // Check all sources for chainId
+            verifiedChainId = connectedChainId ?? chain?.id;
+            
+            // If still not found, try connector
+            if (!verifiedChainId && connector) {
+              try {
+                const provider = await connector.getProvider();
+                if (provider && typeof provider === 'object' && provider !== null && 'chainId' in provider) {
+                  const chainIdValue = (provider as { chainId?: string | number }).chainId;
+                  if (chainIdValue !== undefined) {
+                    const providerChainId = typeof chainIdValue === 'string' 
+                      ? parseInt(chainIdValue, 16) 
+                      : chainIdValue;
+                    if (typeof providerChainId === 'number') {
+                      verifiedChainId = providerChainId;
+                    }
+                  }
+                }
+              } catch (e) {
+                // Ignore errors, continue polling
+              }
+            }
+            
+            if (verifiedChainId === REQUIRED_CHAIN_ID) {
+              console.log(`[Payment] Chain verified as ${REQUIRED_CHAIN_ID} after ${attempt + 1} attempt(s)`);
+              break;
+            }
+            
+            console.log(`[Payment] Chain check ${attempt + 1}/${maxAttempts}: ${verifiedChainId || 'undefined'}`);
           }
           
-          if (currentChainId !== REQUIRED_CHAIN_ID) {
+          // Final verification - BLOCK if chain is not 1
+          if (verifiedChainId !== REQUIRED_CHAIN_ID) {
             throw new Error(
-              'Failed to switch to Ethereum Mainnet. Please manually switch your wallet network to Ethereum Mainnet and try again.'
+              `Failed to switch to Ethereum Mainnet. Current chain: ${verifiedChainId || 'undefined'}. Please manually switch your wallet to Ethereum Mainnet (chainId: 1) and try again.`
             );
           }
           
-          console.log(`[Payment] Successfully switched to chain ${currentChainId}`);
+          currentChainId = verifiedChainId;
+          console.log(`[Payment] Successfully switched and verified chain: ${currentChainId}`);
         } catch (error: any) {
           console.error('[Payment] Network switch error:', error);
           const errorMsg = error?.message || 'Failed to switch network';
@@ -366,11 +421,43 @@ export default function RaffleDetailPage() {
     }
 
     // 5. Final chain verification before transaction (mobile wallet safety check)
-    const finalChainId = currentChainId;
+    // Re-check one more time right before sending (chain might have changed)
+    let finalChainId = connectedChainId ?? chain?.id ?? currentChainId;
+    
+    // If still not found, try connector one last time
+    if (!finalChainId && connector) {
+      try {
+        const provider = await connector.getProvider();
+        if (provider && typeof provider === 'object' && provider !== null && 'chainId' in provider) {
+          const chainIdValue = (provider as { chainId?: string | number }).chainId;
+          if (chainIdValue !== undefined) {
+            const providerChainId = typeof chainIdValue === 'string' 
+              ? parseInt(chainIdValue, 16) 
+              : chainIdValue;
+            if (typeof providerChainId === 'number') {
+              finalChainId = providerChainId;
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+    
+    // CRITICAL: Block transaction if chain is undefined or not mainnet
+    if (!finalChainId) {
+      alert(
+        'Unable to verify network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
+      );
+      setEntering(false);
+      return;
+    }
+    
     if (finalChainId !== REQUIRED_CHAIN_ID) {
       alert(
         `This raffle requires Ethereum Mainnet (chainId: 1).\n\nYour current network: chainId ${finalChainId}\n\nPlease switch to Ethereum Mainnet and try again.`
       );
+      setEntering(false);
       return;
     }
 
@@ -390,15 +477,23 @@ export default function RaffleDetailPage() {
     setEntering(true);
 
     try {
-      // 7. Validate all required fields (mobile wallet requirement)
+      // 7. Final validation - BLOCK if anything is missing (mobile wallet requirement)
       if (!address) {
         throw new Error('Missing sender address. Please reconnect your wallet.');
       }
-      if (!finalChainId || finalChainId !== REQUIRED_CHAIN_ID) {
+      
+      // CRITICAL: Re-verify chainId one last time right before sending
+      // Mobile wallets can have timing issues, so we check again
+      const lastChainCheck = connectedChainId ?? chain?.id;
+      if (!lastChainCheck || lastChainCheck !== REQUIRED_CHAIN_ID) {
         throw new Error(
-          `Invalid chainId: ${finalChainId}. Must be ${REQUIRED_CHAIN_ID} (Ethereum Mainnet).`
+          `Chain verification failed. Expected chainId: ${REQUIRED_CHAIN_ID}, got: ${lastChainCheck || 'undefined'}. Please ensure you are on Ethereum Mainnet.`
         );
       }
+      
+      // Use the verified chainId (always 1 at this point)
+      const verifiedChainId = REQUIRED_CHAIN_ID;
+      
       if (!PAYOUT_ADDRESS) {
         throw new Error('Missing recipient address. Please contact support.');
       }
@@ -406,20 +501,22 @@ export default function RaffleDetailPage() {
       // 8. Parse ETH value to wei (BigInt)
       const value = parseEther(raffle.ticket_price.toString());
       
-      console.log('[Payment] Sending transaction with:', {
+      console.log('[Payment] Final transaction payload:', {
         from: address,
         to: PAYOUT_ADDRESS,
         value: value.toString(),
-        chainId: finalChainId,
+        chainId: verifiedChainId,
+        chainIdType: typeof verifiedChainId,
       });
 
       // 9. Simple ETH transfer with EXPLICIT fields (required for mobile wallets)
       // This is a raw ETH transfer - NO smart contract, NO ABI, NO calldata
+      // CRITICAL: chainId MUST be explicitly set to 1 for mobile wallets
       const hash = await sendTransactionAsync({
         account: address as `0x${string}`,
         to: PAYOUT_ADDRESS,
         value,
-        chainId: finalChainId, // EXPLICIT chainId (MANDATORY for mobile)
+        chainId: verifiedChainId, // EXPLICIT chainId = 1 (MANDATORY for mobile)
       });
 
       console.log('[Payment] Transaction sent:', hash);
