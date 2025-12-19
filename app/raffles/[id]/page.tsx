@@ -704,7 +704,11 @@ export default function RaffleDetailPage() {
       });
 
       console.log('[Payment] Transaction sent:', hash);
-      safeSetState(setTxHash, hash);
+      if (hash) {
+        safeSetState(setTxHash, hash);
+      } else {
+        throw new Error('Transaction hash not returned');
+      }
     } catch (error: any) {
       console.error('[Payment] Transaction error:', error);
 
