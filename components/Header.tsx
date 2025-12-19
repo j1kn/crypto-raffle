@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
-import { useState, useEffect, useCallback, startTransition, queueMicrotask } from 'react';
+import { useState, useEffect, useCallback, startTransition } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
