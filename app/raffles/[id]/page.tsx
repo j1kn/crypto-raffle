@@ -17,6 +17,7 @@ import {
   useSwitchChain,
   useWaitForTransactionReceipt,
 } from 'wagmi';
+import { mainnet } from 'wagmi/chains';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
@@ -538,9 +539,6 @@ export default function RaffleDetailPage() {
         );
       }
       
-      // Use the verified chainId (always 1 at this point)
-      const verifiedChainId = REQUIRED_CHAIN_ID;
-      
       if (!PAYOUT_ADDRESS) {
         throw new Error('Missing recipient address. Please contact support.');
       }
@@ -548,22 +546,34 @@ export default function RaffleDetailPage() {
       // 8. Parse ETH value to wei (BigInt)
       const value = parseEther(raffle.ticket_price.toString());
       
+      // 9. Ensure chain is properly synced before sending (mobile wallets can be slow)
+      // Wait a bit if chain object is not available yet
+      if (!chain || chain.id !== REQUIRED_CHAIN_ID) {
+        console.log('[Payment] Chain object not immediately available, waiting for sync...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
       console.log('[Payment] Final transaction payload:', {
         from: address,
         to: PAYOUT_ADDRESS,
         value: value.toString(),
-        chainId: verifiedChainId,
-        chainIdType: typeof verifiedChainId,
+        chainId: mainnet.id,
+        chainName: mainnet.name,
+        currentChainFromHook: chain?.id,
+        connectedChainId,
+        chainObjectAvailable: !!chain,
       });
 
-      // 9. Simple ETH transfer with EXPLICIT fields (required for mobile wallets)
+      // 10. Simple ETH transfer with EXPLICIT fields (required for mobile wallets)
       // This is a raw ETH transfer - NO smart contract, NO ABI, NO calldata
       // CRITICAL: chainId MUST be explicitly set to 1 for mobile wallets
+      // Wagmi will resolve the chain object from its config using this chainId
+      // The chain object should be available in wagmiConfig, so passing chainId is sufficient
       const hash = await sendTransactionAsync({
         account: address as `0x${string}`,
         to: PAYOUT_ADDRESS,
         value,
-        chainId: verifiedChainId, // EXPLICIT chainId = 1 (MANDATORY for mobile)
+        chainId: mainnet.id, // Explicitly use mainnet.id (1) - Wagmi will resolve chain object from config
       });
 
       console.log('[Payment] Transaction sent:', hash);
