@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -107,8 +108,15 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary-green flex items-center justify-center rounded">
-              <span className="text-primary-darker font-bold text-xl">P</span>
+            <div className="w-10 h-10 flex items-center justify-center">
+              <Image
+                src="/ticket-icon.svg"
+                alt="PrimePick Logo"
+                width={40}
+                height={40}
+                className="w-10 h-10"
+                priority
+              />
             </div>
             <span className="text-white font-bold text-xl">PRIMEPICK</span>
           </Link>

@@ -1,0 +1,35 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ticket shape with serrated edges -->
+  <path d="M8 8C8 6.89543 8.89543 6 10 6H30C31.1046 6 32 6.89543 32 8V12C32 12.5523 32.4477 13 33 13C33.5523 13 34 12.5523 34 12V8C34 5.79086 32.2091 4 30 4H10C7.79086 4 6 5.79086 6 8V12C6 12.5523 6.44772 13 7 13C7.55228 13 8 12.5523 8 12V8Z" fill="#00ff88"/>
+  <path d="M8 28V32C8 33.1046 8.89543 34 10 34H30C31.1046 34 32 33.1046 32 32V28C32 27.4477 32.4477 27 33 27C33.5523 27 34 27.4477 34 28V32C34 34.2091 32.2091 36 30 36H10C7.79086 36 6 34.2091 6 32V28C6 27.4477 6.44772 27 7 27C7.55228 27 8 27.4477 8 28Z" fill="#00ff88"/>
+  
+  <!-- Serrated left edge -->
+  <path d="M6 8L6 10L7 10L7 12L6 12L6 14L7 14L7 16L6 16L6 18L7 18L7 20L6 20L6 22L7 22L7 24L6 24L6 26L7 26L7 28L6 28L6 30L7 30L7 32L6 32Z" fill="#00ff88"/>
+  
+  <!-- Serrated right edge -->
+  <path d="M34 8L34 10L33 10L33 12L34 12L34 14L33 14L33 16L34 16L34 18L33 18L33 20L34 20L34 22L33 22L33 24L34 24L34 26L33 26L33 28L34 28L34 30L33 30L33 32L34 32Z" fill="#00ff88"/>
+  
+  <!-- Inner border -->
+  <rect x="10" y="10" width="20" height="20" rx="2" stroke="#00ff88" stroke-width="1.5" fill="none"/>
+  
+  <!-- Left perforation line -->
+  <line x1="14" y1="12" x2="14" y2="28" stroke="#00ff88" stroke-width="1" stroke-dasharray="2 2"/>
+  
+  <!-- Right perforation line -->
+  <line x1="26" y1="12" x2="26" y2="28" stroke="#00ff88" stroke-width="1" stroke-dasharray="2 2"/>
+  
+  <!-- Left film strip holes -->
+  <rect x="12" y="13" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="12" y="16" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="12" y="19" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="12" y="22" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="12" y="25" width="1.5" height="1.5" fill="#00ff88"/>
+  
+  <!-- Right film strip holes -->
+  <rect x="26.5" y="13" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="26.5" y="16" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="26.5" y="19" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="26.5" y="22" width="1.5" height="1.5" fill="#00ff88"/>
+  <rect x="26.5" y="25" width="1.5" height="1.5" fill="#00ff88"/>
+</svg>
+
