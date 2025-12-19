@@ -269,27 +269,41 @@ export default function RaffleDetailPage() {
     }
   };
 
-  const REQUIRED_CHAIN_ID = 1; // Ethereum mainnet
+  const REQUIRED_CHAIN_ID = 1; // Ethereum mainnet (MANDATORY for ETH transfers)
   const PAYOUT_ADDRESS = '0x842bab27dE95e329eb17733c1f29c082e5dd94c3' as `0x${string}`;
 
+  /**
+   * Mobile WalletConnect Payment Handler
+   * 
+   * This function handles simple ETH transfers (no smart contracts).
+   * It explicitly enforces chainId = 1 (Ethereum mainnet) and includes
+   * all required transaction fields to work reliably on mobile wallets.
+   */
   const handleEnterRaffle = async () => {
     if (!raffle) return;
 
-    // Enhanced wallet connection check
+    // 1. Wallet connection validation (MANDATORY for mobile wallets)
     if (!address) {
-      const connect = confirm('Please connect your wallet to enter the raffle.\n\nClick OK to open wallet connection.');
+      const connect = confirm(
+        'Please connect your wallet to enter the raffle.\n\nClick OK to open wallet connection.'
+      );
       if (connect) {
         open();
       }
       return;
     }
 
+    if (!isConnected) {
+      alert('Wallet is not fully connected. Please reconnect your wallet and try again.');
+      return;
+    }
+
+    // 2. Business logic checks
     if (userEntry) {
       alert('You have already entered this raffle! Check your dashboard to see your ticket.');
       return;
     }
 
-    // Check if raffle has ended
     const now = new Date();
     const endsAt = new Date(raffle.ends_at);
     if (endsAt <= now) {
@@ -298,45 +312,75 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // Check if raffle is full
     if (entryCount >= raffle.max_tickets) {
       alert('This raffle is full! All tickets have been sold.');
       return;
     }
 
-    // Determine current chain
-    const currentChainId = connectedChainId ?? chain?.id;
+    // 3. Network detection and validation (CRITICAL for mobile wallets)
+    let currentChainId = connectedChainId ?? chain?.id;
+    
     if (!currentChainId) {
-      alert('Unable to detect your current network. Please reconnect your wallet and try again.');
+      alert(
+        'Unable to detect your current network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
+      );
       return;
     }
 
-    let finalChainId = currentChainId;
-
-    // Ensure we are on the correct network for this raffle.
-    // For ETH raffles we require Ethereum mainnet (chainId 1) and auto-switch once.
+    // 4. Network guard: ALWAYS enforce Ethereum mainnet for ETH raffles
+    // Mobile wallets require explicit chainId, so we MUST switch if not on mainnet
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
       if (currentChainId !== REQUIRED_CHAIN_ID) {
         try {
+          console.log(`[Payment] Switching from chain ${currentChainId} to ${REQUIRED_CHAIN_ID} (Ethereum Mainnet)`);
           await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
-          finalChainId = REQUIRED_CHAIN_ID;
+          
+          // Wait for chain switch to complete (mobile wallets need a moment)
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          
+          // Re-verify chain after switch (mobile wallets may take time)
+          currentChainId = connectedChainId ?? chain?.id;
+          if (currentChainId !== REQUIRED_CHAIN_ID) {
+            // Force re-check after another moment
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            currentChainId = connectedChainId ?? chain?.id;
+          }
+          
+          if (currentChainId !== REQUIRED_CHAIN_ID) {
+            throw new Error(
+              'Failed to switch to Ethereum Mainnet. Please manually switch your wallet network to Ethereum Mainnet and try again.'
+            );
+          }
+          
+          console.log(`[Payment] Successfully switched to chain ${currentChainId}`);
         } catch (error: any) {
-          console.error('Error switching network:', error);
+          console.error('[Payment] Network switch error:', error);
+          const errorMsg = error?.message || 'Failed to switch network';
           alert(
-            error?.message ||
-              'Please switch your wallet network to Ethereum Mainnet and try again.'
+            `${errorMsg}\n\nPlease switch your wallet to Ethereum Mainnet (chainId: 1) and try again.`
           );
+          setEntering(false);
           return;
         }
       }
     }
 
-    // Confirm purchase
+    // 5. Final chain verification before transaction (mobile wallet safety check)
+    const finalChainId = currentChainId;
+    if (finalChainId !== REQUIRED_CHAIN_ID) {
+      alert(
+        `This raffle requires Ethereum Mainnet (chainId: 1).\n\nYour current network: chainId ${finalChainId}\n\nPlease switch to Ethereum Mainnet and try again.`
+      );
+      return;
+    }
+
+    // 6. Confirm purchase
     const confirmPurchase = confirm(
       `Enter Raffle: ${raffle.title}\n\n` +
-      `Entry Price: ${raffle.prize_pool_symbol} ${raffle.ticket_price}\n` +
-      `Prize Pool: ${raffle.prize_pool_symbol} ${raffle.prize_pool_amount.toLocaleString()}\n\n` +
-      `Click OK to proceed with payment.`
+        `Entry Price: ${raffle.prize_pool_symbol} ${raffle.ticket_price}\n` +
+        `Prize Pool: ${raffle.prize_pool_symbol} ${raffle.prize_pool_amount.toLocaleString()}\n` +
+        `Network: Ethereum Mainnet (chainId: 1)\n\n` +
+        `Click OK to proceed with payment.`
     );
 
     if (!confirmPurchase) {
@@ -346,39 +390,73 @@ export default function RaffleDetailPage() {
     setEntering(true);
 
     try {
-      const value = parseEther(raffle.ticket_price.toString());
-
-      // Validate all required transaction fields before sending
+      // 7. Validate all required fields (mobile wallet requirement)
       if (!address) {
         throw new Error('Missing sender address. Please reconnect your wallet.');
       }
-      if (!finalChainId) {
-        throw new Error('Missing chainId. Please reconnect your wallet and try again.');
+      if (!finalChainId || finalChainId !== REQUIRED_CHAIN_ID) {
+        throw new Error(
+          `Invalid chainId: ${finalChainId}. Must be ${REQUIRED_CHAIN_ID} (Ethereum Mainnet).`
+        );
+      }
+      if (!PAYOUT_ADDRESS) {
+        throw new Error('Missing recipient address. Please contact support.');
       }
 
-      // Simple ETH transfer to payout wallet (EOA) with explicit fields.
+      // 8. Parse ETH value to wei (BigInt)
+      const value = parseEther(raffle.ticket_price.toString());
+      
+      console.log('[Payment] Sending transaction with:', {
+        from: address,
+        to: PAYOUT_ADDRESS,
+        value: value.toString(),
+        chainId: finalChainId,
+      });
+
+      // 9. Simple ETH transfer with EXPLICIT fields (required for mobile wallets)
+      // This is a raw ETH transfer - NO smart contract, NO ABI, NO calldata
       const hash = await sendTransactionAsync({
         account: address as `0x${string}`,
         to: PAYOUT_ADDRESS,
         value,
-        chainId: finalChainId,
+        chainId: finalChainId, // EXPLICIT chainId (MANDATORY for mobile)
       });
 
+      console.log('[Payment] Transaction sent:', hash);
       setTxHash(hash);
     } catch (error: any) {
-      console.error('Error initiating payment:', error);
+      console.error('[Payment] Transaction error:', error);
 
-      const message =
-        error?.shortMessage || error?.message || (error?.cause && error.cause.message) || '';
+      // 10. Mobile-friendly error handling
+      const message: string =
+        error?.shortMessage ||
+        error?.message ||
+        (error?.cause && error.cause.message) ||
+        '';
 
-      if (message.toLowerCase().includes('user rejected')) {
+      const lower = message.toLowerCase();
+
+      if (lower.includes('user rejected') || lower.includes('user denied')) {
         alert('Transaction was rejected in your wallet.');
-      } else if (message.toLowerCase().includes('insufficient funds')) {
-        alert('Insufficient funds to pay the entry price. Please top up your wallet and try again.');
-      } else if (message.toLowerCase().includes('chain') && message.toLowerCase().includes('mismatch')) {
-        alert('Wrong network detected. Please switch your wallet to Ethereum Mainnet and try again.');
+      } else if (lower.includes('insufficient funds') || lower.includes('insufficient balance')) {
+        alert(
+          'Insufficient funds to pay the entry price. Please top up your wallet and try again.'
+        );
+      } else if (
+        lower.includes('chain') &&
+        (lower.includes('mismatch') || lower.includes('unsupported') || lower.includes('invalid'))
+      ) {
+        alert(
+          'Network mismatch detected. Please ensure your wallet is on Ethereum Mainnet (chainId: 1) and try again.'
+        );
+      } else if (lower.includes('internal error') || lower.includes('data couldn\'t be read')) {
+        alert(
+          'Wallet connection error. Please:\n\n1. Ensure you are on Ethereum Mainnet\n2. Disconnect and reconnect your wallet\n3. Try again'
+        );
       } else {
-        alert(message || 'Failed to initiate payment. Please try again.');
+        alert(
+          message || 'Failed to initiate payment. Please check your wallet connection and try again.'
+        );
       }
       setEntering(false);
     }
