@@ -84,25 +84,58 @@ export default function RaffleDetailPage() {
   const processingEntryRef = useRef(false);
   const isUpdatingStateRef = useRef(false);
   const isMountedRef = useRef(true);
+  const stateUpdateQueueRef = useRef<Array<() => void>>([]);
+  const isProcessingQueueRef = useRef(false);
   
   // Track mount status to prevent state updates after unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      stateUpdateQueueRef.current = []; // Clear queue on unmount
     };
   }, []);
   
-  // Helper function to safely update state (only if mounted and not during render)
+  // Process state update queue after render completes
+  useEffect(() => {
+    if (stateUpdateQueueRef.current.length > 0 && !isProcessingQueueRef.current) {
+      isProcessingQueueRef.current = true;
+      // Use requestIdleCallback if available, otherwise setTimeout with longer delay
+      const scheduleUpdate = typeof requestIdleCallback !== 'undefined' 
+        ? requestIdleCallback 
+        : (cb: () => void) => setTimeout(cb, 100);
+      
+      scheduleUpdate(() => {
+        if (!isMountedRef.current) {
+          stateUpdateQueueRef.current = [];
+          isProcessingQueueRef.current = false;
+          return;
+        }
+        
+        const updates = stateUpdateQueueRef.current.slice();
+        stateUpdateQueueRef.current = [];
+        
+        // Batch all updates in a single startTransition
+        startTransition(() => {
+          updates.forEach(update => {
+            if (isMountedRef.current) {
+              update();
+            }
+          });
+        });
+        
+        isProcessingQueueRef.current = false;
+      });
+    }
+  });
+  
+  // Helper function to safely queue state updates (batched and deferred)
   const safeSetState = useCallback(<T,>(setter: (value: T) => void, value: T) => {
     if (!isMountedRef.current) return;
-    queueMicrotask(() => {
-      if (!isMountedRef.current) return;
-      startTransition(() => {
-        if (isMountedRef.current) {
-          setter(value);
-        }
-      });
+    stateUpdateQueueRef.current.push(() => {
+      if (isMountedRef.current) {
+        setter(value);
+      }
     });
   }, []);
 
@@ -117,32 +150,12 @@ export default function RaffleDetailPage() {
         .single();
 
       if (error) throw error;
-      // Use safe state update helper
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setRaffle(data);
-                setLoading(false);
-              }
-            });
-          }
-        });
-      }
+      // Queue state updates to be batched after render
+      safeSetState(setRaffle, data);
+      safeSetState(setLoading, false);
     } catch (error) {
       console.warn('[Raffle] Error:', error);
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setLoading(false);
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setLoading, false);
     }
   }, [params.id]);
 
@@ -161,18 +174,8 @@ export default function RaffleDetailPage() {
         }
         throw error;
       }
-      // Defer state update to after render cycle, only if mounted
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setEntryCount(count || 0);
-              }
-            });
-          }
-        });
-      }
+      // Queue state update
+      safeSetState(setEntryCount, count || 0);
     } catch (error: any) {
       console.warn('[Entry Count] Error:', error?.message);
     }
@@ -197,45 +200,15 @@ export default function RaffleDetailPage() {
 
       if (error) {
         if (error.code === 'PGRST301' || error.message?.includes('401')) {
-          if (isMountedRef.current) {
-            queueMicrotask(() => {
-              if (isMountedRef.current) {
-                startTransition(() => {
-                  if (isMountedRef.current) {
-                    setEntries([]);
-                  }
-                });
-              }
-            });
-          }
+          safeSetState(setEntries, []);
           return;
         }
         throw error;
       }
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setEntries((data as any) || []);
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setEntries, (data as any) || []);
     } catch (error: any) {
       console.warn('[Entries] Error:', error?.message);
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setEntries([]);
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setEntries, []);
     }
   }, [raffle?.id]);
 
@@ -249,20 +222,10 @@ export default function RaffleDetailPage() {
         .single();
 
       if (error) throw error;
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setWinner({
-                  wallet_address: data.wallet_address,
-                  drawn_at: raffle.winner_drawn_at || '',
-                });
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setWinner, {
+        wallet_address: data.wallet_address,
+        drawn_at: raffle.winner_drawn_at || '',
+      });
     } catch (error) {
       console.warn('[Winner] Error:', error);
     }
@@ -322,16 +285,8 @@ export default function RaffleDetailPage() {
       const entryResponse = await fetch(`/api/raffles/${raffle.id}/check-entry?userId=${userId}`);
       if (entryResponse.ok) {
         const entryData = await entryResponse.json();
-        if (entryData.entry && isMountedRef.current) {
-          queueMicrotask(() => {
-            if (isMountedRef.current) {
-              startTransition(() => {
-                if (isMountedRef.current) {
-                  setUserEntry(entryData.entry);
-                }
-              });
-            }
-          });
+        if (entryData.entry) {
+          safeSetState(setUserEntry, entryData.entry);
         }
       }
     } catch (error: any) {
@@ -633,17 +588,7 @@ export default function RaffleDetailPage() {
       alert(
         'Unable to verify network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
       );
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setEntering(false);
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setEntering, false);
       return;
     }
     
@@ -651,17 +596,7 @@ export default function RaffleDetailPage() {
       alert(
         `This raffle requires Ethereum Mainnet (chainId: 1).\n\nYour current network: chainId ${finalChainId}\n\nPlease switch to Ethereum Mainnet and try again.`
       );
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setEntering(false);
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setEntering, false);
       return;
     }
 
@@ -678,17 +613,7 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    if (isMountedRef.current) {
-      queueMicrotask(() => {
-        if (isMountedRef.current) {
-          startTransition(() => {
-            if (isMountedRef.current) {
-              setEntering(true);
-            }
-          });
-        }
-      });
-    }
+    safeSetState(setEntering, true);
 
     try {
       // 7. Final validation - BLOCK if anything is missing (mobile wallet requirement)
@@ -749,17 +674,7 @@ export default function RaffleDetailPage() {
       });
 
       console.log('[Payment] Transaction sent:', hash);
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setTxHash(hash);
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setTxHash, hash);
     } catch (error: any) {
       console.error('[Payment] Transaction error:', error);
 
@@ -791,19 +706,9 @@ export default function RaffleDetailPage() {
         );
       } else {
         const userMessage = message || 'Failed to initiate payment. Please check your wallet connection and try again.';
-        if (isMountedRef.current) {
-          queueMicrotask(() => {
-            if (isMountedRef.current) {
-              startTransition(() => {
-                if (isMountedRef.current) {
-                  setError(userMessage);
-                  setEntering(false);
-                  setTxHash(undefined); // Reset to allow retry
-                }
-              });
-            }
-          });
-        }
+        safeSetState(setError, userMessage);
+        safeSetState(setEntering, false);
+        safeSetState(setTxHash, undefined); // Reset to allow retry
         setTimeout(() => alert(userMessage), 0);
       }
     }
@@ -814,18 +719,8 @@ export default function RaffleDetailPage() {
     if (!raffle || !address || !txHash || processingEntryRef.current) return;
 
     processingEntryRef.current = true;
-    if (isMountedRef.current) {
-      queueMicrotask(() => {
-        if (isMountedRef.current) {
-          startTransition(() => {
-            if (isMountedRef.current) {
-              setProcessingEntry(true);
-              setError(null);
-            }
-          });
-        }
-      });
-    }
+    safeSetState(setProcessingEntry, true);
+    safeSetState(setError, null);
 
     try {
       // Call API to create entry - this uses service role key, so no auth needed
@@ -879,32 +774,12 @@ export default function RaffleDetailPage() {
         `Please contact support with this transaction hash to verify your entry.`
       );
       
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setError(`Entry creation failed: ${errorMsg}`);
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setError, `Entry creation failed: ${errorMsg}`);
     } finally {
       processingEntryRef.current = false;
-      if (isMountedRef.current) {
-        queueMicrotask(() => {
-          if (isMountedRef.current) {
-            startTransition(() => {
-              if (isMountedRef.current) {
-                setProcessingEntry(false);
-                setEntering(false);
-                // Don't reset txHash - keep it for reference
-              }
-            });
-          }
-        });
-      }
+      safeSetState(setProcessingEntry, false);
+      safeSetState(setEntering, false);
+      // Don't reset txHash - keep it for reference
     }
   }, [raffle?.id, address, txHash, fetchEntryCount, fetchEntries, fetchUserEntry]);
 
