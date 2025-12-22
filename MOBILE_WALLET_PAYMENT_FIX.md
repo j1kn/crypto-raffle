@@ -161,3 +161,4 @@ Even with a correct transaction object, WalletConnect mobile can fail if:
 With the current frontend code, the ETH transfer object is now **fully explicit and validated**, so once the WalletConnect project and domains are configured correctly, mobile payments should behave the same as desktop browser extensions.
 
 
+a

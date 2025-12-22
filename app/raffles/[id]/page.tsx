@@ -567,81 +567,9 @@ export default function RaffleDetailPage() {
     }
 
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
-      if (currentChainId !== REQUIRED_CHAIN_ID) {
-        try {
-          console.log(`[Payment] Current chain: ${currentChainId}, required: ${REQUIRED_CHAIN_ID}`);
-          await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
-          
-          let verifiedChainId: number | undefined = undefined;
-          const maxAttempts = 10;
-          const pollInterval = 500;
-          
-          for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-            
-            verifiedChainId = connectedChainId ?? chain?.id;
-            
-            if (!verifiedChainId && connector) {
-              try {
-                const provider = await connector.getProvider();
-                if (provider && typeof provider === 'object' && provider !== null && 'chainId' in provider) {
-                  const chainIdValue = (provider as { chainId?: string | number }).chainId;
-                  if (chainIdValue !== undefined) {
-                    const providerChainId = typeof chainIdValue === 'string' 
-                      ? parseInt(chainIdValue, 16) 
-                      : chainIdValue;
-                    if (typeof providerChainId === 'number') {
-                      verifiedChainId = providerChainId;
-                    }
-                  }
-                }
-              } catch (e) {
-                // Ignore
-              }
-            }
-            
-            if (verifiedChainId === REQUIRED_CHAIN_ID) {
-              console.log(`[Payment] Chain verified as ${REQUIRED_CHAIN_ID}`);
-              break;
-            }
-          }
-          
-          if (verifiedChainId !== REQUIRED_CHAIN_ID) {
-            throw new Error(
-              `Failed to switch to Ethereum Mainnet. Current chain: ${verifiedChainId || 'undefined'}.`
-            );
-          }
-          
-          currentChainId = verifiedChainId;
-        } catch (error: any) {
-          console.error('[Payment] Network switch error:', error);
-          alert(
-            `${error?.message || 'Failed to switch network'}\n\nPlease switch your wallet to Ethereum Mainnet (chainId: 1) and try again.`
-          );
-          if (mounted) {
-            setEntering(false);
-          }
-          return;
-        }
-      }
-    }
-
-    let finalChainId = connectedChainId ?? chain?.id ?? currentChainId;
-    
-    if (!finalChainId) {
-      alert(
-        'Unable to verify network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
-      );
-      if (mounted) setEntering(false);
-      return;
-    }
-    
-    if (finalChainId !== REQUIRED_CHAIN_ID) {
-      alert(
-        `This raffle requires Ethereum Mainnet (chainId: 1).\n\nYour current network: chainId ${finalChainId}\n\nPlease switch to Ethereum Mainnet and try again.`
-      );
-      if (mounted) setEntering(false);
-      return;
+      // Note: Removed chain switching and strict checks to allow mobile wallets to handle chain selection
+      // The transaction will specify chainId, letting the wallet handle cross-chain transactions
+      console.log(`[Payment] Wallet chain: ${currentChainId}, transaction chainId: ${REQUIRED_CHAIN_ID}`);
     }
 
     const confirmPurchase = confirm(
@@ -663,12 +591,8 @@ export default function RaffleDetailPage() {
         throw new Error('Missing sender address. Please reconnect your wallet.');
       }
       
-      const lastChainCheck = connectedChainId ?? chain?.id;
-      if (!lastChainCheck || lastChainCheck !== REQUIRED_CHAIN_ID) {
-        throw new Error(
-          `Chain verification failed. Expected chainId: ${REQUIRED_CHAIN_ID}, got: ${lastChainCheck || 'undefined'}.`
-        );
-      }
+      // Removed chain verification check - let the transaction specify chainId
+      console.log(`[Payment] Proceeding with transaction on chain ${REQUIRED_CHAIN_ID}`);
       
       if (!PAYOUT_ADDRESS) {
         throw new Error('Missing recipient address. Please contact support.');

@@ -12,7 +12,7 @@ const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'f3d84f94d
 const metadata = {
   name: 'PrimePick Tournament',
   description: 'Crypto Raffle Platform',
-  url: 'https://crypto-raffle-heys.vercel.app',
+  url: typeof window !== 'undefined' ? window.location.origin : 'https://crypto-raffle-heys.vercel.app',
   icons: ['https://crypto-raffle-heys.vercel.app/icon.png'],
 };
 
