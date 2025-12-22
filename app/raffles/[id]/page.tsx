@@ -612,12 +612,16 @@ export default function RaffleDetailPage() {
         to: PAYOUT_ADDRESS,
         value: value.toString(),
         chainId: REQUIRED_CHAIN_ID,
+        data: "0x",
+        gas: BigInt(21000),
       });
 
       const hash = await sendTransactionAsync({
         to: PAYOUT_ADDRESS,
         value: value,
         chainId: REQUIRED_CHAIN_ID,
+        data: "0x",
+        gas: BigInt(21000),
       });
 
       console.log('[Payment] Transaction sent successfully:', hash);
