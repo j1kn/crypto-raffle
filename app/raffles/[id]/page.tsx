@@ -567,9 +567,25 @@ export default function RaffleDetailPage() {
     }
 
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
-      // Note: Removed chain switching and strict checks to allow mobile wallets to handle chain selection
-      // The transaction will specify chainId, letting the wallet handle cross-chain transactions
-      console.log(`[Payment] Wallet chain: ${currentChainId}, transaction chainId: ${REQUIRED_CHAIN_ID}`);
+      // Check if user is on Android - Android wallets need explicit chain switching
+      const isAndroid = typeof navigator !== 'undefined' && 
+        /Android/i.test(navigator.userAgent);
+      
+      if (isAndroid && currentChainId !== REQUIRED_CHAIN_ID) {
+        console.log(`[Payment] Android device detected, switching from chain ${currentChainId} to ${REQUIRED_CHAIN_ID}`);
+        try {
+          await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
+          console.log('[Payment] Chain switched successfully for Android');
+          // Update currentChainId after switching
+          currentChainId = REQUIRED_CHAIN_ID;
+        } catch (switchError: any) {
+          console.error('[Payment] Chain switch failed for Android:', switchError);
+          alert('Failed to switch to Ethereum Mainnet. Please switch manually in your wallet and try again.');
+          return;
+        }
+      } else {
+        console.log(`[Payment] Wallet chain: ${currentChainId}, transaction chainId: ${REQUIRED_CHAIN_ID}`);
+      }
     }
 
     const confirmPurchase = confirm(
