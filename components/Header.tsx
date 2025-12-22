@@ -163,11 +163,12 @@ export default function Header() {
                   className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
                 >
                   <User className="w-4 h-4" />
-                  {address.slice(0, 6)}...{address.slice(-4)}
+                  <span className="hidden sm:inline">{address.slice(0, 6)}...{address.slice(-4)}</span>
+                  <span className="sm:hidden">{address.slice(0, 4)}...{address.slice(-4)}</span>
                 </Link>
                 <button
                   onClick={handleDisconnect}
-                  className="bg-primary-orange text-white px-4 py-2 rounded font-semibold hover:bg-primary-orange/90 transition-colors text-sm"
+                  className="bg-primary-orange text-white px-3 py-2 rounded font-semibold hover:bg-primary-orange/90 transition-colors text-sm hidden md:block"
                   title="Disconnect Wallet"
                 >
                   DISCONNECT
@@ -222,6 +223,18 @@ export default function Header() {
                   <Shield className="w-4 h-4" />
                   ADMIN
                 </Link>
+              )}
+              {address && (
+                <button
+                  onClick={() => {
+                    handleDisconnect();
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-sm font-medium transition-colors flex items-center gap-1 text-red-400 hover:text-red-300"
+                >
+                  <LogOut className="w-4 h-4" />
+                  DISCONNECT WALLET
+                </button>
               )}
             </div>
           </nav>

@@ -148,14 +148,17 @@ export default function DashboardPage() {
 
           {/* Wallet Address */}
           <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-semibold text-white mb-2">Connected Wallet</h2>
-                <p className="text-primary-green font-mono">{address}</p>
+                <p className="text-primary-green font-mono break-all sm:break-normal">
+                  <span className="hidden sm:inline">{address}</span>
+                  <span className="sm:hidden">{address?.slice(0, 8)}...{address?.slice(-8)}</span>
+                </p>
               </div>
               <button
                 onClick={handleDisconnect}
-                className="flex items-center gap-2 bg-primary-orange text-white px-4 py-2 rounded font-semibold hover:bg-primary-orange/90 transition-colors"
+                className="flex items-center gap-2 bg-primary-orange text-white px-4 py-2 rounded font-semibold hover:bg-primary-orange/90 transition-colors whitespace-nowrap"
               >
                 <LogOut className="w-4 h-4" />
                 DISCONNECT
