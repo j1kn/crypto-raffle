@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 
 export default function Footer() {
@@ -11,8 +12,15 @@ export default function Footer() {
           {/* Column 1: Logo and Description */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary-green flex items-center justify-center rounded">
-                <span className="text-primary-darker font-bold text-xl">P</span>
+              <div className="w-10 h-10 flex items-center justify-center">
+                <Image
+                  src="/ticket-icon.svg"
+                  alt="PrimePick Logo"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10"
+                  priority
+                />
               </div>
               <span className="text-white font-bold text-xl">PRIMEPICK</span>
             </div>
