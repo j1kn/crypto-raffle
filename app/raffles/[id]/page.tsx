@@ -77,6 +77,7 @@ export default function RaffleDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [processingEntry, setProcessingEntry] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [email, setEmail] = useState('');
   
   // Wagmi hooks - ALWAYS called (not conditional)
   const { open } = useWeb3Modal();
@@ -707,7 +708,11 @@ export default function RaffleDetailPage() {
         const response = await fetch(`/api/raffles/${raffle.id}/enter`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress: address, txHash }),
+          body: JSON.stringify({ 
+            walletAddress: address, 
+            txHash,
+            email: email.trim() || undefined, // Only send email if it's not empty
+          }),
         });
 
         if (!isActive || !mounted) return;
@@ -1009,6 +1014,26 @@ export default function RaffleDetailPage() {
                     <p className="text-xl font-bold text-primary-orange">
                       RAFFLE ENDED
                     </p>
+                  </div>
+                )}
+
+                {!isRaffleEnded && (
+                  <div className="mb-4">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                      Email Address (Optional)
+                    </label>
+                    <p className="text-xs text-gray-400 mb-3">
+                      Provide your email to receive raffle updates and winner notifications
+                    </p>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-3 bg-primary-darker border border-primary-lightgray rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-green focus:border-transparent"
+                      disabled={entering || userEntry !== null || isConfirming}
+                    />
                   </div>
                 )}
 

@@ -10,9 +10,10 @@ export async function POST(
   try {
     const raffleId = params.id;
     const body = await request.json();
-    const { walletAddress, txHash } = body as {
+    const { walletAddress, txHash, email } = body as {
       walletAddress?: string;
       txHash?: string;
+      email?: string;
     };
 
     if (!walletAddress || !txHash) {
@@ -37,22 +38,30 @@ export async function POST(
     }
 
     // Try to create raffle entry with transaction hash
-    const { data: entryData, error: entryError } = await supabase
+    const entryData = {
+      raffle_id: raffleId,
+      user_id: userData.id,
+      tx_hash: txHash,
+      ...(email && email.trim() && { email: email.trim() }), // Only include email if provided and not empty
+    };
+
+    const { data: entryResult, error: entryError } = await supabase
       .from('raffle_entries')
-      .insert({
-        raffle_id: raffleId,
-        user_id: userData.id,
-        tx_hash: txHash,
-      })
+      .insert(entryData)
       .select()
       .single();
 
     if (entryError) {
       // Handle duplicate entry (unique constraint on raffle_id, user_id)
       if ((entryError as any).code === '23505') {
+        const updateData: any = { tx_hash: txHash };
+        if (email && email.trim()) {
+          updateData.email = email.trim();
+        }
+
         const { data: existing, error: updateError } = await supabase
           .from('raffle_entries')
-          .update({ tx_hash: txHash })
+          .update(updateData)
           .eq('raffle_id', raffleId)
           .eq('user_id', userData.id)
           .select()
