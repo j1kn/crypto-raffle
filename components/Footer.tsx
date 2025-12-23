@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <footer className="bg-primary-darker border-t border-primary-gray mt-20">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Column 1: Logo and Description */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -96,27 +96,6 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
-
-          {/* Column 4: Newsletter */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">NEWSLETTER</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              Subscribe our newsletter to get our latest update & news.
-            </p>
-            <form className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="flex-1 bg-primary-gray border border-primary-lightgray rounded px-4 py-2 text-white text-sm focus:outline-none focus:border-primary-green"
-              />
-              <button
-                type="submit"
-                className="bg-primary-green text-primary-darker p-2 rounded hover:bg-primary-green/90 transition-colors"
-              >
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </form>
           </div>
         </div>
 
