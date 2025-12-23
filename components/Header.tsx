@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
-import { useState, useEffect, useCallback, startTransition } from 'react';
+import { useState, useEffect, useCallback, startTransition, useRef } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
@@ -16,6 +16,9 @@ export default function Header() {
   const { disconnect } = useDisconnect();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const navRef = useRef<HTMLElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
 
   // Debug wallet connection
   useEffect(() => {
@@ -71,6 +74,26 @@ export default function Header() {
     }
   }, [address, checkAdminStatus]);
 
+  // Update navigation indicator position
+  useEffect(() => {
+    if (!navRef.current) return;
+
+    const navLinks = navRef.current.querySelectorAll('a');
+    const activeLink = Array.from(navLinks).find(link =>
+      link.getAttribute('href') === pathname
+    );
+
+    if (activeLink) {
+      const navRect = navRef.current.getBoundingClientRect();
+      const linkRect = activeLink.getBoundingClientRect();
+
+      setIndicatorStyle({
+        left: linkRect.left - navRect.left,
+        width: linkRect.width,
+      });
+    }
+  }, [pathname]);
+
   const handleConnect = () => {
     // Always open the modal - Web3Modal will show wallet selection
     open();
@@ -122,16 +145,19 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
+          <nav ref={navRef} className="hidden md:flex items-center gap-6 relative">
+            {navLinks.map((link, index) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-medium transition-all duration-300 ease-out relative z-10 transform hover:scale-105 ${
                   pathname === link.href
                     ? 'text-primary-green'
                     : 'text-gray-300 hover:text-primary-green'
                 }`}
+                style={{
+                  transitionDelay: `${index * 50}ms`,
+                }}
               >
                 {link.label}
               </Link>
@@ -139,16 +165,30 @@ export default function Header() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                className={`text-sm font-medium transition-all duration-300 ease-out relative z-10 flex items-center gap-1 transform hover:scale-105 ${
                   pathname === '/admin'
                     ? 'text-primary-orange'
                     : 'text-gray-300 hover:text-primary-orange'
                 }`}
+                style={{
+                  transitionDelay: `${navLinks.length * 50}ms`,
+                }}
               >
                 <Shield className="w-4 h-4" />
                 ADMIN
               </Link>
             )}
+
+            {/* Gliding Navigation Indicator */}
+            <div
+              ref={indicatorRef}
+              className="absolute bottom-0 h-0.5 bg-gradient-to-r from-primary-green to-primary-green/80 rounded-full transition-all duration-700 ease-[cubic-bezier(0.4,0.0,0.2,1)] shadow-lg shadow-primary-green/20"
+              style={{
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+                transform: 'translateZ(0)', // Force hardware acceleration
+              }}
+            />
           </nav>
 
           {/* Right Side Actions */}
