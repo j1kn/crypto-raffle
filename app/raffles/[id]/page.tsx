@@ -78,6 +78,7 @@ export default function RaffleDetailPage() {
   const [processingEntry, setProcessingEntry] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
+  const [quantity, setQuantity] = useState(1);
   
   // Wagmi hooks - ALWAYS called (not conditional)
   const { open } = useWeb3Modal();
@@ -182,9 +183,10 @@ export default function RaffleDetailPage() {
     let cancelled = false;
     
     try {
-      const { count, error } = await supabase
+      // Sum up all quantities to get total tickets sold
+      const { data, error } = await supabase
         .from('raffle_entries')
-        .select('*', { count: 'exact', head: true })
+        .select('quantity')
         .eq('raffle_id', raffle.id);
 
       if (cancelled || !mounted || !isMountedRef.current) return;
@@ -196,8 +198,11 @@ export default function RaffleDetailPage() {
         throw error;
       }
       
+      // Sum all quantities to get total tickets sold
+      const totalTickets = (data || []).reduce((sum, entry) => sum + (entry.quantity || 1), 0);
+      
       if (mounted && !cancelled) {
-        setEntryCount(count || 0);
+        setEntryCount(totalTickets);
       }
     } catch (error: any) {
       if (cancelled || !mounted) return;
@@ -534,8 +539,8 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    if (entryCount >= raffle.max_tickets) {
-      alert('This raffle is full! All tickets have been sold.');
+    if (entryCount + quantity > raffle.max_tickets) {
+      alert(`Not enough tickets available. Only ${raffle.max_tickets - entryCount} tickets left.`);
       return;
     }
 
@@ -589,9 +594,12 @@ export default function RaffleDetailPage() {
       }
     }
 
+    const totalPrice = parseFloat(raffle.ticket_price.toString()) * quantity;
     const confirmPurchase = confirm(
       `Enter Raffle: ${raffle.title}\n\n` +
-        `Entry Price: ${raffle.prize_pool_symbol} ${raffle.ticket_price}\n` +
+        `Quantity: ${quantity} ticket${quantity > 1 ? 's' : ''}\n` +
+        `Unit Price: ${raffle.prize_pool_symbol} ${raffle.ticket_price}\n` +
+        `Total Price: ${raffle.prize_pool_symbol} ${totalPrice.toFixed(6)}\n` +
         `Prize Pool: ${raffle.prize_pool_symbol} ${raffle.prize_pool_amount.toLocaleString()}\n` +
         `Network: Ethereum Mainnet (chainId: 1)\n\n` +
         `Click OK to proceed with payment.`
@@ -615,13 +623,16 @@ export default function RaffleDetailPage() {
         throw new Error('Missing recipient address. Please contact support.');
       }
 
-      const value = parseEther(raffle.ticket_price.toString());
+      const totalPrice = parseFloat(raffle.ticket_price.toString()) * quantity;
+      const value = parseEther(totalPrice.toString());
       
       console.log('[Payment] Preparing plain ETH transfer:', {
         from: address,
         to: PAYOUT_ADDRESS,
         value: value.toString(),
-        valueInEth: raffle.ticket_price.toString(),
+        valueInEth: totalPrice.toString(),
+        quantity: quantity,
+        unitPrice: raffle.ticket_price.toString(),
         chainId: REQUIRED_CHAIN_ID,
       });
 
@@ -712,6 +723,7 @@ export default function RaffleDetailPage() {
             walletAddress: address, 
             txHash,
             email: email.trim() || undefined, // Only send email if it's not empty
+            quantity: quantity, // Send quantity
           }),
         });
 
@@ -733,7 +745,7 @@ export default function RaffleDetailPage() {
         if (data.duplicate) {
           alert('You have already entered this raffle! Transaction hash updated.');
         } else {
-          alert('Payment successful! You have entered the raffle. Your ticket is now in your profile.');
+          alert(`Payment successful! You have purchased ${quantity} ticket${quantity > 1 ? 's' : ''}. ${quantity > 1 ? 'Your tickets are' : 'Your ticket is'} now in your profile.`);
         }
 
         if (mounted && isActive) {
@@ -1019,6 +1031,36 @@ export default function RaffleDetailPage() {
 
                 {!isRaffleEnded && (
                   <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Number of Tickets
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1 || entering || userEntry !== null || isConfirming}
+                        className="w-10 h-10 bg-primary-darker border border-primary-lightgray rounded-lg text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      >
+                        -
+                      </button>
+                      <span className="text-xl font-bold text-white min-w-[3rem] text-center">
+                        {quantity}
+                      </span>
+                      <button
+                        onClick={() => setQuantity(Math.min(100, quantity + 1))}
+                        disabled={quantity >= 100 || entering || userEntry !== null || isConfirming}
+                        className="w-10 h-10 bg-primary-darker border border-primary-lightgray rounded-lg text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Total Cost: {raffle.prize_pool_symbol} {(parseFloat(raffle.ticket_price.toString()) * quantity).toFixed(6)}
+                    </p>
+                  </div>
+                )}
+
+                {!isRaffleEnded && (
+                  <div className="mb-4">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                       Email Address (Optional)
                     </label>
@@ -1058,7 +1100,7 @@ export default function RaffleDetailPage() {
                     ) : (
                       <>
                         <Play className="w-5 h-5" />
-                        ENTER NOW - {raffle.prize_pool_symbol} {raffle.ticket_price}
+                        ENTER NOW - {raffle.prize_pool_symbol} {(parseFloat(raffle.ticket_price.toString()) * quantity).toFixed(6)}
                       </>
                     )}
                   </button>
