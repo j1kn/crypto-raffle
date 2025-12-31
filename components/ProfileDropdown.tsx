@@ -69,12 +69,12 @@ export default function ProfileDropdown({
           }
         });
       }
-      // Small delay to ensure disconnect completes
+      // Small delay to ensure disconnect completes, then force page refresh
       setTimeout(() => {
-        if (!isConnected && pathname !== '/') {
-          router.push('/');
+        // Force full page refresh to show disconnected state immediately
+        if (typeof window !== 'undefined') {
+          window.location.reload();
         }
-        router.refresh();
       }, 200);
     } catch (error) {
       console.error('Error disconnecting wallet:', error);

@@ -156,15 +156,14 @@ export default function Header() {
           }
         });
       }
-      // Small delay to ensure disconnect completes
+      // Small delay to ensure disconnect completes, then force page refresh
       setTimeout(() => {
         setIsAdmin(false);
         setProfile(null);
         setShowProfileSetup(false);
-        if (!isConnected && pathname !== '/') {
-          router.push('/');
-        } else {
-          router.refresh();
+        // Force full page refresh to show disconnected state immediately
+        if (typeof window !== 'undefined') {
+          window.location.reload();
         }
       }, 200);
     } catch (error) {
@@ -276,10 +275,11 @@ export default function Header() {
             ) : (
               <button
                 onClick={handleConnect}
-                className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors h-12"
+                className="flex items-center gap-1.5 md:gap-2 bg-primary-green text-primary-darker px-2.5 md:px-4 py-1.5 md:py-2 rounded text-xs md:text-sm font-semibold hover:bg-primary-green/90 transition-colors h-9 md:h-10"
               >
-                <User className="w-4 h-4" />
-                CONNECT WALLET
+                <User className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">CONNECT WALLET</span>
+                <span className="sm:hidden">CONNECT</span>
               </button>
             )}
             {/* Hamburger Menu - Always visible */}

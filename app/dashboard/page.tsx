@@ -64,7 +64,12 @@ export default function DashboardPage() {
 
   const handleDisconnect = () => {
     disconnect();
-    router.push('/');
+    // Force full page refresh to show disconnected state immediately
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+    }, 200);
   };
 
   const handleSwitchWallet = async () => {
