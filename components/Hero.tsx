@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 
 interface HeroProps {
   headings?: string[];
@@ -118,15 +116,6 @@ export default function Hero({
           <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
             {subtitle}
           </p>
-
-          {/* CTA Button */}
-          <Link
-            href={ctaLink}
-            className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
-          >
-            {ctaText}
-            <ArrowRight className="w-5 h-5" />
-          </Link>
         </div>
       </div>
     </section>
