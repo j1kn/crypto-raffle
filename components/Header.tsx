@@ -208,7 +208,7 @@ export default function Header() {
                 priority
               />
             </div>
-            <span className="text-white font-bold text-xl">PPT</span>
+            <span className="text-white font-bold text-xl">PRIME</span>
           </Link>
 
           {/* Desktop Navigation */}
