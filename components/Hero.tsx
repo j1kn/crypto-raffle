@@ -38,13 +38,16 @@ export default function Hero({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const handleSectionClick = (e: React.MouseEvent) => {
+  const handleContentClick = (e: React.MouseEvent) => {
     // Only trigger on mobile and if handler is provided
     if (isMobile && onMobileClick) {
-      // Prevent default link behavior if clicking on a link
+      // Don't trigger if clicking on a link or button
       const target = e.target as HTMLElement;
-      if (!target.closest('a')) {
-        e.preventDefault();
+      const isLink = target.closest('a');
+      const isButton = target.closest('button');
+      
+      // Only trigger if clicking on the content area, not on links/buttons
+      if (!isLink && !isButton) {
         onMobileClick();
       }
     }
@@ -68,9 +71,7 @@ export default function Hero({
 
   return (
     <section 
-      className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4 overflow-hidden md:cursor-default"
-      onClick={handleSectionClick}
-      style={{ cursor: isMobile && onMobileClick ? 'pointer' : 'default' }}
+      className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4"
     >
       {/* Animated Grid Background */}
       <div className="hero-grid-background">
@@ -79,7 +80,14 @@ export default function Hero({
       </div>
       
       {/* Content */}
-      <div className="container mx-auto relative z-10">
+      <div 
+        className="container mx-auto relative z-10"
+        onClick={handleContentClick}
+        style={{ 
+          cursor: isMobile && onMobileClick ? 'pointer' : 'default',
+          touchAction: 'pan-y pinch-zoom' // Allow scrolling and zooming
+        }}
+      >
         <div className="max-w-4xl mx-auto text-center">
           {/* Rotating Heading */}
           <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden">
