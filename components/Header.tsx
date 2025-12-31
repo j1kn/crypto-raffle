@@ -13,7 +13,7 @@ import ProfileDropdown from './ProfileDropdown';
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { open } = useWeb3Modal();
+  const { open, close: closeModal } = useWeb3Modal();
   const { address, isConnected, connector } = useAccount();
   const { disconnect } = useDisconnect();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -116,28 +116,46 @@ export default function Header() {
     open();
   };
 
-  // Watch for address changes to handle state cleanup after disconnect
-  useEffect(() => {
-    if (!address) {
-      // Address is null/undefined, meaning wallet is disconnected
+
+  const handleDisconnect = async () => {
+    try {
+      setShowProfileDropdown(false);
+      // Close any open Web3Modal
+      closeModal();
+      // Disconnect from wagmi
+      disconnect();
+      // Force clear localStorage to ensure complete disconnect
+      if (typeof window !== 'undefined') {
+        // Clear Web3Modal cache
+        localStorage.removeItem('wagmi.wallet');
+        localStorage.removeItem('wagmi.connected');
+        // Clear any other wagmi-related storage
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('wagmi.') || key.startsWith('wc@')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      // Small delay to ensure disconnect completes
+      setTimeout(() => {
+        setIsAdmin(false);
+        setProfile(null);
+        setShowProfileSetup(false);
+        if (!isConnected && pathname !== '/') {
+          router.push('/');
+        } else {
+          router.refresh();
+        }
+      }, 200);
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      // Force cleanup and redirect even if disconnect fails
+      setShowProfileDropdown(false);
       setIsAdmin(false);
       setProfile(null);
       setShowProfileSetup(false);
-      setShowProfileDropdown(false);
-      // Only redirect if not already on home page
-      if (pathname !== '/') {
-        router.push('/');
-      } else {
-        router.refresh();
-      }
+      router.push('/');
     }
-  }, [address, pathname, router]);
-
-  const handleDisconnect = () => {
-    setShowProfileDropdown(false);
-    // Disconnect is synchronous in wagmi v3 - just call it
-    // The useEffect above will handle state cleanup and redirect when address becomes null
-    disconnect();
   };
 
   const handleProfileSave = async () => {

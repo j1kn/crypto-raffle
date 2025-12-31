@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { User, Settings, LogOut } from 'lucide-react';
 import { useDisconnect, useAccount } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 
 interface Profile {
   wallet_address: string;
@@ -28,7 +29,8 @@ export default function ProfileDropdown({
   const router = useRouter();
   const pathname = usePathname();
   const { disconnect } = useDisconnect();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
+  const { close: closeModal } = useWeb3Modal();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,22 +49,39 @@ export default function ProfileDropdown({
     };
   }, [isOpen, onClose]);
 
-  // Watch for address changes to handle redirect after disconnect
-  // Only redirect if we're on a protected page (not home)
-  useEffect(() => {
-    if (!address && pathname !== '/') {
-      // Address is null/undefined, meaning wallet is disconnected
-      // Only redirect if not already on home page
-      router.push('/');
-      router.refresh();
-    }
-  }, [address, pathname, router]);
 
-  const handleDisconnect = () => {
-    onClose();
-    // Disconnect is synchronous in wagmi v3 - just call it
-    // The useEffect above will handle the redirect when address becomes null
-    disconnect();
+  const handleDisconnect = async () => {
+    try {
+      onClose();
+      // Close any open Web3Modal
+      closeModal();
+      // Disconnect from wagmi
+      disconnect();
+      // Force clear localStorage to ensure complete disconnect
+      if (typeof window !== 'undefined') {
+        // Clear Web3Modal cache
+        localStorage.removeItem('wagmi.wallet');
+        localStorage.removeItem('wagmi.connected');
+        // Clear any other wagmi-related storage
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('wagmi.') || key.startsWith('wc@')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      // Small delay to ensure disconnect completes
+      setTimeout(() => {
+        if (!isConnected && pathname !== '/') {
+          router.push('/');
+        }
+        router.refresh();
+      }, 200);
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      // Force redirect even if disconnect fails
+      onClose();
+      router.push('/');
+    }
   };
 
   const formatWalletAddress = (address: string) => {
