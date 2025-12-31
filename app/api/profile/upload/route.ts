@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const fileName = `profile-${walletAddress}-${Date.now()}.${fileExt}`;
     const filePath = `profiles/${fileName}`;
 
-    // Convert File to ArrayBuffer then to Buffer
+    // Convert File to Buffer for Node.js environment
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
