@@ -12,7 +12,7 @@ import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
 import {
   useAccount,
-  useSendTransaction,
+  useWalletClient,
   useWaitForTransactionReceipt,
 } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -79,7 +79,7 @@ export default function RaffleDetailPage() {
   // Wagmi hooks - ALWAYS called (not conditional)
   const { open } = useWeb3Modal();
   const { address, isConnected, chain } = useAccount();
-  const { sendTransactionAsync } = useSendTransaction();
+  const { data: walletClient } = useWalletClient();
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -559,6 +559,10 @@ export default function RaffleDetailPage() {
         throw new Error('Missing sender address. Please reconnect your wallet.');
       }
       
+      if (!walletClient) {
+        throw new Error('Wallet client not available. Please reconnect your wallet.');
+      }
+      
       // Removed chain verification check - let the transaction specify chainId
       console.log(`[Payment] Proceeding with transaction on chain ${REQUIRED_CHAIN_ID}`);
       
@@ -587,7 +591,7 @@ export default function RaffleDetailPage() {
         gas: BigInt(21000),
       });
 
-      const hash = await sendTransactionAsync({
+      const hash = await walletClient.sendTransaction({
         to: PAYOUT_ADDRESS,
         value: value,
         chainId: REQUIRED_CHAIN_ID,
