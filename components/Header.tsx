@@ -116,25 +116,28 @@ export default function Header() {
     open();
   };
 
-  const handleDisconnect = async () => {
-    try {
-      await disconnect();
+  // Watch for address changes to handle state cleanup after disconnect
+  useEffect(() => {
+    if (!address) {
+      // Address is null/undefined, meaning wallet is disconnected
       setIsAdmin(false);
       setProfile(null);
-      setShowProfileDropdown(false);
       setShowProfileSetup(false);
-      // Use Next.js router for smooth navigation
+      setShowProfileDropdown(false);
+      // Only redirect if not already on home page
       if (pathname !== '/') {
         router.push('/');
       } else {
-        // If already on home, just refresh the page state
         router.refresh();
       }
-    } catch (error) {
-      console.error('Error disconnecting wallet:', error);
-      // Force redirect if disconnect fails
-      router.push('/');
     }
+  }, [address, pathname, router]);
+
+  const handleDisconnect = () => {
+    setShowProfileDropdown(false);
+    // Disconnect is synchronous in wagmi v3 - just call it
+    // The useEffect above will handle state cleanup and redirect when address becomes null
+    disconnect();
   };
 
   const handleProfileSave = async () => {
