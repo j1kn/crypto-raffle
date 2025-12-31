@@ -73,7 +73,7 @@ body {
     opacity: 0.2;
   }
   100% {
-    transform: translateY(100vh);
+    transform: translateY(100%);
     opacity: 0;
   }
 }
@@ -93,14 +93,17 @@ body {
     opacity: 0.15;
   }
   100% {
-    transform: translateY(100vh);
+    transform: translateY(100%);
     opacity: 0;
   }
 }
 
 .hero-grid-background {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-image: 
     linear-gradient(rgba(0, 255, 136, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 255, 136, 0.04) 1px, transparent 1px);
@@ -145,5 +148,36 @@ body {
   animation: grid-shine-delayed 12s linear infinite;
   animation-delay: 2s;
   pointer-events: none;
+}
+
+/* Hero Heading Slide Animations */
+@keyframes slide-out-left {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100px);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.hero-heading-slide-out {
+  animation: slide-out-left 0.5s ease-in-out forwards;
+}
+
+.hero-heading-slide-in {
+  animation: slide-in-right 0.5s ease-in-out forwards;
 }
 

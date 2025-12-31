@@ -23,23 +23,23 @@ export default function Hero({
   rotationInterval = 4000, // 4 seconds
 }: HeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Fade out
-      setIsVisible(false);
+      setIsAnimating(true);
       
-      // After fade out completes, change heading
+      // After animation completes, change heading
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % headings.length);
-        // Fade in
-        setIsVisible(true);
-      }, 300); // Half of transition duration
+        setIsAnimating(false);
+      }, 500);
     }, rotationInterval);
 
     return () => clearInterval(interval);
   }, [headings.length, rotationInterval]);
+
+  const nextIndex = (currentIndex + 1) % headings.length;
 
   return (
     <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4 overflow-hidden">
@@ -53,13 +53,27 @@ export default function Hero({
       <div className="container mx-auto relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Rotating Heading */}
-          <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6">
+          <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden">
+            {/* Current Heading - Slides left and fades out */}
             <h1
-              className={`text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-opacity duration-300 ease-in-out ${
-                isVisible ? 'opacity-100' : 'opacity-0'
+              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                isAnimating 
+                  ? 'hero-heading-slide-out' 
+                  : 'translate-x-0 opacity-100'
               }`}
             >
               {headings[currentIndex]}
+            </h1>
+            
+            {/* Next Heading - Slides in from right */}
+            <h1
+              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                isAnimating 
+                  ? 'hero-heading-slide-in' 
+                  : 'translate-x-[100px] opacity-0'
+              }`}
+            >
+              {headings[nextIndex]}
             </h1>
           </div>
 
