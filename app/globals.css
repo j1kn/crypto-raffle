@@ -25,12 +25,8 @@ body {
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: rgb(var(--background-start-rgb));
+  position: relative;
 }
 
 @layer utilities {
@@ -96,6 +92,29 @@ body {
     transform: translateY(100%);
     opacity: 0;
   }
+}
+
+/* Body-wide grid background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(0, 255, 136, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Global shine animations wrapper */
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-grid-background {
