@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAccount, useBalance } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { Wallet, ArrowLeft, Copy, ExternalLink, RefreshCw, Swap } from 'lucide-react';
+import { Wallet, ArrowLeft, Copy, ExternalLink, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import Link from 'next/link';
 import { formatUnits } from 'viem';
 
@@ -210,7 +210,7 @@ export default function WalletPage() {
           {/* Swap Section */}
           <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-              <Swap className="w-6 h-6 text-primary-orange" />
+              <ArrowLeftRight className="w-6 h-6 text-primary-orange" />
               Swap Tokens
             </h2>
             <p className="text-gray-400 mb-6">
