@@ -47,7 +47,7 @@ export async function POST(
       throw userError || new Error('Failed to create user');
     }
 
-    // Check if there are enough tickets available
+    // Fetch raffle data
     const { data: raffleData, error: raffleError } = await supabase
       .from('raffles')
       .select('max_tickets')
@@ -62,7 +62,39 @@ export async function POST(
       );
     }
 
-    // Calculate current total tickets sold
+    const maxTickets = raffleData.max_tickets;
+    const maxUserTickets = Math.floor(maxTickets * 0.2); // 20% of total tickets
+
+    // Calculate user's current total tickets for this raffle
+    const { data: userEntriesData, error: userEntriesError } = await supabase
+      .from('raffle_entries')
+      .select('quantity')
+      .eq('raffle_id', raffleId)
+      .eq('user_id', userData.id);
+
+    if (userEntriesError) {
+      console.error('Error fetching user entries:', userEntriesError);
+      return NextResponse.json(
+        { error: 'Failed to check user ticket holdings' },
+        { status: 500 }
+      );
+    }
+
+    const userCurrentTickets = (userEntriesData || []).reduce((sum, entry) => sum + (entry.quantity || 1), 0);
+    const userNewTotal = userCurrentTickets + ticketQuantity;
+
+    // Check 20% limit
+    if (userNewTotal > maxUserTickets) {
+      const remainingAllowed = Math.max(0, maxUserTickets - userCurrentTickets);
+      return NextResponse.json(
+        { 
+          error: `You cannot purchase more than ${maxUserTickets} tickets (20% of total). You currently have ${userCurrentTickets} tickets. Maximum ${remainingAllowed} more tickets allowed.` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Calculate current total tickets sold (all users)
     const { data: entriesData, error: entriesError } = await supabase
       .from('raffle_entries')
       .select('quantity')
@@ -77,7 +109,7 @@ export async function POST(
     }
 
     const totalTicketsSold = (entriesData || []).reduce((sum, entry) => sum + (entry.quantity || 1), 0);
-    const availableTickets = raffleData.max_tickets - totalTicketsSold;
+    const availableTickets = maxTickets - totalTicketsSold;
 
     if (availableTickets < ticketQuantity) {
       return NextResponse.json(

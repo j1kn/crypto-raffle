@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { MessageSquare, Send, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageSquare, Send, User, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 interface Comment {
   id: string;
@@ -33,6 +33,7 @@ export default function CommentsSection({
   const [hasMore, setHasMore] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   const fetchComments = async (page: number = 1, all: boolean = false) => {
     try {
@@ -153,6 +154,37 @@ export default function CommentsSection({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!address) return;
+    
+    if (!confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+
+    try {
+      setDeletingCommentId(commentId);
+      setError(null);
+
+      const response = await fetch(`/api/comments?id=${commentId}&walletAddress=${address}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete comment');
+      }
+
+      // Refresh comments after deletion
+      await fetchComments(showAll ? currentPage : 1, showAll);
+    } catch (err: any) {
+      console.error('Error deleting comment:', err);
+      setError(err.message || 'Failed to delete comment');
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
+
   return (
     <section id="comments-section" className="bg-primary-darker border-t border-primary-gray py-20 px-4">
       <div className="container mx-auto max-w-4xl">
@@ -236,37 +268,59 @@ export default function CommentsSection({
           </div>
         ) : (
           <>
-            <div className="space-y-6 mb-8">
-              {comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className="bg-primary-gray border border-primary-lightgray rounded-lg p-6"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary-green/20 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-primary-green" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h4 className="text-white font-semibold">
-                          {comment.display_name || formatWalletAddress(comment.wallet_address)}
-                        </h4>
-                        {comment.display_name && (
-                          <span className="text-gray-500 text-sm font-mono">
-                            {formatWalletAddress(comment.wallet_address)}
-                          </span>
-                        )}
-                        <span className="text-gray-500 text-sm">
-                          {formatDate(comment.created_at)}
-                        </span>
+            <div className="space-y-4 mb-8">
+              {comments.map((comment) => {
+                const isOwnComment = address?.toLowerCase() === comment.wallet_address.toLowerCase();
+                return (
+                  <div
+                    key={comment.id}
+                    className="bg-primary-gray border border-primary-lightgray rounded-lg p-5 hover:border-primary-green/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-primary-green/20 flex items-center justify-center flex-shrink-0 border-2 border-primary-green/30">
+                        <User className="w-6 h-6 text-primary-green" />
                       </div>
-                      <p className="text-gray-300 whitespace-pre-wrap break-words">
-                        {comment.comment_text}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h4 className="text-white font-semibold text-lg">
+                              {comment.display_name || formatWalletAddress(comment.wallet_address)}
+                            </h4>
+                            {comment.display_name && (
+                              <span className="text-gray-500 text-sm font-mono">
+                                {formatWalletAddress(comment.wallet_address)}
+                              </span>
+                            )}
+                            <span className="text-gray-400 text-sm">
+                              {formatDate(comment.created_at)}
+                            </span>
+                          </div>
+                          {isOwnComment && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              disabled={deletingCommentId === comment.id}
+                              className="text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1"
+                              title="Delete comment"
+                            >
+                              {deletingCommentId === comment.id ? (
+                                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-gray-200 whitespace-pre-wrap break-words leading-relaxed">
+                          {comment.comment_text}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Show More / Pagination */}

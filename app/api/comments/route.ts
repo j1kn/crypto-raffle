@@ -118,3 +118,72 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// DELETE /api/comments?id=commentId&walletAddress=0x...
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const commentId = searchParams.get('id');
+    const walletAddress = searchParams.get('walletAddress');
+
+    if (!commentId || !walletAddress) {
+      return NextResponse.json(
+        { error: 'commentId and walletAddress are required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createServerClient();
+
+    // Get user ID from wallet address
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('wallet_address', walletAddress.toLowerCase())
+      .single();
+
+    if (userError || !userData) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify the comment belongs to this user
+    const { data: commentData, error: commentCheckError } = await supabase
+      .from('comments')
+      .select('user_id')
+      .eq('id', commentId)
+      .single();
+
+    if (commentCheckError || !commentData) {
+      return NextResponse.json(
+        { error: 'Comment not found' },
+        { status: 404 }
+      );
+    }
+
+    if (commentData.user_id !== userData.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized: You can only delete your own comments' },
+        { status: 403 }
+      );
+    }
+
+    // Delete the comment
+    const { error: deleteError } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId);
+
+    if (deleteError) throw deleteError;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting comment:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete comment', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
