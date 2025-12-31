@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAccount } from 'wagmi';
-import { useWeb3Modal } from '@web3Modal/wagmi/react';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { User, Mail, Camera, Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
