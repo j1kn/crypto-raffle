@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Hero from '@/components/Hero';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -181,7 +182,10 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      {/* Hero Raffle Section - Always at Top */}
+      {/* Hero Section */}
+      <Hero />
+
+      {/* Hero Raffle Section - After Hero Section */}
       {heroRaffle && (
         <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-12 px-4">
           <div className="container mx-auto">
