@@ -191,6 +191,13 @@ export default function HomePage() {
         <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-12 px-4">
           <div className="container mx-auto">
             <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden">
+              {/* Timer at Top - Like Regular Raffle Cards */}
+              <div className="relative p-4">
+                <div className="absolute top-4 right-4">
+                  <CountdownTimer endDate={heroRaffle.ends_at} />
+                </div>
+              </div>
+              
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                 {/* Image */}
                 {heroRaffle.image_url && (
@@ -205,12 +212,7 @@ export default function HomePage() {
                 )}
                 
                 {/* Content */}
-                <div className="p-8 lg:p-12 flex flex-col justify-center relative">
-                  {/* Countdown Timer - Top Right */}
-                  <div className="absolute top-8 right-8 lg:top-12 lg:right-12">
-                    <CountdownTimer endDate={heroRaffle.ends_at} />
-                  </div>
-                  
+                <div className="p-8 lg:p-12 flex flex-col justify-center">
                   <div className="mb-4">
                     <span className="bg-primary-green text-primary-darker px-3 py-1 rounded-full text-xs font-bold">
                       FEATURED RAFFLE
