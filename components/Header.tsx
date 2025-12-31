@@ -177,7 +177,7 @@ export default function Header() {
             ) : (
               <button
                 onClick={handleConnect}
-                className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
+                className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-1.5 rounded font-semibold hover:bg-primary-green/90 transition-colors h-10"
               >
                 <User className="w-4 h-4" />
                 CONNECT WALLET

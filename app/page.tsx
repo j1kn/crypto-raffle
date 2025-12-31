@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
+import CountdownTimer from '@/components/CountdownTimer';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -204,7 +205,12 @@ export default function HomePage() {
                 )}
                 
                 {/* Content */}
-                <div className="p-8 lg:p-12 flex flex-col justify-center">
+                <div className="p-8 lg:p-12 flex flex-col justify-center relative">
+                  {/* Countdown Timer - Top Right */}
+                  <div className="absolute top-8 right-8 lg:top-12 lg:right-12">
+                    <CountdownTimer endDate={heroRaffle.ends_at} />
+                  </div>
+                  
                   <div className="mb-4">
                     <span className="bg-primary-green text-primary-darker px-3 py-1 rounded-full text-xs font-bold">
                       FEATURED RAFFLE
