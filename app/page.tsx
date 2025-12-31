@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
 import CountdownTimer from '@/components/CountdownTimer';
+import CommentsSection from '@/components/CommentsSection';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -390,6 +391,9 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Comments Section */}
+      <CommentsSection />
 
       <Footer />
     </div>
