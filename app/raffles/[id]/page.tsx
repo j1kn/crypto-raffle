@@ -12,13 +12,10 @@ import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
 import {
   useAccount,
-  useChainId,
-  useConfig,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
 } from 'wagmi';
-import { mainnet } from 'wagmi/chains';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
@@ -82,9 +79,7 @@ export default function RaffleDetailPage() {
   
   // Wagmi hooks - ALWAYS called (not conditional)
   const { open } = useWeb3Modal();
-  const { address, isConnected, chain, connector } = useAccount();
-  const connectedChainId = useChainId();
-  const config = useConfig();
+  const { address, isConnected, chain } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
@@ -544,53 +539,22 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    let currentChainId: number | undefined = connectedChainId ?? chain?.id;
-    
-    if (!currentChainId && connector) {
-      try {
-        const provider = await connector.getProvider();
-        if (provider && typeof provider === 'object' && provider !== null && 'chainId' in provider) {
-          const chainIdValue = (provider as { chainId?: string | number }).chainId;
-          if (chainIdValue !== undefined) {
-            const providerChainId = typeof chainIdValue === 'string' 
-              ? parseInt(chainIdValue, 16) 
-              : chainIdValue;
-            if (typeof providerChainId === 'number') {
-              currentChainId = providerChainId;
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('[Payment] Could not get chainId from connector:', e);
-      }
-    }
-    
-    if (!currentChainId) {
-      alert(
-        'Unable to detect your current network. Please reconnect your wallet and ensure you are on Ethereum Mainnet.'
-      );
-      return;
-    }
-
+    // Simplified chain handling - no strict validation, just try to switch on Android if needed
     if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
-      // Check if user is on Android - Android wallets need explicit chain switching
-      const isAndroid = typeof navigator !== 'undefined' && 
-        /Android/i.test(navigator.userAgent);
+      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+      const currentChainId = chain?.id;
       
-      if (isAndroid && currentChainId !== REQUIRED_CHAIN_ID) {
-        console.log(`[Payment] Android device detected, switching from chain ${currentChainId} to ${REQUIRED_CHAIN_ID}`);
+      // Only try to switch on Android if we detect the chain and it's not mainnet
+      // Don't block payment if chain detection fails
+      if (isAndroid && currentChainId && currentChainId !== REQUIRED_CHAIN_ID) {
+        console.log(`[Payment] Android device detected, attempting to switch to chain ${REQUIRED_CHAIN_ID}`);
         try {
           await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
-          console.log('[Payment] Chain switched successfully for Android');
-          // Update currentChainId after switching
-          currentChainId = REQUIRED_CHAIN_ID;
+          console.log('[Payment] Chain switched successfully');
         } catch (switchError: any) {
-          console.error('[Payment] Chain switch failed for Android:', switchError);
-          alert('Failed to switch to Ethereum Mainnet. Please switch manually in your wallet and try again.');
-          return;
+          console.warn('[Payment] Chain switch failed, proceeding anyway:', switchError);
+          // Don't block - let the transaction proceed with explicit chainId
         }
-      } else {
-        console.log(`[Payment] Wallet chain: ${currentChainId}, transaction chainId: ${REQUIRED_CHAIN_ID}`);
       }
     }
 
