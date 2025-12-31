@@ -191,9 +191,9 @@ export default function HomePage() {
         <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-12 px-4">
           <div className="container mx-auto">
             <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden">
-              {/* Timer at Top - Like Regular Raffle Cards */}
-              <div className="relative p-4 min-h-[60px]">
-                <div className="absolute top-4 right-4 z-10">
+              {/* Timer at Top - Centered */}
+              <div className="relative p-4 min-h-[60px] flex items-center justify-center">
+                <div className="z-10">
                   <CountdownTimer endDate={heroRaffle.ends_at} />
                 </div>
               </div>
