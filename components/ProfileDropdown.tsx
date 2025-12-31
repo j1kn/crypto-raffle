@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { User, Settings, LogOut, Trophy, Award, Home, Info, Clock } from 'lucide-react';
+import { User, Settings, LogOut } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 
 interface Profile {
@@ -50,9 +50,16 @@ export default function ProfileDropdown({
     try {
       await disconnect();
       onClose();
-      router.push('/');
+      // Use router.push with a small delay to ensure disconnect completes
+      setTimeout(() => {
+        router.push('/');
+        router.refresh();
+      }, 100);
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
+      // Force redirect even if disconnect fails
+      onClose();
+      router.push('/');
     }
   };
 
@@ -92,68 +99,8 @@ export default function ProfileDropdown({
         </div>
       </div>
 
-      {/* Navigation Links */}
+      {/* Profile Links */}
       <div className="py-2">
-        <Link
-          href="/"
-          onClick={onClose}
-          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-            pathname === '/'
-              ? 'bg-primary-green/20 text-primary-green'
-              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
-          }`}
-        >
-          <Home className="w-4 h-4" />
-          Home
-        </Link>
-        <Link
-          href="/raffles"
-          onClick={onClose}
-          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-            pathname === '/raffles'
-              ? 'bg-primary-green/20 text-primary-green'
-              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
-          }`}
-        >
-          <Trophy className="w-4 h-4" />
-          Tournament
-        </Link>
-        <Link
-          href="/about"
-          onClick={onClose}
-          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-            pathname === '/about'
-              ? 'bg-primary-green/20 text-primary-green'
-              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
-          }`}
-        >
-          <Info className="w-4 h-4" />
-          About Us
-        </Link>
-        <Link
-          href="/ended"
-          onClick={onClose}
-          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-            pathname === '/ended'
-              ? 'bg-primary-green/20 text-primary-green'
-              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          Ended
-        </Link>
-        <Link
-          href="/winners"
-          onClick={onClose}
-          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-            pathname === '/winners'
-              ? 'bg-primary-green/20 text-primary-green'
-              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          Winners
-        </Link>
         <Link
           href="/dashboard"
           onClick={onClose}
@@ -180,13 +127,6 @@ export default function ProfileDropdown({
             Admin Panel
           </Link>
         )}
-      </div>
-
-      {/* Divider */}
-      <div className="border-t border-primary-lightgray"></div>
-
-      {/* Settings and Disconnect */}
-      <div className="py-2">
         <Link
           href="/settings"
           onClick={onClose}
@@ -199,6 +139,13 @@ export default function ProfileDropdown({
           <Settings className="w-4 h-4" />
           Settings
         </Link>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-primary-lightgray"></div>
+
+      {/* Disconnect */}
+      <div className="py-2">
         <button
           onClick={handleDisconnect}
           className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
