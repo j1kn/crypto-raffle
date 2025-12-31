@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { User, Settings, LogOut, Trophy, Award, Home, Wallet } from 'lucide-react';
+import { User, Settings, LogOut, Trophy, Award, Home, Info, Clock } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 
 interface Profile {
@@ -119,6 +119,30 @@ export default function ProfileDropdown({
           Tournament
         </Link>
         <Link
+          href="/about"
+          onClick={onClose}
+          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+            pathname === '/about'
+              ? 'bg-primary-green/20 text-primary-green'
+              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
+          }`}
+        >
+          <Info className="w-4 h-4" />
+          About Us
+        </Link>
+        <Link
+          href="/ended"
+          onClick={onClose}
+          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+            pathname === '/ended'
+              ? 'bg-primary-green/20 text-primary-green'
+              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          Ended
+        </Link>
+        <Link
           href="/winners"
           onClick={onClose}
           className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
@@ -141,18 +165,6 @@ export default function ProfileDropdown({
         >
           <User className="w-4 h-4" />
           Dashboard
-        </Link>
-        <Link
-          href="/wallet"
-          onClick={onClose}
-          className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-            pathname === '/wallet'
-              ? 'bg-primary-green/20 text-primary-green'
-              : 'text-gray-300 hover:bg-primary-dark hover:text-white'
-          }`}
-        >
-          <Wallet className="w-4 h-4" />
-          Wallet
         </Link>
         {isAdmin && (
           <Link

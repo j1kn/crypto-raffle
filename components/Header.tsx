@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
+import { Search, User, Shield } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect, useCallback, startTransition } from 'react';
@@ -16,7 +16,6 @@ export default function Header() {
   const { open } = useWeb3Modal();
   const { address, isConnected, connector } = useAccount();
   const { disconnect } = useDisconnect();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<{
     wallet_address: string;
@@ -241,62 +240,8 @@ export default function Header() {
                 CONNECT WALLET
               </button>
             )}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-gray-300 hover:text-primary-green transition-colors"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <nav className="md:hidden mt-4 pb-4 border-t border-primary-gray pt-4">
-            <div className="flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`text-sm font-medium transition-colors ${
-                    pathname === link.href
-                      ? 'text-primary-green'
-                      : 'text-gray-300 hover:text-primary-green'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-                    pathname === '/admin'
-                      ? 'text-primary-orange'
-                      : 'text-gray-300 hover:text-primary-orange'
-                  }`}
-                >
-                  <Shield className="w-4 h-4" />
-                  ADMIN
-                </Link>
-              )}
-              {address && (
-                <button
-                  onClick={() => {
-                    handleDisconnect();
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-sm font-medium transition-colors flex items-center gap-1 text-red-400 hover:text-red-300"
-                >
-                  <LogOut className="w-4 h-4" />
-                  DISCONNECT WALLET
-                </button>
-              )}
-            </div>
-          </nav>
-        )}
       </div>
 
       {/* Profile Setup Modal */}
