@@ -37,10 +37,16 @@
    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=7fafc875947064cbb05b25b9b9407cad
    ```
 
-   **Optional (For Full Admin Access):**
+   **Required (For API Routes - Profile, Dashboard, Admin):**
    ```
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
    ```
+   
+   **Important:** `SUPABASE_SERVICE_ROLE_KEY` is now **REQUIRED** for:
+   - Profile API routes (`/api/profile`, `/api/profile/upload`)
+   - Dashboard stats API (`/api/dashboard/stats`)
+   - Admin operations
+   - Any API route that needs to bypass RLS policies
 
    **Important:** 
    - Set these for **Production**, **Preview**, and **Development** environments
@@ -78,6 +84,7 @@
    vercel env add WALLETCONNECT_PROJECT_ID
    vercel env add NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
    vercel env add ADMIN_WALLETS
+   vercel env add SUPABASE_SERVICE_ROLE_KEY
    ```
 
 5. **Deploy to Production:**
@@ -98,8 +105,8 @@
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
 
-### Optional
-- `SUPABASE_SERVICE_ROLE_KEY` - For full admin access (bypasses RLS)
+### Required for API Routes
+- `SUPABASE_SERVICE_ROLE_KEY` - **REQUIRED** for profile system, dashboard stats, admin operations, and any API routes that bypass RLS
 
 ## ⚙️ Vercel Configuration
 
