@@ -16,7 +16,7 @@ interface HeroProps {
 export default function Hero({
   headings = [
     '100% on-chain. Fully transparent.',
-    'Provably fair crypto raffles.',
+    'Probably fair crypto raffles.',
   ],
   subtitle = 'Connect your wallet, choose your entries, and the draw runs transparently on-chain with instant payout.',
   ctaText = 'Enter Raffle',
