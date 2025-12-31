@@ -259,11 +259,20 @@ export default function HomePage() {
       )}
 
       {/* Main Heading Section */}
-      <section className="relative bg-gradient-to-b from-primary-dark to-primary-dark py-12 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight">
+      <section className="relative bg-gradient-to-b from-primary-dark to-primary-dark py-12 px-4 overflow-hidden">
+        {/* Subtle background light effect */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-green rounded-full blur-3xl animate-pulse"></div>
+        </div>
+        
+        <div className="container mx-auto text-center relative z-10">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6">
             WIN PRIZES BEFORE CLOCK RUNS OUT
           </h1>
+          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            Transparent on-chain draws. Fixed entries. Instant payouts.<br />
+            No house edge. No hidden rules. Draws happen on schedule.
+          </p>
         </div>
       </section>
 
