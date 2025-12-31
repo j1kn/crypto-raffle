@@ -185,7 +185,7 @@ export default function HomePage() {
       <Header />
       
       {/* Hero Section */}
-      <Hero onMobileClick={!isConnected ? open : undefined} />
+      <Hero />
 
       {/* Hero Raffle Section - After Hero Section */}
       {heroRaffle && (

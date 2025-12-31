@@ -8,7 +8,6 @@ interface HeroProps {
   ctaText?: string;
   ctaLink?: string;
   rotationInterval?: number;
-  onMobileClick?: () => void;
 }
 
 export default function Hero({
@@ -20,36 +19,9 @@ export default function Hero({
   ctaText = 'Enter Raffle',
   ctaLink = '/raffles',
   rotationInterval = 6000, // 6 seconds
-  onMobileClick,
 }: HeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const handleContentClick = (e: React.MouseEvent) => {
-    // Only trigger on mobile and if handler is provided
-    if (isMobile && onMobileClick) {
-      // Don't trigger if clicking on a link or button
-      const target = e.target as HTMLElement;
-      const isLink = target.closest('a');
-      const isButton = target.closest('button');
-      
-      // Only trigger if clicking on the content area, not on links/buttons
-      if (!isLink && !isButton) {
-        onMobileClick();
-      }
-    }
-  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -80,11 +52,6 @@ export default function Hero({
       {/* Content */}
       <div 
         className="container mx-auto relative z-10"
-        onClick={handleContentClick}
-        style={{ 
-          cursor: isMobile && onMobileClick ? 'pointer' : 'default',
-          touchAction: 'pan-y pinch-zoom' // Allow scrolling and zooming
-        }}
       >
         <div className="max-w-4xl mx-auto text-center">
           {/* Rotating Heading */}
