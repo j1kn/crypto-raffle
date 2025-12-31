@@ -94,7 +94,7 @@ body {
   }
 }
 
-/* Body-wide grid background */
+/* Body-wide grid background with animated shine */
 body::before {
   content: '';
   position: fixed;
@@ -167,6 +167,13 @@ body > *:not(w3m-modal):not([data-w3m-modal]) {
   animation: grid-shine-delayed 12s linear infinite;
   animation-delay: 2s;
   pointer-events: none;
+}
+
+/* Global shine effects for full body - works with fixed positioning */
+body > .hero-grid-shine,
+body > .hero-grid-shine-delayed {
+  position: fixed;
+  width: 100%;
 }
 
 /* Hero Heading Slide Animations */
