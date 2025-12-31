@@ -64,3 +64,5 @@ After adding the key, the API routes will:
 
 **Your Service Role Key is in Supabase Dashboard → Settings → API → service_role key**
 
+
+

@@ -167,3 +167,5 @@ Supabase insert error: ...
 
 **The code now has comprehensive error handling. Check Vercel logs for the exact error!**
 
+
+

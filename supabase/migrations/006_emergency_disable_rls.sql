@@ -20,3 +20,5 @@ WHERE schemaname = 'public' AND tablename = 'raffles';
 -- ALTER TABLE raffles ENABLE ROW LEVEL SECURITY;
 -- =====================================================
 
+
+

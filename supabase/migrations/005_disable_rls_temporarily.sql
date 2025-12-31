@@ -16,3 +16,5 @@ ALTER TABLE raffles DISABLE ROW LEVEL SECURITY;
 -- Then run migration 004_fix_rls_insert_policy.sql
 -- =====================================================
 
+
+

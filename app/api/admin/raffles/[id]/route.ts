@@ -65,6 +65,7 @@ export async function PUT(
         receiving_address: body.receiving_address,
         starts_at: body.starts_at,
         ends_at: body.ends_at,
+        is_featured: body.is_featured === true || body.is_featured === 'true' || false,
       })
       .eq('id', params.id);
 

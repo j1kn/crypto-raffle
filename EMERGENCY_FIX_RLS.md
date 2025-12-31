@@ -126,3 +126,5 @@ Then, once raffle creation is working:
 
 **Run the SQL to disable RLS and it will work immediately!**
 
+
+

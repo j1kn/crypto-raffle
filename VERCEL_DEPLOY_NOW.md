@@ -78,3 +78,5 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 - [ ] Wallet connection works
 - [ ] Supabase connection works
 
+
+

@@ -50,3 +50,5 @@ echo "1. Check Vercel Dashboard: https://vercel.com/dashboard"
 echo "2. Add environment variables if not already set"
 echo "3. Monitor deployment status"
 
+
+

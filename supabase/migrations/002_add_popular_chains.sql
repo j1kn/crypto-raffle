@@ -12,3 +12,5 @@ INSERT INTO chains (name, slug, chain_id, native_symbol) VALUES
 ('Solana', 'solana', 101, 'SOL')
 ON CONFLICT (chain_id) DO NOTHING;
 
+
+

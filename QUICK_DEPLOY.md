@@ -98,3 +98,5 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 3. Common issue: Missing environment variables → Add them
 4. Then click **"Redeploy"**
 
+
+

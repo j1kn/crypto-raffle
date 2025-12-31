@@ -170,6 +170,7 @@ export async function POST(request: NextRequest) {
       starts_at: body.starts_at ? new Date(body.starts_at).toISOString() : null,
       ends_at: body.ends_at ? new Date(body.ends_at).toISOString() : new Date().toISOString(),
       created_by: null, // PIN-based admin
+      is_featured: body.is_featured === true || body.is_featured === 'true' || false,
     };
     
     // Remove any undefined values (they cause RLS violations)

@@ -221,3 +221,5 @@ Your admin panel is **fully connected to Supabase**:
 
 **Need Help?** Check the browser console for errors or review the Supabase dashboard to verify data is being saved correctly.
 
+
+

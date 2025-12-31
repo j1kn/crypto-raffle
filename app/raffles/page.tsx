@@ -21,6 +21,7 @@ interface Raffle {
   status: string;
   ends_at: string;
   starts_at: string | null;
+  is_featured?: boolean | null;
 }
 
 export default function RafflesPage() {
@@ -36,6 +37,7 @@ export default function RafflesPage() {
       const { data, error } = await supabase
         .from('public_raffles')
         .select('*')
+        .order('is_featured', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;

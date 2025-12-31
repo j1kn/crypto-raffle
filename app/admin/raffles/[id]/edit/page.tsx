@@ -41,6 +41,7 @@ export default function EditRafflePage() {
     receiving_address: '',
     starts_at: '',
     ends_at: '',
+    is_featured: false,
   });
 
   useEffect(() => {
@@ -127,6 +128,7 @@ export default function EditRafflePage() {
         receiving_address: data.receiving_address || '',
         starts_at: data.starts_at ? new Date(data.starts_at).toISOString().slice(0, 16) : '',
         ends_at: new Date(data.ends_at).toISOString().slice(0, 16),
+        is_featured: data.is_featured || false,
       });
 
       if (data.image_url) {
@@ -413,6 +415,20 @@ export default function EditRafflePage() {
                   className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green"
                 />
               </div>
+            </div>
+
+            {/* Featured Checkbox */}
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_featured}
+                  onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                  className="w-5 h-5 bg-primary-gray border border-primary-lightgray rounded text-primary-green focus:ring-primary-green focus:ring-2"
+                />
+                <span className="text-white font-semibold">Feature this raffle (shown at top of raffles page)</span>
+              </label>
+              <p className="text-xs text-gray-400 mt-1 ml-8">Featured raffles appear first on the raffles page</p>
             </div>
 
             <div className="flex gap-4">

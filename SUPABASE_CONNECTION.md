@@ -118,3 +118,5 @@ The code should automatically use these credentials from environment variables.
 
 **Your Supabase is now connected!** 🎉
 
+
+

@@ -171,3 +171,5 @@ This ensures it works immediately AND is secure.
 
 **Run the SQL script above and your raffle creation will work!** 🚀
 
+
+

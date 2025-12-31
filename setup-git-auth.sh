@@ -34,3 +34,5 @@ echo "✅ Setup complete!"
 echo ""
 echo "To test auto-push, run: npm run push"
 
+
+

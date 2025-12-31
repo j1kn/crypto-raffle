@@ -10,3 +10,5 @@ CREATE INDEX IF NOT EXISTS idx_raffles_winner ON raffles(winner_user_id);
 COMMENT ON COLUMN raffles.winner_user_id IS 'User ID of the raffle winner (drawn randomly when raffle ends)';
 COMMENT ON COLUMN raffles.winner_drawn_at IS 'Timestamp when the winner was drawn';
 
+
+
