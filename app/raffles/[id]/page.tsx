@@ -13,7 +13,6 @@ import { supabase } from '@/lib/supabase';
 import {
   useAccount,
   useSendTransaction,
-  useSwitchChain,
   useWaitForTransactionReceipt,
 } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -80,7 +79,6 @@ export default function RaffleDetailPage() {
   // Wagmi hooks - ALWAYS called (not conditional)
   const { open } = useWeb3Modal();
   const { address, isConnected, chain } = useAccount();
-  const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
     hash: txHash,
@@ -537,25 +535,6 @@ export default function RaffleDetailPage() {
     if (entryCount + quantity > raffle.max_tickets) {
       alert(`Not enough tickets available. Only ${raffle.max_tickets - entryCount} tickets left.`);
       return;
-    }
-
-    // Simplified chain handling - no strict validation, just try to switch on Android if needed
-    if (raffle.prize_pool_symbol?.toUpperCase() === 'ETH') {
-      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
-      const currentChainId = chain?.id;
-      
-      // Only try to switch on Android if we detect the chain and it's not mainnet
-      // Don't block payment if chain detection fails
-      if (isAndroid && currentChainId && currentChainId !== REQUIRED_CHAIN_ID) {
-        console.log(`[Payment] Android device detected, attempting to switch to chain ${REQUIRED_CHAIN_ID}`);
-        try {
-          await switchChainAsync({ chainId: REQUIRED_CHAIN_ID });
-          console.log('[Payment] Chain switched successfully');
-        } catch (switchError: any) {
-          console.warn('[Payment] Chain switch failed, proceeding anyway:', switchError);
-          // Don't block - let the transaction proceed with explicit chainId
-        }
-      }
     }
 
     const totalPrice = parseFloat(raffle.ticket_price.toString()) * quantity;
