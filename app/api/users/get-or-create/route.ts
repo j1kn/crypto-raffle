@@ -23,6 +23,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to get or create user' }, { status: 500 });
     }
 
+    // Auto-create profile if it doesn't exist
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('wallet_address')
+      .eq('wallet_address', walletAddress)
+      .single();
+
+    if (profileError && profileError.code === 'PGRST116') {
+      // Profile doesn't exist, create one with default display name
+      const defaultDisplayName = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+      await supabase
+        .from('profiles')
+        .insert({
+          wallet_address: walletAddress,
+          display_name: defaultDisplayName,
+        });
+    }
+
     return NextResponse.json({ success: true, userId: userData.id });
   } catch (error: any) {
     console.error('API Error /api/users/get-or-create:', error);
