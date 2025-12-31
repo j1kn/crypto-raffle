@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User, Shield, Menu, LogOut } from 'lucide-react';
+import { User, Shield, Menu, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect, useCallback, startTransition } from 'react';
@@ -243,9 +243,6 @@ export default function Header() {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
-            <button className="hidden md:block p-2 text-gray-300 hover:text-primary-green transition-colors">
-              <Search className="w-5 h-5" />
-            </button>
             {address ? (
               <div className="flex items-center gap-2 relative">
                 {/* Profile Picture Button */}
