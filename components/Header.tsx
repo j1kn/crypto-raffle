@@ -7,6 +7,8 @@ import { Search, User, Menu, Shield, LogOut } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect, useCallback, startTransition } from 'react';
+import ProfileSetupModal from './ProfileSetupModal';
+import ProfileDropdown from './ProfileDropdown';
 
 export default function Header() {
   const pathname = usePathname();
@@ -16,6 +18,14 @@ export default function Header() {
   const { disconnect } = useDisconnect();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profile, setProfile] = useState<{
+    wallet_address: string;
+    display_name?: string | null;
+    profile_picture_url?: string | null;
+  } | null>(null);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Debug wallet connection
   useEffect(() => {
@@ -59,17 +69,47 @@ export default function Header() {
     }
   }, []);
 
+  // Fetch profile when address changes
+  const fetchProfile = useCallback(async (walletAddress: string) => {
+    try {
+      setProfileLoading(true);
+      const response = await fetch(`/api/profile?walletAddress=${walletAddress}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.profile) {
+          setProfile(data.profile);
+          // Check if profile needs setup (no display_name)
+          if (!data.profile.display_name) {
+            setShowProfileSetup(true);
+          }
+        } else {
+          // No profile exists - show setup modal
+          setProfile(null);
+          setShowProfileSetup(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (address) {
       checkAdminStatus(address);
+      fetchProfile(address);
     } else {
       queueMicrotask(() => {
         startTransition(() => {
           setIsAdmin(false);
+          setProfile(null);
+          setShowProfileSetup(false);
         });
       });
     }
-  }, [address, checkAdminStatus]);
+  }, [address, checkAdminStatus, fetchProfile]);
 
   const handleConnect = () => {
     // Always open the modal - Web3Modal will show wallet selection
@@ -80,6 +120,9 @@ export default function Header() {
     try {
       await disconnect();
       setIsAdmin(false);
+      setProfile(null);
+      setShowProfileDropdown(false);
+      setShowProfileSetup(false);
       // Use Next.js router for smooth navigation
       if (pathname !== '/') {
         router.push('/');
@@ -91,6 +134,13 @@ export default function Header() {
       console.error('Error disconnecting wallet:', error);
       // Force redirect if disconnect fails
       router.push('/');
+    }
+  };
+
+  const handleProfileSave = async () => {
+    // Refresh profile after saving
+    if (address) {
+      await fetchProfile(address);
     }
   };
 
@@ -157,22 +207,30 @@ export default function Header() {
               <Search className="w-5 h-5" />
             </button>
             {address ? (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors"
-                >
-                  <User className="w-4 h-4" />
-                  <span className="hidden sm:inline">{address.slice(0, 6)}...{address.slice(-4)}</span>
-                  <span className="sm:hidden">{address.slice(0, 4)}...{address.slice(-4)}</span>
-                </Link>
+              <div className="flex items-center gap-2 relative">
+                {/* Profile Picture Button */}
                 <button
-                  onClick={handleDisconnect}
-                  className="bg-primary-orange text-white px-3 py-2 rounded font-semibold hover:bg-primary-orange/90 transition-colors text-sm hidden md:block"
-                  title="Disconnect Wallet"
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="relative w-12 h-12 rounded-full bg-primary-green/20 border-2 border-primary-green/30 overflow-hidden flex items-center justify-center hover:border-primary-green transition-colors"
+                  title={profile?.display_name || 'Profile'}
                 >
-                  DISCONNECT
+                  {profile?.profile_picture_url ? (
+                    <img
+                      src={profile.profile_picture_url}
+                      alt={profile.display_name || 'Profile'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-6 h-6 text-primary-green" />
+                  )}
                 </button>
+                {/* Profile Dropdown */}
+                <ProfileDropdown
+                  isOpen={showProfileDropdown}
+                  onClose={() => setShowProfileDropdown(false)}
+                  profile={profile}
+                  isAdmin={isAdmin}
+                />
               </div>
             ) : (
               <button
@@ -240,6 +298,16 @@ export default function Header() {
           </nav>
         )}
       </div>
+
+      {/* Profile Setup Modal */}
+      {address && (
+        <ProfileSetupModal
+          isOpen={showProfileSetup}
+          onClose={() => setShowProfileSetup(false)}
+          walletAddress={address}
+          onSave={handleProfileSave}
+        />
+      )}
     </header>
   );
 }

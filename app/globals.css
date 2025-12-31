@@ -112,7 +112,7 @@ body::before {
 }
 
 /* Global shine animations wrapper */
-body > * {
+body > *:not(w3m-modal):not([data-w3m-modal]) {
   position: relative;
   z-index: 1;
 }
@@ -198,5 +198,68 @@ body > * {
 
 .hero-heading-slide-in {
   animation: slide-in-right 0.5s ease-in-out forwards;
+}
+
+/* Web3Modal z-index and animation fixes */
+w3m-modal,
+w3m-modal-backdrop,
+w3m-container,
+[data-w3m-modal],
+[data-w3m-modal-backdrop],
+.w3m-modal,
+.w3m-modal-backdrop {
+  z-index: 99999 !important;
+}
+
+/* Ensure Web3Modal backdrop and modal have proper z-index */
+w3m-modal-backdrop,
+.w3m-modal-backdrop {
+  z-index: 99998 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+w3m-modal,
+.w3m-modal {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Fix for Web3Modal animation - ensure smooth slide up from bottom */
+@keyframes slideUpModal {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Target Web3Modal content with animation */
+w3m-modal > *,
+.w3m-modal > *,
+[data-w3m-modal] > * {
+  animation: slideUpModal 0.3s ease-out !important;
+}
+
+/* Ensure modal container is above everything */
+body > w3m-modal,
+body > [data-w3m-modal],
+body > .w3m-modal {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Fix for any portal-rendered modals */
+#w3m-modal,
+#walletconnect-wrapper,
+[class*="w3m"],
+[class*="walletconnect"] {
+  z-index: 99999 !important;
 }
 

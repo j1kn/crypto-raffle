@@ -33,6 +33,7 @@ try {
     themeMode: 'dark',
     themeVariables: {
       '--w3m-accent': '#00ff88', // Primary green
+      '--w3m-z-index': '99999', // Ensure modal is above everything
     },
     // Metadata for WalletConnect
     metadata: {
