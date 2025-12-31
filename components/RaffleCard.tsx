@@ -55,22 +55,14 @@ export default function RaffleCard({
   return (
     <Link href={`/raffles/${id}`}>
       <div className="bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20">
-        {/* Badge and Timer Container */}
+        {/* Timer Container */}
         <div className="relative p-4 min-h-[60px]">
-          <div className={`absolute top-4 left-4 px-3 py-1 rounded-full flex items-center gap-1 text-xs font-bold z-10 ${
-            badgeColor === 'green' 
-              ? 'bg-primary-green text-primary-darker' 
-              : 'bg-primary-orange text-white'
-          }`}>
-            <Trophy className="w-3 h-3" />
-            {prizePool}
-          </div>
           <div className="absolute top-4 right-4 z-10">
             <CountdownTimer endDate={endDate} />
           </div>
         </div>
 
-        {/* Image */}
+        {/* Image with Badge */}
         {finalImageUrl && (
           <div className="relative w-full h-48 bg-primary-darker">
             <Image
@@ -80,6 +72,15 @@ export default function RaffleCard({
               className="object-cover"
               unoptimized
             />
+            {/* Badge on top-left of image */}
+            <div className={`absolute top-4 left-4 px-3 py-1 rounded-full flex items-center gap-1 text-xs font-bold z-10 ${
+              badgeColor === 'green' 
+                ? 'bg-primary-green text-primary-darker' 
+                : 'bg-primary-orange text-white'
+            }`}>
+              <Trophy className="w-3 h-3" />
+              {prizePool}
+            </div>
           </div>
         )}
 
