@@ -259,13 +259,8 @@ export default function HomePage() {
       )}
 
       {/* Main Heading Section */}
-      <section className="relative bg-gradient-to-b from-primary-dark to-primary-dark py-12 px-4 overflow-hidden">
-        {/* Subtle background light effect */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-green rounded-full blur-3xl animate-pulse"></div>
-        </div>
-        
-        <div className="container mx-auto text-center relative z-10">
+      <section className="relative bg-gradient-to-b from-primary-dark to-primary-dark py-12 px-4">
+        <div className="container mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6">
             WIN PRIZES BEFORE CLOCK RUNS OUT
           </h1>
