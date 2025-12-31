@@ -42,8 +42,15 @@ export default function Hero({
   }, [headings.length, rotationInterval]);
 
   return (
-    <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4">
-      <div className="container mx-auto">
+    <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4 overflow-hidden">
+      {/* Animated Grid Background */}
+      <div className="hero-grid-background">
+        <div className="hero-grid-shine"></div>
+        <div className="hero-grid-shine-delayed"></div>
+      </div>
+      
+      {/* Content */}
+      <div className="container mx-auto relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Rotating Heading */}
           <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6">

@@ -57,3 +57,93 @@ body {
   background: #00cc6a;
 }
 
+/* Hero Section Animated Background */
+@keyframes grid-shine {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  95% {
+    opacity: 0.2;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes grid-shine-delayed {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  95% {
+    opacity: 0.15;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+.hero-grid-background {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 255, 136, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  overflow: hidden;
+}
+
+.hero-grid-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 136, 0.08) 15%,
+    rgba(0, 255, 136, 0.12) 30%,
+    rgba(0, 255, 136, 0.15) 50%,
+    rgba(0, 255, 136, 0.12) 70%,
+    rgba(0, 255, 136, 0.08) 85%,
+    transparent 100%
+  );
+  animation: grid-shine 10s linear infinite;
+  pointer-events: none;
+}
+
+.hero-grid-shine-delayed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 136, 0.06) 20%,
+    rgba(0, 255, 136, 0.1) 50%,
+    rgba(0, 255, 136, 0.06) 80%,
+    transparent 100%
+  );
+  animation: grid-shine-delayed 12s linear infinite;
+  animation-delay: 2s;
+  pointer-events: none;
+}
+
