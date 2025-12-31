@@ -12,7 +12,6 @@ import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
 import {
   useAccount,
-  useChainId,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
@@ -81,7 +80,6 @@ export default function RaffleDetailPage() {
   // Wagmi hooks - ALWAYS called (not conditional)
   const { open } = useWeb3Modal();
   const { address, isConnected, chain, connector } = useAccount();
-  const connectedChainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
@@ -541,7 +539,7 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    let currentChainId: number | undefined = connectedChainId ?? chain?.id;
+    let currentChainId: number | undefined = chain?.id;
     
     if (!currentChainId && connector) {
       try {
