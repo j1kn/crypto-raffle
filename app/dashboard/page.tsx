@@ -50,7 +50,7 @@ interface DashboardStats {
 export default function DashboardPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
-  const { open } = useWeb3Modal();
+  const { open, close: closeModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
   const [entries, setEntries] = useState<RaffleEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +65,33 @@ export default function DashboardPage() {
   const handleDisconnect = () => {
     disconnect();
     router.push('/');
+  };
+
+  const handleSwitchWallet = async () => {
+    try {
+      // Close any open modal first
+      closeModal();
+      // Disconnect current wallet
+      disconnect();
+      // Clear localStorage to ensure clean state
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('wagmi.wallet');
+        localStorage.removeItem('wagmi.connected');
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('wagmi.') || key.startsWith('wc@')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      // Small delay to ensure disconnect completes, then open modal
+      setTimeout(() => {
+        open();
+      }, 300);
+    } catch (error) {
+      console.error('Error switching wallet:', error);
+      // If error occurs, just try to open the modal
+      open();
+    }
   };
 
   const handleCopyAddress = async () => {
@@ -293,7 +320,7 @@ export default function DashboardPage() {
               {/* Actions - Refined */}
               <div className="flex flex-col gap-2.5 md:min-w-[140px]">
                 <button
-                  onClick={() => open()}
+                  onClick={handleSwitchWallet}
                   className="flex items-center justify-center gap-2 bg-primary-darker border border-primary-lightgray text-white px-4 py-2.5 rounded-lg font-medium hover:bg-primary-dark hover:border-primary-green transition-all duration-200 text-sm"
                 >
                   <User className="w-4 h-4" />
