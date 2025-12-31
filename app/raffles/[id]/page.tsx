@@ -13,12 +13,10 @@ import { supabase } from '@/lib/supabase';
 import {
   useAccount,
   useChainId,
-  useConfig,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
 } from 'wagmi';
-import { mainnet } from 'wagmi/chains';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
@@ -84,7 +82,6 @@ export default function RaffleDetailPage() {
   const { open } = useWeb3Modal();
   const { address, isConnected, chain, connector } = useAccount();
   const connectedChainId = useChainId();
-  const config = useConfig();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: txError } = useWaitForTransactionReceipt({
