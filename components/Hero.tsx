@@ -20,7 +20,7 @@ export default function Hero({
   subtitle = 'Connect your wallet, choose your entries, and the draw runs transparently on-chain with instant payout.',
   ctaText = 'Enter Raffle',
   ctaLink = '/raffles',
-  rotationInterval = 4000, // 4 seconds
+  rotationInterval = 6000, // 6 seconds
 }: HeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);

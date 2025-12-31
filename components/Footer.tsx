@@ -103,11 +103,6 @@ export default function Footer() {
         <div className="border-t border-primary-gray mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
           <p>COPYRIGHT © 2024 - ALL RIGHTS RESERVED BY PRIMEPICK</p>
           <p>www.PrimePickTournament.com</p>
-          <div className="flex gap-2">
-            {['PayPal', 'Visa', 'Mastercard'].map((method) => (
-              <span key={method} className="text-xs">{method}</span>
-            ))}
-          </div>
         </div>
       </div>
     </footer>
