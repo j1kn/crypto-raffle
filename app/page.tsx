@@ -189,7 +189,7 @@ export default function HomePage() {
 
       {/* Hero Raffle Section - After Hero Section */}
       {heroRaffle && (
-        <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-12 px-4">
+        <section className="relative py-12 px-4">
           <div className="container mx-auto">
             <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden">
               {/* Timer at Top - Centered */}
@@ -259,7 +259,7 @@ export default function HomePage() {
       )}
 
       {/* Main Heading Section */}
-      <section className="relative bg-gradient-to-b from-primary-dark to-primary-dark py-12 px-4">
+      <section className="relative py-12 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6">
             WIN PRIZES BEFORE CLOCK RUNS OUT
@@ -272,7 +272,7 @@ export default function HomePage() {
       </section>
 
       {/* Play to Earn Games Section - Now Shows Live Raffles (cards only) */}
-      <section className="py-20 px-4 bg-primary-dark">
+      <section className="py-20 px-4">
         <div className="container mx-auto">
           {loading ? (
             <div className="text-center text-gray-400 py-12">
@@ -324,7 +324,7 @@ export default function HomePage() {
 
       {/* Recent Winners Section */}
       {recentWinners.length > 0 && (
-        <section className="py-20 px-4 bg-primary-darker">
+        <section className="py-20 px-4">
           <div className="container mx-auto">
             <div className="text-center mb-12">
               <p className="text-primary-orange text-sm font-semibold mb-2">RECENT WINNERS</p>
