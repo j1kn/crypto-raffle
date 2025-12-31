@@ -118,7 +118,7 @@ export default function Header() {
                 priority
               />
             </div>
-            <span className="text-white font-bold text-xl">PRIMEPICK</span>
+            <span className="text-white font-bold text-xl">PPT</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -177,7 +177,7 @@ export default function Header() {
             ) : (
               <button
                 onClick={handleConnect}
-                className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-1.5 rounded font-semibold hover:bg-primary-green/90 transition-colors h-10"
+                className="flex items-center gap-2 bg-primary-green text-primary-darker px-4 py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors h-12"
               >
                 <User className="w-4 h-4" />
                 CONNECT WALLET

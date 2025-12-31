@@ -10,6 +10,7 @@ interface HeroProps {
   ctaText?: string;
   ctaLink?: string;
   rotationInterval?: number;
+  onMobileClick?: () => void;
 }
 
 export default function Hero({
@@ -21,9 +22,33 @@ export default function Hero({
   ctaText = 'Enter Raffle',
   ctaLink = '/raffles',
   rotationInterval = 6000, // 6 seconds
+  onMobileClick,
 }: HeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const handleSectionClick = (e: React.MouseEvent) => {
+    // Only trigger on mobile and if handler is provided
+    if (isMobile && onMobileClick) {
+      // Prevent default link behavior if clicking on a link
+      const target = e.target as HTMLElement;
+      if (!target.closest('a')) {
+        e.preventDefault();
+        onMobileClick();
+      }
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -42,7 +67,11 @@ export default function Hero({
   const nextIndex = (currentIndex + 1) % headings.length;
 
   return (
-    <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4 overflow-hidden">
+    <section 
+      className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4 overflow-hidden md:cursor-default"
+      onClick={handleSectionClick}
+      style={{ cursor: isMobile && onMobileClick ? 'pointer' : 'default' }}
+    >
       {/* Animated Grid Background */}
       <div className="hero-grid-background">
         <div className="hero-grid-shine"></div>
