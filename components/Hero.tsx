@@ -43,7 +43,7 @@ export default function Hero({
 
   return (
     <section 
-      className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 md:py-32 px-4"
+      className="relative py-20 md:py-32 px-4"
     >
       {/* Animated Grid Background */}
       <div className="hero-grid-background">
