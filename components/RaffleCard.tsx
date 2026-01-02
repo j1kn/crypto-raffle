@@ -16,6 +16,7 @@ interface RaffleCardProps {
   endDate: string;
   prizePlaces: number;
   badgeColor?: 'green' | 'orange';
+  entryCount?: number;
 }
 
 export default function RaffleCard({
@@ -29,6 +30,7 @@ export default function RaffleCard({
   endDate,
   prizePlaces,
   badgeColor = 'green',
+  entryCount = 0,
 }: RaffleCardProps) {
   const convertGoogleDriveUrl = (url: string | undefined): string | undefined => {
     if (!url) return undefined;
@@ -107,8 +109,10 @@ export default function RaffleCard({
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Max Tickets:</span>
-              <span className="text-white">{maxTickets}</span>
+              <span className="text-gray-400">Entries:</span>
+              <span className="text-white font-semibold">
+                {entryCount} / {maxTickets}
+              </span>
             </div>
           </div>
 

@@ -27,6 +27,7 @@ interface Raffle {
 export default function RafflesPage() {
   const [raffles, setRaffles] = useState<Raffle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [entryCounts, setEntryCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchRaffles();
@@ -42,10 +43,47 @@ export default function RafflesPage() {
 
       if (error) throw error;
       setRaffles(data || []);
+      
+      // Fetch entry counts for all raffles
+      if (data && data.length > 0) {
+        fetchEntryCounts(data.map(r => r.id));
+      }
     } catch (error) {
       console.error('Error fetching raffles:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEntryCounts = async (raffleIds: string[]) => {
+    try {
+      const { data, error } = await supabase
+        .from('raffle_entries')
+        .select('raffle_id, quantity')
+        .in('raffle_id', raffleIds);
+
+      if (error) {
+        console.error('Error fetching entry counts:', error);
+        return;
+      }
+
+      // Calculate total entries per raffle
+      const counts: Record<string, number> = {};
+      raffleIds.forEach(id => {
+        counts[id] = 0;
+      });
+
+      (data || []).forEach((entry: any) => {
+        const raffleId = entry.raffle_id;
+        const quantity = entry.quantity || 1;
+        if (counts[raffleId] !== undefined) {
+          counts[raffleId] += quantity;
+        }
+      });
+
+      setEntryCounts(counts);
+    } catch (error) {
+      console.error('Error fetching entry counts:', error);
     }
   };
 
@@ -76,6 +114,7 @@ export default function RafflesPage() {
                   endDate={raffle.ends_at}
                   prizePlaces={Math.floor(raffle.max_tickets / 10)}
                   badgeColor={raffle.prize_pool_amount > 50000 ? 'orange' : 'green'}
+                  entryCount={entryCounts[raffle.id] || 0}
                 />
               ))}
             </div>

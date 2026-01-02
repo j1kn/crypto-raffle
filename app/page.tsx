@@ -48,6 +48,7 @@ export default function HomePage() {
   const [raffles, setRaffles] = useState<Raffle[]>([]);
   const [recentWinners, setRecentWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [entryCounts, setEntryCounts] = useState<Record<string, number>>({});
 
   // Removed auto-redirect - let users browse raffles even when connected
   // They can access dashboard via header button
@@ -112,11 +113,48 @@ export default function HomePage() {
           ? (data || []).filter(r => r.id !== heroId).slice(0, 6)
           : (data || []).slice(0, 6);
         setRaffles(filteredRaffles);
+        
+        // Fetch entry counts for all raffles
+        if (filteredRaffles.length > 0) {
+          fetchEntryCounts(filteredRaffles.map(r => r.id));
+        }
       }
     } catch (error) {
       console.error('Error fetching raffles:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEntryCounts = async (raffleIds: string[]) => {
+    try {
+      const { data, error } = await supabase
+        .from('raffle_entries')
+        .select('raffle_id, quantity')
+        .in('raffle_id', raffleIds);
+
+      if (error) {
+        console.error('Error fetching entry counts:', error);
+        return;
+      }
+
+      // Calculate total entries per raffle
+      const counts: Record<string, number> = {};
+      raffleIds.forEach(id => {
+        counts[id] = 0;
+      });
+
+      (data || []).forEach((entry: any) => {
+        const raffleId = entry.raffle_id;
+        const quantity = entry.quantity || 1;
+        if (counts[raffleId] !== undefined) {
+          counts[raffleId] += quantity;
+        }
+      });
+
+      setEntryCounts(counts);
+    } catch (error) {
+      console.error('Error fetching entry counts:', error);
     }
   };
 
@@ -301,6 +339,7 @@ export default function HomePage() {
                     endDate={raffle.ends_at}
                     prizePlaces={Math.max(1, Math.floor(raffle.max_tickets / 10))}
                     badgeColor={badgeColor}
+                    entryCount={entryCounts[raffle.id] || 0}
                   />
                 );
               })}
