@@ -28,7 +28,6 @@ interface HeroProps {
 export default function Hero({
   headings = [
     '100% on-chain. Fully transparent.',
-    'Fair Ai Crypto Raffles',
   ],
   subtitle = 'Connect your wallet, choose your entries, and the draw runs transparently on-chain with instant payout.',
   ctaText = 'View Tournaments',
@@ -43,10 +42,13 @@ export default function Hero({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const raffleRef = useRef<HTMLDivElement>(null);
 
-  // Calculate total items: if heroRaffle exists, add 1 to headings length
-  const totalItems = heroRaffle ? headings.length + 1 : headings.length;
-  // Start with raffle if it exists (index = headings.length), otherwise start with 0
-  const startIndex = heroRaffle ? headings.length : 0;
+  // Calculate total items: raffle (1) + heading (1) + buttons (1) = 3 if raffle exists, otherwise 2
+  // Index 0: Raffle (if exists)
+  // Index 1: Heading
+  // Index 2: Buttons
+  const totalItems = heroRaffle ? 3 : 2;
+  // Start with raffle if it exists (index = 0), otherwise start with heading (index = 0)
+  const startIndex = 0;
 
   useEffect(() => {
     // Reset to start index when heroRaffle changes
@@ -106,8 +108,12 @@ export default function Hero({
   }, [heroRaffle]);
 
   const nextIndex = (currentIndex + 1) % totalItems;
-  const isShowingRaffle = heroRaffle && currentIndex === headings.length;
-  const isNextRaffle = heroRaffle && nextIndex === headings.length;
+  const isShowingRaffle = heroRaffle && currentIndex === 0;
+  const isNextRaffle = heroRaffle && nextIndex === 0;
+  const isShowingHeading = heroRaffle ? currentIndex === 1 : currentIndex === 0;
+  const isNextHeading = heroRaffle ? nextIndex === 1 : nextIndex === 0;
+  const isShowingButtons = heroRaffle ? currentIndex === 2 : currentIndex === 1;
+  const isNextButtons = heroRaffle ? nextIndex === 2 : nextIndex === 1;
 
   const convertGoogleDriveUrl = (url: string | null): string | null => {
     if (!url) return null;
@@ -286,47 +292,119 @@ export default function Hero({
             </div>
           )}
 
-          {/* Heading Section - Shows when not showing raffle */}
-          {!isShowingRaffle && (
+          {/* Heading Section - Shows when showing heading */}
+          {isShowingHeading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
-              {/* Rotating Heading - Only the heading text animates */}
+              {/* Rotating Heading - Smooth fade animation */}
               <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden w-full">
-                {/* Current Heading - Slides left and fades out */}
+                {/* Current Heading - Smooth fade out */}
                 <h1
-                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
-                    isAnimating 
-                      ? 'hero-heading-slide-out' 
-                      : 'translate-x-0 opacity-100'
+                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-700 ease-in-out ${
+                    isAnimating && isNextButtons
+                      ? 'opacity-0 translate-y-[-20px]' 
+                      : 'opacity-100 translate-y-0'
                   }`}
                 >
-                  {headings[currentIndex]}
+                  {headings[0]}
                 </h1>
                 
-                {/* Next Heading - Slides in from right */}
-                <h1
-                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
-                    isAnimating 
-                      ? 'hero-heading-slide-in' 
-                      : 'translate-x-[100px] opacity-0'
-                  }`}
-                >
-                  {headings[nextIndex]}
-                </h1>
+                {/* Next Buttons - Smooth fade in */}
+                {isNextButtons && (
+                  <div
+                    className={`absolute transition-all duration-700 ease-in-out ${
+                      isAnimating 
+                        ? 'opacity-100 translate-y-0' 
+                        : 'opacity-0 translate-y-[20px]'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                      <Link
+                        href={ctaLink}
+                        className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
+                      >
+                        {ctaText}
+                        <ArrowRight className="w-5 h-5" />
+                      </Link>
+                      <button
+                        onClick={() => open()}
+                        className="inline-flex items-center gap-3 bg-primary-orange text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-orange/90 transition-colors duration-200"
+                      >
+                        CONNECT WALLET
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Subtitle - Always visible, doesn't animate */}
-              <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
+              <p className={`text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed transition-opacity duration-700 ${
+                isAnimating && isNextButtons ? 'opacity-0' : 'opacity-100'
+              }`}>
                 {subtitle}
               </p>
 
-              {/* CTA Button - Always visible, doesn't animate */}
-              <Link
-                href={ctaLink}
-                className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
-              >
-                {ctaText}
-                <ArrowRight className="w-5 h-5" />
-              </Link>
+              {/* CTA Button - Fades out when transitioning to buttons */}
+              <div className={`transition-opacity duration-700 ${
+                isAnimating && isNextButtons ? 'opacity-0' : 'opacity-100'
+              }`}>
+                <Link
+                  href={ctaLink}
+                  className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
+                >
+                  {ctaText}
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Buttons Section - Shows when showing buttons */}
+          {isShowingButtons && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
+              {/* Buttons - Smooth fade animation */}
+              <div className="flex flex-col items-center gap-6 mb-6 relative overflow-hidden w-full min-h-[120px] md:min-h-[160px]">
+                {/* Current Buttons - Smooth fade out */}
+                <div
+                  className={`absolute transition-all duration-700 ease-in-out ${
+                    isAnimating && (isNextRaffle || isNextHeading)
+                      ? 'opacity-0 translate-y-[-20px]' 
+                      : 'opacity-100 translate-y-0'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                    <Link
+                      href={ctaLink}
+                      className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
+                    >
+                      {ctaText}
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
+                    <button
+                      onClick={() => open()}
+                      className="inline-flex items-center gap-3 bg-primary-orange text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-orange/90 transition-colors duration-200"
+                    >
+                      CONNECT WALLET
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Next Heading/Raffle - Smooth fade in */}
+                {(isNextRaffle || isNextHeading) && (
+                  <div
+                    className={`absolute transition-all duration-700 ease-in-out ${
+                      isAnimating 
+                        ? 'opacity-100 translate-y-0' 
+                        : 'opacity-0 translate-y-[20px]'
+                    }`}
+                  >
+                    {isNextHeading ? (
+                      <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+                        {headings[0]}
+                      </h1>
+                    ) : null}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
