@@ -139,7 +139,7 @@ export default function Hero({
         className="container mx-auto relative z-10"
       >
         {/* Fixed Height Container to prevent layout shift */}
-        <div className={`relative ${isShowingRaffle ? 'min-h-[600px] md:min-h-[600px]' : 'min-h-[500px] md:min-h-[600px]'}`}>
+        <div className={`relative ${isShowingRaffle ? 'min-h-[700px] md:min-h-[600px]' : 'min-h-[500px] md:min-h-[600px]'}`}>
           {/* Full Screen Raffle - Shows first, fills entire hero section */}
           {isShowingRaffle && heroRaffle && (
             <div
