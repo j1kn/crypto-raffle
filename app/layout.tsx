@@ -29,9 +29,6 @@ export default function RootLayout({
             gtag('config', 'AW-17850510052');
           `}
         </Script>
-        {/* Global animated shine effects - same as hero section */}
-        <div className="fixed inset-0 pointer-events-none z-0 hero-grid-shine"></div>
-        <div className="fixed inset-0 pointer-events-none z-0 hero-grid-shine-delayed"></div>
         <Providers>{children}</Providers>
       </body>
     </html>
