@@ -203,7 +203,7 @@ export default function Hero({
                       </Link>
                       <button
                         onClick={() => open()}
-                        className="bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors inline-flex items-center justify-center gap-2"
+                        className="hidden sm:inline-flex bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors items-center justify-center gap-2"
                       >
                         CONNECT WALLET
                       </button>
@@ -275,7 +275,7 @@ export default function Hero({
                       </Link>
                       <button
                         onClick={() => open()}
-                        className="bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors inline-flex items-center justify-center gap-2"
+                        className="hidden sm:inline-flex bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors items-center justify-center gap-2"
                       >
                         CONNECT WALLET
                       </button>
