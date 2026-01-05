@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -15,6 +16,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        {/* Google tag (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-17850510052"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-17850510052');
+          `}
+        </Script>
         {/* Global animated shine effects - same as hero section */}
         <div className="fixed inset-0 pointer-events-none z-0 hero-grid-shine"></div>
         <div className="fixed inset-0 pointer-events-none z-0 hero-grid-shine-delayed"></div>
