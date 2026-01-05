@@ -130,8 +130,6 @@ export default function Hero({
     >
       {/* Animated Grid Background */}
       <div className="hero-grid-background">
-        <div className="hero-grid-shine"></div>
-        <div className="hero-grid-shine-delayed"></div>
       </div>
       
       {/* Content */}
