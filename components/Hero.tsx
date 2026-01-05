@@ -69,7 +69,7 @@ export default function Hero({
         setTimeout(() => {
           setCurrentIndex((prev) => (prev + 1) % totalItems);
           setIsAnimating(false);
-        }, 500);
+        }, 700); // Match the CSS transition duration
       }, rotationInterval);
     };
 
@@ -148,10 +148,10 @@ export default function Hero({
           {isShowingRaffle && heroRaffle && (
             <div
               ref={raffleRef}
-              className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${
-                isAnimating 
-                  ? 'hero-heading-slide-out opacity-0' 
-                  : 'translate-x-0 opacity-100'
+              className={`absolute inset-0 w-full transition-all duration-700 ease-in-out ${
+                isAnimating && isNextHeading
+                  ? 'opacity-0 translate-y-[-20px]' 
+                  : 'opacity-100 translate-y-0'
               }`}
             >
               <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden h-full">
@@ -223,10 +223,10 @@ export default function Hero({
           {/* Next Raffle - Slides in from right */}
           {isNextRaffle && heroRaffle && (
             <div
-              className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${
+              className={`absolute inset-0 w-full transition-all duration-700 ease-in-out ${
                 isAnimating 
-                  ? 'hero-heading-slide-in opacity-100' 
-                  : 'translate-x-[100px] opacity-0'
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-[20px]'
               }`}
             >
               <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden h-full">
