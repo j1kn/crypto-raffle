@@ -42,10 +42,10 @@ export default function Hero({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const raffleRef = useRef<HTMLDivElement>(null);
 
-  // Calculate total items: raffle (1) + heading (1) + buttons (1) = 3 if raffle exists, otherwise 2
+  // Calculate total items: raffle (1) + heading with tournament button (1) + heading with connect wallet button (1) = 3 if raffle exists, otherwise 2
   // Index 0: Raffle (if exists)
-  // Index 1: Heading
-  // Index 2: Buttons
+  // Index 1: Heading + Subtitle + Tournament button
+  // Index 2: Heading + Subtitle + Connect Wallet button
   const totalItems = heroRaffle ? 3 : 2;
   // Start with raffle if it exists (index = 0), otherwise start with heading (index = 0)
   const startIndex = 0;
@@ -69,7 +69,7 @@ export default function Hero({
         setTimeout(() => {
           setCurrentIndex((prev) => (prev + 1) % totalItems);
           setIsAnimating(false);
-        }, 700); // Match the CSS transition duration
+        }, 500); // Fast animation
       }, rotationInterval);
     };
 
@@ -110,10 +110,10 @@ export default function Hero({
   const nextIndex = (currentIndex + 1) % totalItems;
   const isShowingRaffle = heroRaffle && currentIndex === 0;
   const isNextRaffle = heroRaffle && nextIndex === 0;
-  const isShowingHeading = heroRaffle ? currentIndex === 1 : currentIndex === 0;
-  const isNextHeading = heroRaffle ? nextIndex === 1 : nextIndex === 0;
-  const isShowingButtons = heroRaffle ? currentIndex === 2 : currentIndex === 1;
-  const isNextButtons = heroRaffle ? nextIndex === 2 : nextIndex === 1;
+  const isShowingHeadingWithTournament = heroRaffle ? currentIndex === 1 : currentIndex === 0;
+  const isNextHeadingWithTournament = heroRaffle ? nextIndex === 1 : nextIndex === 0;
+  const isShowingHeadingWithConnect = heroRaffle ? currentIndex === 2 : currentIndex === 1;
+  const isNextHeadingWithConnect = heroRaffle ? nextIndex === 2 : nextIndex === 1;
 
   const convertGoogleDriveUrl = (url: string | null): string | null => {
     if (!url) return null;
@@ -148,10 +148,10 @@ export default function Hero({
           {isShowingRaffle && heroRaffle && (
             <div
               ref={raffleRef}
-              className={`absolute inset-0 w-full transition-all duration-700 ease-in-out ${
-                isAnimating && isNextHeading
-                  ? 'opacity-0 translate-y-[-20px]' 
-                  : 'opacity-100 translate-y-0'
+              className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${
+                isAnimating && isNextHeadingWithTournament
+                  ? 'opacity-0' 
+                  : 'opacity-100'
               }`}
             >
               <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden h-full">
@@ -184,7 +184,7 @@ export default function Hero({
                     </div>
                     <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
                       {heroRaffle.title}
-                    </h1>
+            </h1>
                     <div className="flex items-center gap-6 mb-6">
                       <div>
                         <p className="text-gray-400 text-sm mb-1">Prize Pool</p>
@@ -223,10 +223,10 @@ export default function Hero({
           {/* Next Raffle - Slides in from right */}
           {isNextRaffle && heroRaffle && (
             <div
-              className={`absolute inset-0 w-full transition-all duration-700 ease-in-out ${
+              className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${
                 isAnimating 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-[20px]'
+                  ? 'opacity-100' 
+                  : 'opacity-0'
               }`}
             >
               <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden h-full">
@@ -292,93 +292,81 @@ export default function Hero({
             </div>
           )}
 
-          {/* Heading Section - Shows when showing heading */}
-          {isShowingHeading && (
+          {/* Heading Section with Tournament Button - Shows when index 1 */}
+          {isShowingHeadingWithTournament && (
             <div className="absolute inset-0 flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
-              {/* Rotating Heading - Smooth fade animation */}
+              {/* Heading - Slides left to right */}
               <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden w-full">
-                {/* Current Heading - Smooth fade out */}
+                {/* Current Heading - Slides out to left */}
                 <h1
-                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-700 ease-in-out ${
-                    isAnimating && isNextButtons
-                      ? 'opacity-0 translate-y-[-20px]' 
-                      : 'opacity-100 translate-y-0'
+                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                    isAnimating && isNextHeadingWithConnect
+                      ? 'translate-x-[-100px] opacity-0' 
+                      : 'translate-x-0 opacity-100'
                   }`}
                 >
                   {headings[0]}
                 </h1>
                 
-                {/* Next Buttons - Smooth fade in */}
-                {isNextButtons && (
-                  <div
-                    className={`absolute transition-all duration-700 ease-in-out ${
+                {/* Next Heading - Slides in from right */}
+                {isNextHeadingWithConnect && (
+                  <h1
+                    className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
                       isAnimating 
-                        ? 'opacity-100 translate-y-0' 
-                        : 'opacity-0 translate-y-[20px]'
+                        ? 'translate-x-0 opacity-100' 
+                        : 'translate-x-[100px] opacity-0'
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                      <Link
-                        href={ctaLink}
-                        className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
-                      >
-                        {ctaText}
-                        <ArrowRight className="w-5 h-5" />
-                      </Link>
-                      <button
-                        onClick={() => open()}
-                        className="inline-flex items-center gap-3 bg-primary-orange text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-orange/90 transition-colors duration-200"
-                      >
-                        CONNECT WALLET
-                      </button>
-                    </div>
-                  </div>
+                    {headings[0]}
+                  </h1>
                 )}
               </div>
 
-              {/* Subtitle - Always visible, doesn't animate */}
-              <p className={`text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed transition-opacity duration-700 ${
-                isAnimating && isNextButtons ? 'opacity-0' : 'opacity-100'
-              }`}>
-                {subtitle}
-              </p>
-
-              {/* CTA Button - Fades out when transitioning to buttons */}
-              <div className={`transition-opacity duration-700 ${
-                isAnimating && isNextButtons ? 'opacity-0' : 'opacity-100'
-              }`}>
-                <Link
-                  href={ctaLink}
-                  className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
-                >
-                  {ctaText}
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
+              {/* Subtitle - Slides left to right */}
+              <div className="mb-10 relative overflow-hidden w-full">
+                <p className={`text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextHeadingWithConnect
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  {subtitle}
+                </p>
+                
+                {isNextHeadingWithConnect && (
+                  <p className={`absolute top-0 left-0 right-0 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'translate-x-0 opacity-100' 
+                      : 'translate-x-[100px] opacity-0'
+                  }`}>
+                    {subtitle}
+                  </p>
+                )}
               </div>
-            </div>
-          )}
 
-          {/* Buttons Section - Shows when showing buttons */}
-          {isShowingButtons && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
-              {/* Buttons - Smooth fade animation */}
-              <div className="flex flex-col items-center gap-6 mb-6 relative overflow-hidden w-full min-h-[120px] md:min-h-[160px]">
-                {/* Current Buttons - Smooth fade out */}
-                <div
-                  className={`absolute transition-all duration-700 ease-in-out ${
-                    isAnimating && (isNextRaffle || isNextHeading)
-                      ? 'opacity-0 translate-y-[-20px]' 
-                      : 'opacity-100 translate-y-0'
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                    <Link
-                      href={ctaLink}
-                      className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
-                    >
-                      {ctaText}
-                      <ArrowRight className="w-5 h-5" />
-                    </Link>
+              {/* Tournament Button - Slides out to left */}
+              <div className="relative overflow-hidden w-full">
+                {/* Current Tournament Button */}
+                <div className={`transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextHeadingWithConnect
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  <Link
+                    href={ctaLink}
+                    className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
+                  >
+                    {ctaText}
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                </div>
+                
+                {/* Next Connect Wallet Button - Slides in from right */}
+                {isNextHeadingWithConnect && (
+                  <div className={`absolute top-0 left-0 right-0 transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'translate-x-0 opacity-100' 
+                      : 'translate-x-[100px] opacity-0'
+                  }`}>
                     <button
                       onClick={() => open()}
                       className="inline-flex items-center gap-3 bg-primary-orange text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-orange/90 transition-colors duration-200"
@@ -386,24 +374,221 @@ export default function Hero({
                       CONNECT WALLET
                     </button>
                   </div>
-                </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Heading Section with Connect Wallet Button - Shows when index 2 */}
+          {isShowingHeadingWithConnect && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
+              {/* Heading - Already visible, slides in from right */}
+              <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden w-full">
+                <h1
+                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                    isAnimating && isNextRaffle
+                      ? 'translate-x-[-100px] opacity-0' 
+                      : 'translate-x-0 opacity-100'
+                  }`}
+                >
+                  {headings[0]}
+                </h1>
                 
-                {/* Next Heading/Raffle - Smooth fade in */}
-                {(isNextRaffle || isNextHeading) && (
-                  <div
-                    className={`absolute transition-all duration-700 ease-in-out ${
+                {isNextRaffle && (
+                  <h1
+                    className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
                       isAnimating 
-                        ? 'opacity-100 translate-y-0' 
-                        : 'opacity-0 translate-y-[20px]'
+                        ? 'translate-x-0 opacity-100' 
+                        : 'translate-x-[100px] opacity-0'
                     }`}
                   >
-                    {isNextHeading ? (
-                      <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
-                        {headings[0]}
-                      </h1>
-                    ) : null}
+                    {headings[0]}
+                  </h1>
+                )}
+              </div>
+
+              {/* Subtitle - Already visible, slides in from right */}
+              <div className="mb-10 relative overflow-hidden w-full">
+                <p className={`text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextRaffle
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  {subtitle}
+                </p>
+                
+                {isNextRaffle && (
+                  <p className={`absolute top-0 left-0 right-0 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'translate-x-0 opacity-100' 
+                      : 'translate-x-[100px] opacity-0'
+                  }`}>
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+
+              {/* Connect Wallet Button - Slides in from right */}
+              <div className="relative overflow-hidden w-full">
+                {/* Current Connect Wallet Button */}
+                <div className={`transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextRaffle
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  <button
+                    onClick={() => open()}
+                    className="inline-flex items-center gap-3 bg-primary-orange text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-orange/90 transition-colors duration-200"
+                  >
+                    CONNECT WALLET
+                  </button>
+                </div>
+                
+                {/* Next Tournament Button - Slides in from right when going back to raffle */}
+                {isNextRaffle && (
+                  <div className={`absolute top-0 left-0 right-0 transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'translate-x-0 opacity-100' 
+                      : 'translate-x-[100px] opacity-0'
+                  }`}>
+                    <Link
+                      href={ctaLink}
+                      className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
+                    >
+                      {ctaText}
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          
+          {/* Handle case when no heroRaffle - Show heading with tournament button at index 0 */}
+          {!heroRaffle && isShowingHeadingWithTournament && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
+              <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden w-full">
+                <h1
+                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                    isAnimating && isNextHeadingWithConnect
+                      ? 'translate-x-[-100px] opacity-0' 
+                      : 'translate-x-0 opacity-100'
+                  }`}
+                >
+                  {headings[0]}
+                </h1>
+                
+                {isNextHeadingWithConnect && (
+                  <h1
+                    className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                      isAnimating 
+                        ? 'translate-x-0 opacity-100' 
+                        : 'translate-x-[100px] opacity-0'
+                    }`}
+                  >
+                    {headings[0]}
+                  </h1>
+                )}
+              </div>
+
+              <div className="mb-10 relative overflow-hidden w-full">
+                <p className={`text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextHeadingWithConnect
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  {subtitle}
+                </p>
+                
+                {isNextHeadingWithConnect && (
+                  <p className={`absolute top-0 left-0 right-0 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'translate-x-0 opacity-100' 
+                      : 'translate-x-[100px] opacity-0'
+                  }`}>
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+
+              <div className="relative overflow-hidden w-full">
+                <div className={`transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextHeadingWithConnect
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  <Link
+                    href={ctaLink}
+                    className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
+                  >
+                    {ctaText}
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Handle case when no heroRaffle - Show heading with connect wallet button at index 1 */}
+          {!heroRaffle && isShowingHeadingWithConnect && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
+              <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden w-full">
+                <h1
+                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                    isAnimating && isNextHeadingWithTournament
+                      ? 'translate-x-[-100px] opacity-0' 
+                      : 'translate-x-0 opacity-100'
+                  }`}
+                >
+                  {headings[0]}
+                </h1>
+                
+                {isNextHeadingWithTournament && (
+                  <h1
+                    className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                      isAnimating 
+                        ? 'translate-x-0 opacity-100' 
+                        : 'translate-x-[100px] opacity-0'
+                    }`}
+                  >
+                    {headings[0]}
+                  </h1>
+                )}
+              </div>
+
+              <div className="mb-10 relative overflow-hidden w-full">
+                <p className={`text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextHeadingWithTournament
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  {subtitle}
+                </p>
+                
+                {isNextHeadingWithTournament && (
+                  <p className={`absolute top-0 left-0 right-0 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'translate-x-0 opacity-100' 
+                      : 'translate-x-[100px] opacity-0'
+                  }`}>
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+
+              <div className="relative overflow-hidden w-full">
+                <div className={`transition-all duration-500 ease-in-out ${
+                  isAnimating && isNextHeadingWithTournament
+                    ? 'translate-x-[-100px] opacity-0' 
+                    : 'translate-x-0 opacity-100'
+                }`}>
+                  <button
+                    onClick={() => open()}
+                    className="inline-flex items-center gap-3 bg-primary-orange text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-orange/90 transition-colors duration-200"
+                  >
+                    CONNECT WALLET
+                  </button>
+                </div>
               </div>
             </div>
           )}
