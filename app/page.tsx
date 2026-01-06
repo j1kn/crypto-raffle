@@ -6,8 +6,9 @@ export const dynamic = 'force-dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
-import CountdownTimer from '@/components/CountdownTimer';
-import CommentsSection from '@/components/CommentsSection';
+import TrustStatsBar from '@/components/TrustStatsBar';
+import HowItWorks from '@/components/HowItWorks';
+import RecentActivity from '@/components/RecentActivity';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -49,15 +50,16 @@ export default function HomePage() {
   const [recentWinners, setRecentWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
   const [entryCounts, setEntryCounts] = useState<Record<string, number>>({});
-
-  // Removed auto-redirect - let users browse raffles even when connected
-  // They can access dashboard via header button
+  const [totalPaidOut, setTotalPaidOut] = useState<string>('0 ETH');
+  const [completedDraws, setCompletedDraws] = useState<number>(0);
+  const [lastDrawTime, setLastDrawTime] = useState<string>('N/A');
 
   useEffect(() => {
     const loadData = async () => {
       await fetchHeroRaffle();
       await fetchRaffles();
       await fetchRecentWinners();
+      await fetchTrustStats();
     };
     loadData();
   }, []);
@@ -158,6 +160,52 @@ export default function HomePage() {
     }
   };
 
+  const fetchTrustStats = async () => {
+    try {
+      // Fetch completed raffles to calculate stats
+      const { data, error } = await supabase
+        .from('raffles')
+        .select('prize_pool_amount, prize_pool_symbol, winner_drawn_at')
+        .eq('status', 'completed')
+        .not('winner_drawn_at', 'is', null)
+        .order('winner_drawn_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching trust stats:', error);
+        return;
+      }
+
+      // Calculate total paid out
+      let total = 0;
+      const symbol = data?.[0]?.prize_pool_symbol || 'ETH';
+      (data || []).forEach((raffle: any) => {
+        total += raffle.prize_pool_amount || 0;
+      });
+
+      setTotalPaidOut(`${total.toFixed(2)} ${symbol}`);
+      setCompletedDraws(data?.length || 0);
+
+      // Format last draw time
+      if (data && data.length > 0 && data[0].winner_drawn_at) {
+        const lastDraw = new Date(data[0].winner_drawn_at);
+        const now = new Date();
+        const diffMs = now.getTime() - lastDraw.getTime();
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffHours < 24) {
+          setLastDrawTime(`${diffHours}h ago`);
+        } else if (diffDays < 7) {
+          setLastDrawTime(`${diffDays}d ago`);
+        } else {
+          setLastDrawTime(lastDraw.toLocaleDateString());
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching trust stats:', error);
+    }
+  };
+
   const convertGoogleDriveUrl = (url: string | null): string | null => {
     if (!url) return null;
     
@@ -219,28 +267,34 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <Header />
       
       {/* Hero Section */}
       <Hero heroRaffle={heroRaffle} />
 
-      {/* Main Heading Section */}
-      <section className="relative py-12 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6">
-            WIN PRIZES BEFORE CLOCK RUNS OUT
-          </h1>
-          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Transparent on-chain draws. Fixed entries. Instant payouts.<br />
-            No house edge. No hidden rules. Draws happen on schedule.
-          </p>
-        </div>
-      </section>
+      {/* Trust Stats Bar */}
+      <TrustStatsBar
+        totalPaidOut={totalPaidOut}
+        completedDraws={completedDraws}
+        lastDrawTime={lastDrawTime}
+      />
 
-      {/* Play to Earn Games Section - Now Shows Live Raffles (cards only) */}
+      {/* How It Works Section */}
+      <HowItWorks />
+
+      {/* Active Raffles Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#f5f5f5] mb-4">
+              Active Raffles
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+              Enter current draws with fixed rules and scheduled execution
+            </p>
+          </div>
+
           {loading ? (
             <div className="text-center text-gray-400 py-12">
               Loading raffles...
@@ -248,10 +302,10 @@ export default function HomePage() {
           ) : raffles.length === 0 ? (
             <div className="text-center text-gray-400 py-12">
               <p className="mb-4">No active raffles at the moment.</p>
-              <p className="text-sm">Check back soon for new tournaments!</p>
+              <p className="text-sm">Check back soon for new draws.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
               {raffles.map((raffle, index) => {
                 // Alternate badge colors for visual variety
                 const badgeColor = index === 1 ? 'orange' : 'green';
@@ -277,10 +331,10 @@ export default function HomePage() {
 
           {/* View All Raffles Link */}
           {raffles.length > 0 && (
-            <div className="text-center mt-12">
+            <div className="text-center">
               <Link
                 href="/raffles"
-                className="inline-flex items-center gap-2 text-primary-green hover:text-primary-green/80 font-semibold transition-colors"
+                className="inline-flex items-center gap-2 text-[#00d97e] hover:text-[#00c46a] font-semibold transition-colors"
               >
                 View All Raffles
                 <ArrowRight className="w-5 h-5" />
@@ -292,12 +346,12 @@ export default function HomePage() {
 
       {/* Recent Winners Section */}
       {recentWinners.length > 0 && (
-        <section className="py-20 px-4">
+        <section className="py-20 px-4 bg-[#0f0f0f] border-t border-[#2a2a2a]">
           <div className="container mx-auto">
             <div className="text-center mb-12">
               <p className="text-primary-orange text-sm font-semibold mb-2">RECENT WINNERS</p>
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                CELEBRATING OUR CHAMPIONS
+              <h2 className="text-4xl md:text-5xl font-bold text-[#f5f5f5] mb-4">
+                Completed Draws
               </h2>
               <div className="w-24 h-1 bg-primary-orange mx-auto"></div>
             </div>
@@ -306,43 +360,43 @@ export default function HomePage() {
               {recentWinners.slice(0, 6).map((winner, index) => (
                 <div
                   key={winner.raffle_id}
-                  className="bg-primary-gray border border-primary-lightgray rounded-lg p-6 hover:border-primary-orange transition-all"
+                  className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 hover:border-primary-orange/30 transition-colors"
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       index === 0 
                         ? 'bg-primary-orange text-white' 
-                        : 'bg-primary-green/20 text-primary-green'
+                        : 'bg-[#00d97e]/20 text-[#00d97e]'
                     }`}>
                       <span className="font-bold">{index + 1}</span>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Winner #{index + 1}</p>
-                      <p className="text-sm font-semibold text-white">Champion</p>
+                      <p className="text-xs text-gray-500">Winner #{index + 1}</p>
+                      <p className="text-sm font-semibold text-[#f5f5f5]">Completed</p>
                     </div>
                   </div>
 
-                  <h3 className="text-white font-bold text-lg mb-3 line-clamp-2">
+                  <h3 className="text-[#f5f5f5] font-bold text-lg mb-3 line-clamp-2">
                     {winner.raffle_title}
                   </h3>
 
-                  <div className="bg-primary-darker rounded-lg p-3 mb-3">
-                    <p className="text-gray-400 text-xs mb-1">Winner Address</p>
-                    <p className="text-primary-green font-mono text-xs break-all">
+                  <div className="bg-[#0f0f0f] rounded-lg p-3 mb-3">
+                    <p className="text-gray-500 text-xs mb-1">Winner Address</p>
+                    <p className="text-[#00d97e] font-mono text-xs break-all">
                       {winner.winner_wallet.slice(0, 6)}...{winner.winner_wallet.slice(-4)}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400 text-xs mb-1">Prize Won</p>
+                      <p className="text-gray-500 text-xs mb-1">Prize Paid</p>
                       <p className="text-primary-orange font-bold">
                         {winner.prize_pool_symbol} {winner.prize_pool_amount.toLocaleString()}
                       </p>
                     </div>
                     <Link
                       href={`/raffles/${winner.raffle_id}`}
-                      className="text-primary-green hover:text-primary-green/80 text-sm"
+                      className="text-[#00d97e] hover:text-[#00c46a] text-sm transition-colors"
                     >
                       View →
                     </Link>
@@ -364,11 +418,10 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Comments Section */}
-      <CommentsSection />
+      {/* Recent Activity Section (replaces Comments) */}
+      <RecentActivity />
 
       <Footer />
     </div>
   );
 }
-

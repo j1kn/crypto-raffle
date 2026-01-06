@@ -45,12 +45,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #00ff88;
+  background: #00d97e;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00cc6a;
+  background: #00c46a;
 }
 
 /* Hero Section Animated Background */
@@ -103,8 +103,8 @@ body::before {
   right: 0;
   bottom: 0;
   background-image: 
-    linear-gradient(rgba(0, 255, 136, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 136, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(0, 217, 126, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 126, 0.04) 1px, transparent 1px);
   background-size: 60px 60px;
   overflow: hidden;
   z-index: 0;
@@ -124,8 +124,8 @@ body > *:not(w3m-modal):not([data-w3m-modal]) {
   right: 0;
   bottom: 0;
   background-image: 
-    linear-gradient(rgba(0, 255, 136, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 136, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(0, 217, 126, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 126, 0.04) 1px, transparent 1px);
   background-size: 60px 60px;
   overflow: hidden;
 }
@@ -139,11 +139,11 @@ body > *:not(w3m-modal):not([data-w3m-modal]) {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 255, 136, 0.08) 15%,
-    rgba(0, 255, 136, 0.12) 30%,
-    rgba(0, 255, 136, 0.15) 50%,
-    rgba(0, 255, 136, 0.12) 70%,
-    rgba(0, 255, 136, 0.08) 85%,
+    rgba(0, 217, 126, 0.08) 15%,
+    rgba(0, 217, 126, 0.12) 30%,
+    rgba(0, 217, 126, 0.15) 50%,
+    rgba(0, 217, 126, 0.12) 70%,
+    rgba(0, 217, 126, 0.08) 85%,
     transparent 100%
   );
   animation: grid-shine 10s linear infinite;
@@ -159,9 +159,9 @@ body > *:not(w3m-modal):not([data-w3m-modal]) {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 255, 136, 0.06) 20%,
-    rgba(0, 255, 136, 0.1) 50%,
-    rgba(0, 255, 136, 0.06) 80%,
+    rgba(0, 217, 126, 0.06) 20%,
+    rgba(0, 217, 126, 0.1) 50%,
+    rgba(0, 217, 126, 0.06) 80%,
     transparent 100%
   );
   animation: grid-shine-delayed 12s linear infinite;

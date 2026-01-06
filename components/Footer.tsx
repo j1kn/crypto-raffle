@@ -6,8 +6,31 @@ import { ArrowRight } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-primary-darker border-t border-primary-gray mt-20">
+    <footer className="bg-[#0f0f0f] border-t border-[#2a2a2a] mt-20">
       <div className="container mx-auto px-4 py-12">
+        {/* Footer CTA */}
+        <div className="text-center mb-12 pb-12 border-b border-[#2a2a2a]">
+          <p className="text-lg text-gray-400 mb-6">
+            Explore active raffles or review how PrimePick works.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/raffles"
+              className="inline-flex items-center gap-2 bg-[#00d97e] text-[#0a0a0a] px-6 py-3 rounded-lg font-semibold hover:bg-[#00c46a] transition-colors"
+            >
+              View Active Raffles
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] text-[#f5f5f5] px-6 py-3 rounded-lg font-semibold hover:border-[#00d97e]/30 transition-colors"
+            >
+              How It Works
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Column 1: Logo and Description */}
           <div>
@@ -22,12 +45,12 @@ export default function Footer() {
                   priority
                 />
               </div>
-              <span className="text-white font-bold text-xl">PRIMEPICK</span>
+              <span className="text-[#f5f5f5] font-bold text-xl">PRIMEPICK</span>
             </div>
-            <p className="text-gray-400 text-sm mb-4">
-              Join the ultimate crypto raffle platform. Play to earn and compete in exciting tournaments with real prizes.
+            <p className="text-gray-500 text-sm mb-4">
+              A fixed-rule ETH draw system with transparent on-chain execution and instant payouts.
             </p>
-            <Link href="/dashboard" className="text-primary-green text-sm font-semibold hover:underline inline-flex items-center gap-1">
+            <Link href="/dashboard" className="text-[#00d97e] text-sm font-semibold hover:text-[#00c46a] hover:underline inline-flex items-center gap-1 transition-colors">
               ACTIVE WITH US <ArrowRight className="w-4 h-4" />
             </Link>
             <div className="flex gap-4 mt-4">
@@ -35,7 +58,7 @@ export default function Footer() {
                 <a
                   key={social}
                   href="#"
-                  className="w-8 h-8 bg-primary-gray rounded-full flex items-center justify-center text-gray-400 hover:text-primary-green hover:bg-primary-lightgray transition-colors"
+                  className="w-8 h-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full flex items-center justify-center text-gray-500 hover:text-[#00d97e] hover:border-[#00d97e]/30 transition-colors"
                   aria-label={social}
                 >
                   <span className="text-xs">{social[0]}</span>
@@ -46,25 +69,25 @@ export default function Footer() {
 
           {/* Column 2: Essential Links */}
           <div>
-            <h3 className="text-white font-semibold mb-4">LINKS</h3>
+            <h3 className="text-[#f5f5f5] font-semibold mb-4">LINKS</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/about" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/help" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/help" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   Help & Support
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/privacy" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/terms" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   Terms of Service
                 </Link>
               </li>
@@ -73,25 +96,25 @@ export default function Footer() {
 
           {/* Column 3: Quick Access */}
           <div>
-            <h3 className="text-white font-semibold mb-4">QUICK ACCESS</h3>
+            <h3 className="text-[#f5f5f5] font-semibold mb-4">QUICK ACCESS</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/raffles" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/raffles" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   Active Raffles
                 </Link>
               </li>
               <li>
-                <Link href="/winners" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/winners" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   Winners
                 </Link>
               </li>
               <li>
-                <Link href="/ended" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/ended" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   Ended Raffles
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" className="text-gray-400 text-sm hover:text-primary-green transition-colors">
+                <Link href="/dashboard" className="text-gray-500 text-sm hover:text-[#00d97e] transition-colors">
                   My Dashboard
                 </Link>
               </li>
@@ -100,7 +123,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-primary-gray mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
+        <div className="border-t border-[#2a2a2a] mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
           <p>COPYRIGHT © 2024 - ALL RIGHTS RESERVED BY PRIMEPICK</p>
           <p>www.PrimePickTournament.com</p>
         </div>
@@ -108,4 +131,3 @@ export default function Footer() {
     </footer>
   );
 }
-
