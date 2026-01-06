@@ -187,14 +187,18 @@ export default function HomePage() {
             <div className="absolute inset-0 w-full h-full bg-[#0a0a0a]"></div>
           )}
 
-          {/* Overlay - Darker Shadow, Higher Positioned Behind Title/Timer */}
+          {/* Overlay - Flat, Horizontal, Constant Shadow Band */}
           <div 
             className="absolute inset-0 w-full h-full"
             style={{
-              backgroundImage: `
-                radial-gradient(circle at 25% 65%, rgba(0,0,0,0.7), transparent 60%),
-                linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)
-              `
+              backgroundImage: `linear-gradient(
+                to top,
+                rgba(0,0,0,0.85) 0%,
+                rgba(0,0,0,0.85) 20%,
+                rgba(0,0,0,0.6) 45%,
+                rgba(0,0,0,0.25) 65%,
+                rgba(0,0,0,0.0) 100%
+              )`
             }}
           ></div>
 
