@@ -5,24 +5,98 @@ export const dynamic = 'force-dynamic';
 
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Trophy, Shield, Zap, Users, Award, Lock } from 'lucide-react';
+import { Trophy, Shield, Zap, Users, Award, Lock, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function AboutPage() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  const headings = [
+    'A Fixed-Rule ETH Draw System',
+    'Fair Ai Crypto Raffles',
+  ];
+  
+  const subtitle = 'Entries are recorded on-chain. Draws execute on schedule. Payouts are verifiable.';
+  const rotationInterval = 6000; // 6 seconds
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      
+      // After animation completes, change heading
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % headings.length);
+        setIsAnimating(false);
+      }, 500);
+    }, rotationInterval);
+
+    return () => clearInterval(interval);
+  }, [headings.length, rotationInterval]);
+
+  const nextIndex = (currentIndex + 1) % headings.length;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
       <main className="flex-1 bg-primary-dark">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-b from-primary-darker to-primary-dark py-20 px-4">
-          <div className="container mx-auto text-center">
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">
-              ABOUT PRIMEPICK
-            </h1>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              The most transparent and fair crypto raffle platform built on blockchain technology
-            </p>
+        {/* Animated Hero Section */}
+        <section className="relative py-12 md:py-20 px-4">
+          {/* Animated Grid Background */}
+          <div className="hero-grid-background"></div>
+          
+          {/* Content */}
+          <div className="container mx-auto relative z-10">
+            {/* Animated Heading Section - At Top */}
+            <div className="max-w-4xl mx-auto text-center mb-12">
+              {/* Rotating Heading */}
+              <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden">
+                {/* Current Heading - Slides left and fades out */}
+                <h1
+                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-[#f5f5f5] transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'hero-heading-slide-out' 
+                      : 'translate-x-0 opacity-100'
+                  }`}
+                >
+                  {headings[currentIndex]}
+                </h1>
+                
+                {/* Next Heading - Slides in from right */}
+                <h1
+                  className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-[#f5f5f5] transition-all duration-500 ease-in-out ${
+                    isAnimating 
+                      ? 'hero-heading-slide-in' 
+                      : 'translate-x-[100px] opacity-0'
+                  }`}
+                >
+                  {headings[nextIndex]}
+                </h1>
+              </div>
+
+              {/* Subtitle */}
+              <p className="text-lg md:text-xl text-gray-400 mb-6 max-w-2xl mx-auto leading-relaxed">
+                {subtitle}
+              </p>
+
+              {/* CTA Button */}
+              <div className="mb-4">
+                <Link
+                  href="/raffles"
+                  className="inline-flex items-center gap-3 bg-[#00d97e] text-[#0a0a0a] px-8 py-4 rounded-lg font-bold text-lg hover:bg-[#00c46a] transition-colors duration-200"
+                >
+                  View Tournaments
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+
+              {/* Supporting line */}
+              <p className="text-sm text-gray-500">
+                No extensions. No redraws. No hidden rules.
+              </p>
+            </div>
           </div>
         </section>
 
