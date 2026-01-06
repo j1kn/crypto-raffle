@@ -11,7 +11,7 @@ import CountdownTimer from '@/components/CountdownTimer';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { Trophy, Clock, ExternalLink, LogOut, User, Settings, CheckCircle, Hourglass, Shield, Share2, ArrowRight, Copy } from 'lucide-react';
+import { Trophy, Clock, ExternalLink, LogOut, User, Settings, CheckCircle, Hourglass, Shield, Share2, ArrowRight, Copy, Activity, Wallet } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 import Link from 'next/link';
 
@@ -49,7 +49,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const { open, close: closeModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
   const [entries, setEntries] = useState<RaffleEntry[]>([]);
@@ -61,6 +61,7 @@ export default function DashboardPage() {
     pendingDraws: 0,
     wins: 0,
   });
+  const [lastActivity, setLastActivity] = useState<string | null>(null);
 
   const handleDisconnect = () => {
     disconnect();
@@ -202,6 +203,24 @@ export default function DashboardPage() {
       }));
       
       setEntries(entriesWithWinStatus);
+
+      // Set last activity from most recent entry
+      if (entriesWithWinStatus.length > 0) {
+        const mostRecent = entriesWithWinStatus[0];
+        const date = new Date(mostRecent.created_at);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffHours < 24) {
+          setLastActivity(`${diffHours}h ago`);
+        } else if (diffDays < 7) {
+          setLastActivity(`${diffDays}d ago`);
+        } else {
+          setLastActivity(date.toLocaleDateString());
+        }
+      }
     } catch (error) {
       console.error('Error fetching entries:', error);
     }
@@ -210,14 +229,14 @@ export default function DashboardPage() {
   // Show connect wallet message if no address
   if (!address && !loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
         <Header />
-        <div className="flex-1 flex items-center justify-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center text-gray-500">
           <div className="text-center">
-            <p className="mb-4">Please connect your wallet to view your dashboard.</p>
+            <p className="mb-4">Please connect your wallet to view your account.</p>
             <button
               onClick={() => open()}
-              className="bg-primary-green text-primary-darker px-6 py-3 rounded font-semibold hover:bg-primary-green/90 transition-colors"
+              className="bg-[#00d97e] text-[#0a0a0a] px-6 py-3 rounded font-semibold hover:bg-[#00c46a] transition-colors"
             >
               CONNECT WALLET
             </button>
@@ -230,9 +249,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
         <Header />
-        <div className="flex-1 flex items-center justify-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center text-gray-500">
           Loading...
         </div>
         <Footer />
@@ -241,99 +260,84 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <Header />
       
-      <main className="flex-1 py-12 md:py-20 px-4 bg-primary-dark">
+      <main className="flex-1 py-8 md:py-12 px-4">
         <div className="container mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-10">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight">
-              Dashboard
+          {/* Page Header */}
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#f5f5f5] tracking-tight">
+              Account Dashboard
             </h1>
             <Link
               href="/settings"
-              className="flex items-center gap-2 bg-primary-gray border border-primary-lightgray text-white px-4 py-2.5 rounded-lg font-medium hover:bg-primary-darker hover:border-primary-green transition-all duration-200"
+              className="flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] text-[#f5f5f5] px-4 py-2 rounded-lg font-medium hover:border-[#00d97e]/30 transition-colors text-sm"
             >
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
             </Link>
           </div>
 
-          {/* Profile Header - Refined */}
-          <div className="bg-primary-gray border border-primary-lightgray rounded-xl p-6 md:p-8 mb-10 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-start gap-6">
-              {/* Profile Picture - Larger */}
-              <div className="flex-shrink-0">
-                <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-primary-darker border-2 border-primary-green/30 overflow-hidden flex items-center justify-center ring-2 ring-primary-green/10">
-                  {profile?.profile_picture_url ? (
-                    <img
-                      src={profile.profile_picture_url}
-                      alt={profile.display_name || 'Profile'}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-12 h-12 md:w-14 md:h-14 text-gray-500" />
-                  )}
-                </div>
-              </div>
-
-              {/* Profile Info - Enhanced Typography */}
+          {/* Account Summary Header */}
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 md:p-8 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              {/* Left: Account Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-3 flex-wrap">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white">
-                    {profile?.display_name || 'Anonymous User'}
-                  </h2>
-                  {isConnected && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary-green/10 border border-primary-green/20 rounded-md">
-                      <Shield className="w-3.5 h-3.5 text-primary-green" />
-                      <span className="text-xs font-semibold text-primary-green">Connected</span>
-                    </div>
-                  )}
+                <div className="flex items-center gap-3 mb-3">
+                  <Wallet className="w-5 h-5 text-[#00d97e]" />
+                  <h2 className="text-lg font-semibold text-[#f5f5f5]">Account</h2>
                 </div>
                 
-                {/* Wallet Address - Secondary Styling */}
-                <div className="flex items-center gap-2 mb-3">
-                  <p className="text-gray-400 font-mono text-xs md:text-sm break-all">
+                {/* Wallet Address - Primary Identifier */}
+                <div className="flex items-center gap-3 mb-4">
+                  <p className="text-[#f5f5f5] font-mono text-sm md:text-base break-all">
                     {address}
                   </p>
                   <button
                     onClick={handleCopyAddress}
-                    className="flex-shrink-0 p-1.5 text-gray-500 hover:text-primary-green hover:bg-primary-darker rounded transition-colors"
+                    className="flex-shrink-0 p-1.5 text-gray-500 hover:text-[#00d97e] hover:bg-[#0f0f0f] rounded transition-colors"
                     title="Copy address"
                   >
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Email - Subtle */}
-                {profile?.email && (
-                  <p className="text-gray-500 text-sm mb-4">{profile.email}</p>
-                )}
-                
-                {!profile && (
-                  <Link
-                    href="/settings"
-                    className="inline-flex items-center gap-1.5 text-primary-green hover:text-primary-green/80 text-sm font-medium transition-colors"
-                  >
-                    Complete your profile
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
+                {/* Status and Network Row */}
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  {isConnected && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#00d97e]"></div>
+                      <span className="text-gray-400">Connected</span>
+                    </div>
+                  )}
+                  {chain && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">Network:</span>
+                      <span className="text-[#f5f5f5]">{chain.name}</span>
+                    </div>
+                  )}
+                  {lastActivity && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">Last activity:</span>
+                      <span className="text-gray-400">{lastActivity}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Actions - Refined */}
-              <div className="flex flex-col gap-2.5 md:min-w-[140px]">
+              {/* Right: Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 md:min-w-[200px]">
                 <button
                   onClick={handleSwitchWallet}
-                  className="flex items-center justify-center gap-2 bg-primary-darker border border-primary-lightgray text-white px-4 py-2.5 rounded-lg font-medium hover:bg-primary-dark hover:border-primary-green transition-all duration-200 text-sm"
+                  className="flex items-center justify-center gap-2 bg-[#0f0f0f] border border-[#2a2a2a] text-[#f5f5f5] px-4 py-2.5 rounded-lg font-medium hover:border-[#2a2a2a] hover:bg-[#1a1a1a] transition-colors text-sm"
                 >
                   <User className="w-4 h-4" />
                   Switch Wallet
                 </button>
                 <button
                   onClick={handleDisconnect}
-                  className="flex items-center justify-center gap-2 bg-primary-orange/10 border border-primary-orange/20 text-primary-orange px-4 py-2.5 rounded-lg font-medium hover:bg-primary-orange/20 transition-all duration-200 text-sm"
+                  className="flex items-center justify-center gap-2 bg-[#0f0f0f] border border-red-500/30 text-red-400 px-4 py-2.5 rounded-lg font-medium hover:border-red-500/50 hover:bg-red-500/10 transition-colors text-sm"
                 >
                   <LogOut className="w-4 h-4" />
                   Disconnect
@@ -342,180 +346,168 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Stats Cards - Refined with Consistent Styling */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-10">
-            <div className="bg-primary-gray border border-primary-lightgray rounded-xl p-6 hover:border-primary-green/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary-green/5 group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-primary-green/10 rounded-lg group-hover:bg-primary-green/20 transition-colors">
-                  <Hourglass className="w-5 h-5 text-primary-green" />
+          {/* Account Overview Stats */}
+          <div className="mb-10">
+            <h2 className="text-lg font-semibold text-[#f5f5f5] mb-4">Account Overview</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+                <div className="mb-3">
+                  <h3 className="text-gray-500 text-xs font-medium uppercase tracking-wide">Active Raffles</h3>
                 </div>
-                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Active Raffles</h3>
+                <p className="text-4xl md:text-5xl font-bold text-[#f5f5f5]">{stats.activeRaffles}</p>
               </div>
-              <p className="text-3xl md:text-4xl font-bold text-white">{stats.activeRaffles}</p>
-            </div>
 
-            <div className="bg-primary-gray border border-primary-lightgray rounded-xl p-6 hover:border-primary-green/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary-green/5 group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-primary-orange/10 rounded-lg group-hover:bg-primary-orange/20 transition-colors">
-                  <Trophy className="w-5 h-5 text-primary-orange" />
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+                <div className="mb-3">
+                  <h3 className="text-gray-500 text-xs font-medium uppercase tracking-wide">Total Entries</h3>
                 </div>
-                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Total Entries</h3>
+                <p className="text-4xl md:text-5xl font-bold text-[#f5f5f5]">{stats.totalEntries}</p>
               </div>
-              <p className="text-3xl md:text-4xl font-bold text-white">{stats.totalEntries}</p>
-            </div>
 
-            <div className="bg-primary-gray border border-primary-lightgray rounded-xl p-6 hover:border-primary-green/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary-green/5 group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-primary-orange/10 rounded-lg group-hover:bg-primary-orange/20 transition-colors">
-                  <Clock className="w-5 h-5 text-primary-orange" />
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+                <div className="mb-3">
+                  <h3 className="text-gray-500 text-xs font-medium uppercase tracking-wide">Pending Draws</h3>
                 </div>
-                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Pending Draws</h3>
+                <p className="text-4xl md:text-5xl font-bold text-[#f5f5f5]">{stats.pendingDraws}</p>
               </div>
-              <p className="text-3xl md:text-4xl font-bold text-white">{stats.pendingDraws}</p>
-            </div>
 
-            <div className="bg-primary-gray border border-primary-lightgray rounded-xl p-6 hover:border-primary-green/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary-green/5 group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-primary-green/10 rounded-lg group-hover:bg-primary-green/20 transition-colors">
-                  <CheckCircle className="w-5 h-5 text-primary-green" />
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+                <div className="mb-3">
+                  <h3 className="text-gray-500 text-xs font-medium uppercase tracking-wide">Payouts</h3>
                 </div>
-                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Wins</h3>
+                <p className="text-4xl md:text-5xl font-bold text-[#00d97e]">{stats.wins}</p>
               </div>
-              <p className="text-3xl md:text-4xl font-bold text-white">{stats.wins}</p>
             </div>
           </div>
 
-          {/* My Raffle Entries - List Style */}
+          {/* Activity Ledger */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold text-white">My Raffle Entries</h2>
+              <div>
+                <h2 className="text-lg font-semibold text-[#f5f5f5] mb-1">Activity Ledger</h2>
+                <p className="text-sm text-gray-500">Entry history and execution records</p>
+              </div>
               {entries.length > 0 && (
-                <span className="text-gray-400 text-sm">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</span>
+                <span className="text-gray-500 text-sm">{entries.length} {entries.length === 1 ? 'record' : 'records'}</span>
               )}
             </div>
             
             {entries.length === 0 ? (
-              <div className="text-center text-gray-400 py-16 bg-primary-gray border border-primary-lightgray rounded-xl">
-                <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="mb-2 text-lg">You haven't entered any raffles yet.</p>
+              <div className="text-center text-gray-500 py-16 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
+                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-2 text-lg">No activity recorded.</p>
                 <Link
                   href="/raffles"
-                  className="text-primary-green hover:text-primary-green/80 inline-flex items-center gap-2 font-medium transition-colors mt-4"
+                  className="text-[#00d97e] hover:text-[#00c46a] inline-flex items-center gap-2 font-medium transition-colors mt-4"
                 >
                   Browse Active Raffles
                   <ExternalLink className="w-4 h-4" />
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                {entries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="bg-primary-gray border border-primary-lightgray rounded-xl overflow-hidden hover:border-primary-green/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary-green/5"
-                  >
-                    <div className="flex flex-col md:flex-row">
-                      {/* Image */}
-                      {entry.raffles.image_url && (
-                        <div className="relative w-full md:w-48 lg:w-56 h-48 md:h-auto bg-primary-darker flex-shrink-0">
-                          <img
-                            src={entry.raffles.image_url}
-                            alt={entry.raffles.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Content */}
-                      <div className="flex-1 p-6">
-                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            {/* Title and Status */}
-                            <div className="flex items-start gap-3 mb-4">
-                              <h3 className="text-xl font-bold text-white flex-1">
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                <div className="divide-y divide-[#2a2a2a]">
+                  {entries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="p-6 hover:bg-[#0f0f0f] transition-colors"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                        {/* Left: Main Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-[#f5f5f5] font-semibold text-base mb-1 truncate">
                                 {entry.raffles.title}
                               </h3>
-                              {/* Status Badge */}
+                              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                                <span>Entry count: <span className="text-[#f5f5f5] font-medium">{entry.quantity || 1}</span></span>
+                                {entry.raffles.status === 'live' && (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Ends: <CountdownTimer endDate={entry.raffles.ends_at} className="text-xs" />
+                                  </span>
+                                )}
+                                {entry.raffles.status === 'completed' && (
+                                  <span className="text-gray-500">
+                                    Ended: {new Date(entry.raffles.ends_at).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Status Badge */}
+                            <div className="flex-shrink-0">
                               {entry.raffles.status === 'live' && (
-                                <span className="px-3 py-1 bg-primary-green/20 border border-primary-green/30 text-primary-green text-xs font-semibold rounded-full whitespace-nowrap">
+                                <span className="px-3 py-1 bg-[#00d97e]/10 border border-[#00d97e]/20 text-[#00d97e] text-xs font-medium rounded whitespace-nowrap">
                                   ACTIVE
                                 </span>
                               )}
                               {entry.raffles.status === 'completed' && entry.isWin && (
-                                <span className="px-3 py-1 bg-primary-orange/20 border border-primary-orange/30 text-primary-orange text-xs font-semibold rounded-full whitespace-nowrap">
-                                  WON
+                                <span className="px-3 py-1 bg-[#00d97e]/10 border border-[#00d97e]/20 text-[#00d97e] text-xs font-medium rounded whitespace-nowrap">
+                                  PAID
                                 </span>
                               )}
                               {entry.raffles.status === 'completed' && !entry.isWin && (
-                                <span className="px-3 py-1 bg-gray-500/20 border border-gray-500/30 text-gray-400 text-xs font-semibold rounded-full whitespace-nowrap">
-                                  ENDED
+                                <span className="px-3 py-1 bg-gray-500/10 border border-gray-500/20 text-gray-400 text-xs font-medium rounded whitespace-nowrap">
+                                  EXECUTED
                                 </span>
-                              )}
-                            </div>
-
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Trophy className="w-4 h-4 text-primary-green flex-shrink-0" />
-                                <span className="text-gray-400">Prize:</span>
-                                <span className="text-white font-semibold">
-                                  {entry.raffles.prize_pool_symbol} {entry.raffles.prize_pool_amount.toLocaleString()}
-                                </span>
-                              </div>
-                              
-                              {entry.raffles.status === 'live' && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Clock className="w-4 h-4 text-primary-orange flex-shrink-0" />
-                                  <span className="text-gray-400">Ends:</span>
-                                  <CountdownTimer endDate={entry.raffles.ends_at} className="text-xs" />
-                                </div>
-                              )}
-                              
-                              {entry.quantity && entry.quantity > 1 && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="text-gray-400">Tickets:</span>
-                                  <span className="text-white font-semibold">{entry.quantity}</span>
-                                </div>
-                              )}
-                              
-                              {entry.tx_hash && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="text-gray-400">Transaction:</span>
-                                  <a
-                                    href={`https://etherscan.io/tx/${entry.tx_hash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary-green font-mono hover:underline text-xs"
-                                  >
-                                    {entry.tx_hash.slice(0, 8)}...{entry.tx_hash.slice(-6)}
-                                  </a>
-                                </div>
                               )}
                             </div>
                           </div>
 
-                          {/* Actions */}
-                          <div className="flex flex-row md:flex-col gap-2 md:min-w-[120px]">
-                            <Link
-                              href={`/raffles/${entry.raffle_id}`}
-                              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-primary-green text-primary-darker px-4 py-2.5 rounded-lg font-semibold hover:bg-primary-green/90 transition-all duration-200 text-sm"
-                            >
-                              View
-                              <ArrowRight className="w-4 h-4" />
-                            </Link>
-                            {entry.raffles.status === 'live' && (
-                              <Link
-                                href={`/raffles/${entry.raffle_id}`}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-primary-darker border border-primary-lightgray text-white px-4 py-2.5 rounded-lg font-medium hover:border-primary-green transition-all duration-200 text-sm"
-                              >
-                                Enter More
-                              </Link>
+                          {/* Transaction and Prize Info */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            {entry.tx_hash && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500">Transaction:</span>
+                                <a
+                                  href={`https://etherscan.io/tx/${entry.tx_hash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[#00d97e] font-mono hover:underline text-xs"
+                                >
+                                  {entry.tx_hash.slice(0, 10)}...{entry.tx_hash.slice(-8)}
+                                  <ExternalLink className="w-3 h-3 inline ml-1" />
+                                </a>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-500">Prize pool:</span>
+                              <span className="text-[#f5f5f5] font-medium">
+                                {entry.raffles.prize_pool_symbol} {entry.raffles.prize_pool_amount.toLocaleString()}
+                              </span>
+                            </div>
+                            {entry.isWin && (
+                              <div className="flex items-center gap-2 sm:col-span-2">
+                                <span className="text-[#00d97e] font-medium">Payout received</span>
+                              </div>
                             )}
                           </div>
                         </div>
+
+                        {/* Right: Actions */}
+                        <div className="flex flex-row lg:flex-col gap-2 lg:min-w-[120px]">
+                          <Link
+                            href={`/raffles/${entry.raffle_id}`}
+                            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-[#00d97e] text-[#0a0a0a] px-4 py-2 rounded-lg font-semibold hover:bg-[#00c46a] transition-colors text-sm"
+                          >
+                            View
+                            <ArrowRight className="w-4 h-4" />
+                          </Link>
+                          {entry.raffles.status === 'live' && (
+                            <Link
+                              href={`/raffles/${entry.raffle_id}`}
+                              className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-[#0f0f0f] border border-[#2a2a2a] text-[#f5f5f5] px-4 py-2 rounded-lg font-medium hover:border-[#00d97e]/30 transition-colors text-sm"
+                            >
+                              Enter More
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -526,4 +518,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
