@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import CountdownTimer from './CountdownTimer';
@@ -16,21 +17,45 @@ interface Raffle {
 }
 
 interface HeroProps {
-  heading?: string;
+  headings?: string[];
   subtitle?: string;
   ctaText?: string;
   ctaLink?: string;
+  rotationInterval?: number;
   heroRaffle?: Raffle | null;
 }
 
 export default function Hero({
-  heading = '100% on-chain. Fully transparent.',
+  headings = [
+    '100% on-chain. Fully transparent.',
+    'Fair Ai Crypto Raffles',
+  ],
   subtitle = 'Connect your wallet, choose your entries, and the draw runs transparently on-chain with instant payout.',
   ctaText = 'View Tournaments',
   ctaLink = '/raffles',
+  rotationInterval = 6000, // 6 seconds
   heroRaffle = null,
 }: HeroProps) {
   const { open } = useWeb3Modal();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const raffleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      
+      // After animation completes, change heading
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % headings.length);
+        setIsAnimating(false);
+      }, 500);
+    }, rotationInterval);
+
+    return () => clearInterval(interval);
+  }, [headings.length, rotationInterval]);
+
+  const nextIndex = (currentIndex + 1) % headings.length;
 
   const convertGoogleDriveUrl = (url: string | null): string | null => {
     if (!url) return null;
@@ -49,20 +74,25 @@ export default function Hero({
 
   return (
     <section className="relative py-12 md:py-20 px-4">
-      {/* Static grid background (no glow animation) */}
-      <div className="hero-grid-background" />
-
+      {/* Animated Grid Background */}
+      <div className="hero-grid-background">
+      </div>
+      
+      {/* Content */}
       <div className="container mx-auto relative z-10">
-        {/* Hero Raffle Card */}
+        {/* Static Hero Raffle Card - At Top */}
         {heroRaffle && (
-          <div className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden mb-10">
+          <div 
+            ref={raffleRef}
+            className="bg-primary-gray border-2 border-primary-green rounded-lg overflow-hidden mb-10"
+          >
             {/* Timer at Top - Centered */}
             <div className="relative p-4 min-h-[60px] flex items-center justify-center">
               <div className="z-10">
                 <CountdownTimer endDate={heroRaffle.ends_at} />
               </div>
             </div>
-
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
               {/* Image */}
               {heroRaffle.image_url && (
@@ -72,10 +102,10 @@ export default function Hero({
                     alt={heroRaffle.title}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/80 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/80 to-transparent"></div>
                 </div>
               )}
-
+              
               {/* Content */}
               <div className="p-8 lg:p-12 flex flex-col justify-center">
                 <div className="mb-4">
@@ -108,7 +138,6 @@ export default function Hero({
                     ENTER NOW
                     <ArrowRight className="w-5 h-5" />
                   </Link>
-                  {/* Show connect wallet only on desktop for hero raffle */}
                   <button
                     onClick={() => open()}
                     className="hidden sm:inline-flex bg-primary-orange text-white px-8 py-4 rounded font-bold text-lg hover:bg-primary-orange/90 transition-colors items-center justify-center gap-2"
@@ -121,35 +150,48 @@ export default function Hero({
           </div>
         )}
 
-        {/* Heading Section below raffle */}
+        {/* Animated Heading Section - Below Raffle */}
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-            {heading}
-          </h2>
+          {/* Rotating Heading */}
+          <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden">
+            {/* Current Heading - Slides left and fades out */}
+            <h1
+              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                isAnimating 
+                  ? 'hero-heading-slide-out' 
+                  : 'translate-x-0 opacity-100'
+              }`}
+            >
+              {headings[currentIndex]}
+            </h1>
+            
+            {/* Next Heading - Slides in from right */}
+            <h1
+              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-white transition-all duration-500 ease-in-out ${
+                isAnimating 
+                  ? 'hero-heading-slide-in' 
+                  : 'translate-x-[100px] opacity-0'
+              }`}
+            >
+              {headings[nextIndex]}
+            </h1>
+          </div>
+
+          {/* Subtitle */}
           <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
             {subtitle}
           </p>
 
-          {/* Buttons row: Tournament + Connect Wallet */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href={ctaLink}
-              className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200 w-full sm:w-auto justify-center"
-            >
-              {ctaText}
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <button
-              onClick={() => open()}
-              className="inline-flex items-center gap-3 bg-primary-orange text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-orange/90 transition-colors duration-200 w-full sm:w-auto justify-center"
-            >
-              CONNECT WALLET
-            </button>
-          </div>
+          {/* CTA Button */}
+          <Link
+            href={ctaLink}
+            className="inline-flex items-center gap-3 bg-primary-green text-primary-darker px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-colors duration-200"
+          >
+            {ctaText}
+            <ArrowRight className="w-5 h-5" />
+          </Link>
         </div>
       </div>
     </section>
   );
 }
-
-
