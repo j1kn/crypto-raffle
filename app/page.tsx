@@ -171,64 +171,62 @@ export default function HomePage() {
       <Header />
       <InfoBanner />
       
-      {/* Hero Raffle Section */}
+      {/* Hero Raffle Section - Full Screen */}
       {heroRaffle && (
-        <section className="py-12 md:py-20 px-4">
-          <div className="container mx-auto">
-            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden">
-              {/* Timer at Top - Centered */}
-              <div className="relative p-4 min-h-[60px] flex items-center justify-center bg-[#0f0f0f] border-b border-[#2a2a2a]">
-                <div className="z-10">
-                  <CountdownTimer endDate={heroRaffle.ends_at} />
-                </div>
+        <section className="w-screen h-screen overflow-hidden">
+          <div className="w-full h-full bg-[#1a1a1a] border-b border-[#2a2a2a]">
+            {/* Timer at Top - Centered */}
+            <div className="relative p-4 min-h-[60px] flex items-center justify-center bg-[#0f0f0f] border-b border-[#2a2a2a]">
+              <div className="z-10">
+                <CountdownTimer endDate={heroRaffle.ends_at} />
               </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 h-[calc(100vh-60px)]">
+              {/* Image */}
+              {heroRaffle.image_url && (
+                <div className="relative w-full h-full bg-[#0f0f0f] lg:col-span-1">
+                  <img
+                    src={convertGoogleDriveUrl(heroRaffle.image_url) || heroRaffle.image_url}
+                    alt={heroRaffle.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0f0f0f]/80 to-transparent"></div>
+                </div>
+              )}
               
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-                {/* Image */}
-                {heroRaffle.image_url && (
-                  <div className="relative h-64 lg:h-full min-h-[300px] bg-[#0f0f0f] lg:col-span-1">
-                    <img
-                      src={convertGoogleDriveUrl(heroRaffle.image_url) || heroRaffle.image_url}
-                      alt={heroRaffle.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0f0f0f]/80 to-transparent"></div>
+              {/* Content */}
+              <div className="p-8 lg:p-12 flex flex-col justify-center lg:col-span-2 h-full">
+                <div className="mb-4">
+                  <span className="bg-[#00d97e] text-[#0a0a0a] px-3 py-1 rounded-full text-xs font-bold">
+                    FEATURED RAFFLE
+                  </span>
+                </div>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#f5f5f5] mb-4">
+                  {heroRaffle.title}
+                </h1>
+                <div className="flex items-center gap-6 mb-6">
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Prize Pool</p>
+                    <p className="text-2xl font-bold text-[#00d97e]">
+                      {heroRaffle.prize_pool_symbol} {heroRaffle.prize_pool_amount.toLocaleString()}
+                    </p>
                   </div>
-                )}
-                
-                {/* Content */}
-                <div className="p-8 lg:p-12 flex flex-col justify-center lg:col-span-2">
-                  <div className="mb-4">
-                    <span className="bg-[#00d97e] text-[#0a0a0a] px-3 py-1 rounded-full text-xs font-bold">
-                      FEATURED RAFFLE
-                    </span>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Entry Price</p>
+                    <p className="text-xl font-bold text-[#f5f5f5]">
+                      {heroRaffle.prize_pool_symbol} {heroRaffle.ticket_price}
+                    </p>
                   </div>
-                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#f5f5f5] mb-4">
-                    {heroRaffle.title}
-                  </h1>
-                  <div className="flex items-center gap-6 mb-6">
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">Prize Pool</p>
-                      <p className="text-2xl font-bold text-[#00d97e]">
-                        {heroRaffle.prize_pool_symbol} {heroRaffle.prize_pool_amount.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">Entry Price</p>
-                      <p className="text-xl font-bold text-[#f5f5f5]">
-                        {heroRaffle.prize_pool_symbol} {heroRaffle.ticket_price}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Link
-                      href={`/raffles/${heroRaffle.id}`}
-                      className="bg-[#00d97e] text-[#0a0a0a] px-8 py-4 rounded font-bold text-lg hover:bg-[#00c46a] transition-colors inline-flex items-center justify-center gap-2"
-                    >
-                      ENTER NOW
-                      <ArrowRight className="w-5 h-5" />
-                    </Link>
-                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link
+                    href={`/raffles/${heroRaffle.id}`}
+                    className="bg-[#00d97e] text-[#0a0a0a] px-8 py-4 rounded font-bold text-lg hover:bg-[#00c46a] transition-colors inline-flex items-center justify-center gap-2"
+                  >
+                    ENTER NOW
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
                 </div>
               </div>
             </div>
