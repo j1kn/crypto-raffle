@@ -80,9 +80,58 @@ export default function Hero({
       
       {/* Content */}
       <div className="container mx-auto relative z-10">
-        {/* Static Hero Raffle Card - At Top */}
+        {/* Animated Heading Section - At Top */}
+        <div className="max-w-4xl mx-auto text-center mb-12">
+          {/* Rotating Heading */}
+          <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden">
+            {/* Current Heading - Slides left and fades out */}
+            <h1
+              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-[#f5f5f5] transition-all duration-500 ease-in-out ${
+                isAnimating 
+                  ? 'hero-heading-slide-out' 
+                  : 'translate-x-0 opacity-100'
+              }`}
+            >
+              {headings[currentIndex]}
+            </h1>
+            
+            {/* Next Heading - Slides in from right */}
+            <h1
+              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-[#f5f5f5] transition-all duration-500 ease-in-out ${
+                isAnimating 
+                  ? 'hero-heading-slide-in' 
+                  : 'translate-x-[100px] opacity-0'
+              }`}
+            >
+              {headings[nextIndex]}
+            </h1>
+          </div>
+
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl text-gray-400 mb-6 max-w-2xl mx-auto leading-relaxed">
+            {subtitle}
+          </p>
+
+          {/* CTA Button */}
+          <div className="mb-4">
+            <Link
+              href={ctaLink}
+              className="inline-flex items-center gap-3 bg-[#00d97e] text-[#0a0a0a] px-8 py-4 rounded-lg font-bold text-lg hover:bg-[#00c46a] transition-colors duration-200"
+            >
+              {ctaText}
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+
+          {/* Supporting line */}
+          <p className="text-sm text-gray-500">
+            No extensions. No redraws. No hidden rules.
+          </p>
+        </div>
+
+        {/* Static Hero Raffle Card - Below Heading */}
         {heroRaffle && (
-          <div className="mb-12">
+          <div>
             <div 
               ref={raffleRef}
               className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden mb-6"
@@ -181,55 +230,6 @@ export default function Hero({
             </div>
           </div>
         )}
-
-        {/* Animated Heading Section - Below Raffle */}
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Rotating Heading */}
-          <div className="min-h-[120px] md:min-h-[160px] flex items-center justify-center mb-6 relative overflow-hidden">
-            {/* Current Heading - Slides left and fades out */}
-            <h1
-              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-[#f5f5f5] transition-all duration-500 ease-in-out ${
-                isAnimating 
-                  ? 'hero-heading-slide-out' 
-                  : 'translate-x-0 opacity-100'
-              }`}
-            >
-              {headings[currentIndex]}
-            </h1>
-            
-            {/* Next Heading - Slides in from right */}
-            <h1
-              className={`absolute text-4xl md:text-5xl lg:text-6xl font-bold text-[#f5f5f5] transition-all duration-500 ease-in-out ${
-                isAnimating 
-                  ? 'hero-heading-slide-in' 
-                  : 'translate-x-[100px] opacity-0'
-              }`}
-            >
-              {headings[nextIndex]}
-            </h1>
-          </div>
-
-          {/* Subtitle */}
-          <p className="text-lg md:text-xl text-gray-400 mb-6 max-w-2xl mx-auto leading-relaxed">
-            {subtitle}
-          </p>
-
-          {/* CTA Button */}
-          <div className="mb-4">
-            <Link
-              href={ctaLink}
-              className="inline-flex items-center gap-3 bg-[#00d97e] text-[#0a0a0a] px-8 py-4 rounded-lg font-bold text-lg hover:bg-[#00c46a] transition-colors duration-200"
-            >
-              {ctaText}
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-
-          {/* Supporting line */}
-          <p className="text-sm text-gray-500">
-            No extensions. No redraws. No hidden rules.
-          </p>
-        </div>
       </div>
     </section>
   );
