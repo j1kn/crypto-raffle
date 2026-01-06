@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import InfoBanner from '@/components/InfoBanner';
 import Hero from '@/components/Hero';
 import TrustStatsBar from '@/components/TrustStatsBar';
 import HowItWorks from '@/components/HowItWorks';
@@ -269,6 +270,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <Header />
+      <InfoBanner />
       
       {/* Hero Section */}
       <Hero heroRaffle={heroRaffle} />
