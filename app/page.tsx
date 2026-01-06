@@ -187,13 +187,13 @@ export default function HomePage() {
             <div className="absolute inset-0 w-full h-full bg-[#0a0a0a]"></div>
           )}
 
-          {/* Overlay - Radial Vignette + Linear Gradient */}
+          {/* Overlay - Darker Shadow, Higher Positioned Behind Title/Timer */}
           <div 
             className="absolute inset-0 w-full h-full"
             style={{
               backgroundImage: `
-                radial-gradient(circle at 20% 80%, rgba(0,0,0,0.55), transparent 60%),
-                linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0) 100%)
+                radial-gradient(circle at 25% 65%, rgba(0,0,0,0.7), transparent 60%),
+                linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)
               `
             }}
           ></div>
