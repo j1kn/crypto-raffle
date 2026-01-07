@@ -168,7 +168,7 @@ export async function PUT(
 // Protected by PIN authentication
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     // Verify admin PIN is configured
@@ -177,9 +177,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
+    // Handle both sync and async params (Next.js 14+ compatibility)
+    const resolvedParams = 'then' in params ? await params : params;
+    const raffleId = resolvedParams.id;
+
     // Use service role key to bypass RLS
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl) {
+      return NextResponse.json({ 
+        error: 'SUPABASE_URL is required' 
+      }, { status: 500 });
+    }
     
     if (!serviceRoleKey) {
       return NextResponse.json({ 
@@ -197,7 +207,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('raffles')
       .delete()
-      .eq('id', params.id);
+      .eq('id', raffleId);
 
     if (error) throw error;
 
