@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     if (!supabaseUrl || !serviceRoleKey) {
       console.error('Missing server-side Supabase configuration');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      throw new Error('Missing Supabase environment variables');
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {

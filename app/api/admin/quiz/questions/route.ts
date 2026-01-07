@@ -21,18 +21,8 @@ export async function GET(request: NextRequest) {
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseUrl) {
-      return NextResponse.json(
-        { error: 'SUPABASE_URL is required' },
-        { status: 500 }
-      );
-    }
-
-    if (!serviceRoleKey) {
-      return NextResponse.json(
-        { error: 'SUPABASE_SERVICE_ROLE_KEY is required' },
-        { status: 500 }
-      );
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -84,18 +74,8 @@ export async function POST(request: NextRequest) {
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseUrl) {
-      return NextResponse.json(
-        { error: 'SUPABASE_URL is required' },
-        { status: 500 }
-      );
-    }
-
-    if (!serviceRoleKey) {
-      return NextResponse.json(
-        { error: 'SUPABASE_SERVICE_ROLE_KEY is required' },
-        { status: 500 }
-      );
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {

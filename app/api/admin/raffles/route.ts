@@ -16,17 +16,9 @@ export async function POST(request: NextRequest) {
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (!supabaseUrl) {
-      console.error('SUPABASE_URL environment variable is not set');
-      return NextResponse.json({ error: 'Supabase URL not configured' }, { status: 500 });
-    }
-    
-    if (!serviceRoleKey) {
-      console.error('❌ SUPABASE_SERVICE_ROLE_KEY is REQUIRED for admin operations');
-      console.error('❌ Anon key cannot bypass RLS policies');
-      return NextResponse.json({ 
-        error: 'SUPABASE_SERVICE_ROLE_KEY is required. Anon key will be blocked by RLS.' 
-      }, { status: 500 });
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('❌ Missing Supabase environment variables');
+      throw new Error('Missing Supabase environment variables');
     }
     
     console.log('✅ Using SERVICE ROLE KEY for admin operation (bypasses RLS)');
@@ -321,10 +313,8 @@ export async function GET(request: NextRequest) {
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (!serviceRoleKey) {
-      return NextResponse.json({ 
-        error: 'SUPABASE_SERVICE_ROLE_KEY is required for admin operations' 
-      }, { status: 500 });
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
     }
     
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
