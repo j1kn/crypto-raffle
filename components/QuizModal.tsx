@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, ArrowLeft, Clock } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -38,6 +38,7 @@ export default function QuizModal({
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
   const [stage, setStage] = useState<QuizStage>('welcome');
   const [score, setScore] = useState<number | null>(null);
   const [passed, setPassed] = useState(false);
@@ -275,6 +276,7 @@ export default function QuizModal({
         setSessionToken(data.sessionToken);
         setExpiresAt(new Date(data.expiresAt));
         setStartTime(Date.now());
+        setTimeLeft(120); // Reset timer
       } catch (err: any) {
         console.error('Error fetching questions:', err);
         setError(err.message || 'Failed to load quiz questions');
@@ -286,7 +288,7 @@ export default function QuizModal({
     fetchQuestions();
   }, [isOpen, raffleId, walletAddress, questions.length]);
 
-  // Timer countdown (hidden but still tracks)
+  // Timer countdown
   useEffect(() => {
     if (!isOpen || !expiresAt || submitting || stage !== 'questions') {
       if (timerIntervalRef.current) {
@@ -299,13 +301,14 @@ export default function QuizModal({
     const updateTimer = () => {
       const now = new Date();
       const remaining = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
+      setTimeLeft(remaining);
 
       if (remaining === 0 && sessionToken && !submitting) {
         handleSubmit();
       }
     };
 
-    updateTimer();
+    updateTimer(); // Initial update
     timerIntervalRef.current = setInterval(updateTimer, 1000);
 
     return () => {
@@ -315,6 +318,12 @@ export default function QuizModal({
       }
     };
   }, [isOpen, expiresAt, submitting, sessionToken, stage, handleSubmit]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const currentQuestion = questions[currentQuestionIndex];
   const allAnswered = questions.length > 0 && questions.every(q => answers[q.id]);
@@ -398,17 +407,25 @@ export default function QuizModal({
           ) : stage === 'questions' && currentQuestion ? (
             // Questions Screen
             <div className="space-y-6">
-              {/* Back button */}
-              {currentQuestionIndex > 0 && (
-                <button
-                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                  disabled={submitting}
-                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="text-sm">Back to previous question</span>
-                </button>
-              )}
+              {/* Timer and Back button */}
+              <div className="flex items-center justify-between">
+                {currentQuestionIndex > 0 && (
+                  <button
+                    onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                    disabled={submitting}
+                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-sm">Back</span>
+                  </button>
+                )}
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ml-auto ${
+                  timeLeft < 30 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-primary-green/20 text-primary-green border border-primary-green/30'
+                }`}>
+                  <Clock className="w-4 h-4" />
+                  <span className="font-mono font-bold text-lg">{formatTime(timeLeft)}</span>
+                </div>
+              </div>
 
               {/* Question */}
               <div className="bg-primary-darker rounded-lg p-6 space-y-6">
