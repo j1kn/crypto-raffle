@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // Test with service role key
     let serviceRoleTest = null;
-    if (serviceRoleKey) {
+    if (serviceRoleKey && supabaseUrl) {
       try {
         const supabaseService = createClient(supabaseUrl, serviceRoleKey, {
           auth: { autoRefreshToken: false, persistSession: false },
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     // Test with anon key
     let anonKeyTest = null;
-    if (anonKey) {
+    if (anonKey && supabaseUrl) {
       try {
         const supabaseAnon = createClient(supabaseUrl, anonKey);
         
