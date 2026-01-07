@@ -137,6 +137,7 @@ export async function PUT(
         starts_at: body.starts_at,
         ends_at: body.ends_at,
         is_featured: isFeatured,
+        banner_tagline: body.banner_tagline !== undefined ? body.banner_tagline : null,
       })
       .eq('id', raffleId);
 

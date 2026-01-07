@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import InfoBanner from '@/components/InfoBanner';
+import HeroBanner from '@/components/HeroBanner';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -171,6 +172,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <Header />
+      <HeroBanner />
       <InfoBanner />
       
       {/* Hero Raffle Section - Full Screen */}

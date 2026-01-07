@@ -44,6 +44,7 @@ export default function EditRafflePage() {
     starts_at: '',
     ends_at: '',
     is_featured: false,
+    banner_tagline: '',
   });
 
   useEffect(() => {
@@ -131,6 +132,7 @@ export default function EditRafflePage() {
         starts_at: data.starts_at ? new Date(data.starts_at).toISOString().slice(0, 16) : '',
         ends_at: new Date(data.ends_at).toISOString().slice(0, 16),
         is_featured: data.is_featured || false,
+        banner_tagline: data.banner_tagline || '',
       });
 
       if (data.image_url) {
@@ -494,6 +496,27 @@ export default function EditRafflePage() {
                 </div>
               </label>
             </div>
+
+            {/* Banner Tagline (for Hero Raffles) */}
+            {formData.is_featured && (
+              <div>
+                <label className="block text-white font-semibold mb-2">
+                  Banner Tagline <span className="text-gray-400 text-sm">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.banner_tagline}
+                  onChange={(e) => setFormData({ ...formData, banner_tagline: e.target.value })}
+                  placeholder="Last Chance to Enter in just $4"
+                  maxLength={100}
+                  className="w-full bg-primary-gray border border-primary-lightgray rounded px-4 py-3 text-white focus:outline-none focus:border-primary-green"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  This text will appear in a scrolling banner at the top of the website. 
+                  Clicking the banner will navigate to this raffle's detail page.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button

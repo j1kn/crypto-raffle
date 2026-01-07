@@ -209,14 +209,14 @@ export default function AboutPage() {
                   </p>
                 </div>
 
-                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
+              <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
                   <div className="flex items-center gap-3 mb-3">
                     <Lock className="w-8 h-8 text-primary-orange" />
                     <h3 className="text-xl font-bold text-white">Transparency</h3>
                   </div>
                   <p className="text-gray-300">
                     We clearly explain how entries work, how winners are selected, and how prizes are distributed.
-                  </p>
+                    </p>
                 </div>
 
                 <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
