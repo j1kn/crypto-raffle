@@ -18,6 +18,7 @@ interface Raffle {
   title: string;
   description: string | null;
   image_url: string | null;
+  image_url_portrait: string | null;
   prize_pool_amount: number;
   prize_pool_symbol: string;
   ticket_price: number;
@@ -176,12 +177,21 @@ export default function HomePage() {
       {heroRaffle && (
         <section className="relative w-screen h-[85vh] md:h-screen overflow-hidden">
           {/* Background Image */}
-          {heroRaffle.image_url ? (
+          {heroRaffle.image_url || heroRaffle.image_url_portrait ? (
             <div className="absolute inset-0 w-full h-full">
+              {/* Mobile: Use portrait if available, otherwise landscape */}
               <img
-                src={convertGoogleDriveUrl(heroRaffle.image_url) || heroRaffle.image_url}
+                src={convertGoogleDriveUrl(
+                  (heroRaffle.image_url_portrait || heroRaffle.image_url) || ''
+                ) || (heroRaffle.image_url_portrait || heroRaffle.image_url) || ''}
                 alt={heroRaffle.title}
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-cover object-center md:hidden"
+              />
+              {/* Desktop: Always use landscape */}
+              <img
+                src={convertGoogleDriveUrl(heroRaffle.image_url) || heroRaffle.image_url || ''}
+                alt={heroRaffle.title}
+                className="hidden md:block w-full h-full object-cover object-center"
               />
             </div>
           ) : (
@@ -282,6 +292,7 @@ export default function HomePage() {
                     id={raffle.id}
                     title={raffle.title}
                     imageUrl={raffle.image_url || undefined}
+                    imageUrlPortrait={raffle.image_url_portrait || undefined}
                     prizePool={raffle.prize_pool_amount.toString()}
                     prizeSymbol={raffle.prize_pool_symbol}
                     ticketPrice={raffle.ticket_price.toString()}

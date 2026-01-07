@@ -126,6 +126,7 @@ export async function PUT(
         title: body.title,
         description: body.description,
         image_url: body.image_url,
+        image_url_portrait: body.image_url_portrait,
         prize_pool_amount: body.prize_pool_amount,
         prize_pool_symbol: body.prize_pool_symbol,
         ticket_price: body.ticket_price,

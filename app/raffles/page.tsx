@@ -14,6 +14,7 @@ interface Raffle {
   title: string;
   description: string | null;
   image_url: string | null;
+  image_url_portrait: string | null;
   prize_pool_amount: number;
   prize_pool_symbol: string;
   ticket_price: number;
@@ -107,6 +108,7 @@ export default function RafflesPage() {
                   id={raffle.id}
                   title={raffle.title}
                   imageUrl={raffle.image_url || undefined}
+                  imageUrlPortrait={raffle.image_url_portrait || undefined}
                   prizePool={raffle.prize_pool_amount.toString()}
                   prizeSymbol={raffle.prize_pool_symbol}
                   ticketPrice={raffle.ticket_price.toString()}

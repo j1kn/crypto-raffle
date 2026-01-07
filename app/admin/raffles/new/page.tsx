@@ -27,6 +27,8 @@ export default function NewRafflePage() {
   const [chains, setChains] = useState<Chain[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [portraitImageFile, setPortraitImageFile] = useState<File | null>(null);
+  const [portraitImagePreview, setPortraitImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -108,17 +110,29 @@ export default function NewRafflePage() {
     }
   };
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return null;
+  const handlePortraitImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPortraitImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPortraitImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File, prefix: string = ''): Promise<string | null> => {
+    if (!file) return null;
 
     try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${prefix}${Date.now()}.${fileExt}`;
       const filePath = `raffles/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('raffle-images')
-        .upload(filePath, imageFile);
+        .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
@@ -138,10 +152,14 @@ export default function NewRafflePage() {
     setSubmitting(true);
 
     try {
-      // Upload image if provided
+      // Upload images if provided
       let imageUrl = null;
+      let portraitImageUrl = null;
       if (imageFile) {
-        imageUrl = await uploadImage();
+        imageUrl = await uploadImage(imageFile, 'landscape-');
+      }
+      if (portraitImageFile) {
+        portraitImageUrl = await uploadImage(portraitImageFile, 'portrait-');
       }
 
       // Call API to create raffle (bypassing RLS)
@@ -155,6 +173,7 @@ export default function NewRafflePage() {
           raffleData: {
             ...formData,
             image_url: imageUrl,
+            image_url_portrait: portraitImageUrl,
           },
         }),
       });
@@ -202,9 +221,12 @@ export default function NewRafflePage() {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Image Upload */}
+            {/* Landscape Image Upload (Desktop + Mobile Detail Pages) */}
             <div>
-              <label className="block text-white font-semibold mb-2">Raffle Image</label>
+              <label className="block text-white font-semibold mb-2">
+                Landscape Image (Desktop & Mobile Detail Pages) *
+              </label>
+              <p className="text-xs text-gray-400 mb-2">Used for desktop and mobile detail pages</p>
               {imagePreview ? (
                 <div className="relative w-full h-64 bg-primary-darker rounded-lg overflow-hidden">
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
@@ -223,10 +245,42 @@ export default function NewRafflePage() {
                 <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-primary-lightgray border-dashed rounded-lg cursor-pointer bg-primary-gray hover:bg-primary-darker transition-colors">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                    <p className="mb-2 text-sm text-gray-400">Click to upload image</p>
+                    <p className="mb-2 text-sm text-gray-400">Click to upload landscape image</p>
                     <p className="text-xs text-gray-500">PNG, JPG, GIF (MAX. 10MB)</p>
                   </div>
                   <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                </label>
+              )}
+            </div>
+
+            {/* Portrait Image Upload (Mobile Home/Tournament Pages) */}
+            <div>
+              <label className="block text-white font-semibold mb-2">
+                Portrait Image (Mobile Home/Tournament Pages) <span className="text-gray-400 text-sm">(Optional)</span>
+              </label>
+              <p className="text-xs text-gray-400 mb-2">Used for mobile home and tournament pages. Falls back to landscape if not provided.</p>
+              {portraitImagePreview ? (
+                <div className="relative w-full h-64 bg-primary-darker rounded-lg overflow-hidden">
+                  <img src={portraitImagePreview} alt="Portrait Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPortraitImageFile(null);
+                      setPortraitImagePreview(null);
+                    }}
+                    className="absolute top-2 right-2 bg-primary-orange text-white p-2 rounded-full hover:bg-primary-orange/90"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-primary-lightgray border-dashed rounded-lg cursor-pointer bg-primary-gray hover:bg-primary-darker transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                    <p className="mb-2 text-sm text-gray-400">Click to upload portrait image</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF (MAX. 10MB)</p>
+                  </div>
+                  <input type="file" className="hidden" accept="image/*" onChange={handlePortraitImageChange} />
                 </label>
               )}
             </div>

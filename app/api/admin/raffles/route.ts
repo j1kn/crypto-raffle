@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
       title: body.title || '',
       description: body.description !== undefined ? body.description : null,
       image_url: body.image_url !== undefined ? body.image_url : null,
+      image_url_portrait: body.image_url_portrait !== undefined ? body.image_url_portrait : null,
       prize_pool_amount: parseFloat(body.prize_pool_amount) || 0,
       prize_pool_symbol: body.prize_pool_symbol || 'ETH',
       ticket_price: parseFloat(body.ticket_price) || 0,

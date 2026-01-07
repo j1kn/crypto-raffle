@@ -8,7 +8,8 @@ import CountdownTimer from './CountdownTimer';
 interface RaffleCardProps {
   id: string;
   title: string;
-  imageUrl?: string;
+  imageUrl?: string; // Landscape image (desktop + mobile detail pages)
+  imageUrlPortrait?: string; // Portrait image (mobile home/tournament pages)
   prizePool: string;
   prizeSymbol: string;
   ticketPrice: string;
@@ -23,6 +24,7 @@ export default function RaffleCard({
   id,
   title,
   imageUrl,
+  imageUrlPortrait,
   prizePool,
   prizeSymbol,
   ticketPrice,
@@ -52,7 +54,9 @@ export default function RaffleCard({
     return url;
   };
 
-  const finalImageUrl = convertGoogleDriveUrl(imageUrl);
+  // Desktop always uses landscape, mobile uses portrait if available, otherwise landscape
+  const desktopImageUrl = convertGoogleDriveUrl(imageUrl);
+  const mobileImageUrl = convertGoogleDriveUrl(imageUrlPortrait || imageUrl);
 
   return (
     <Link href={`/raffles/${id}`}>
@@ -66,10 +70,10 @@ export default function RaffleCard({
         </div>
 
         {/* Image with Badge */}
-        {finalImageUrl && (
+        {desktopImageUrl && (
           <div className="relative w-full h-48 bg-primary-darker">
             <Image
-              src={finalImageUrl}
+              src={desktopImageUrl}
               alt={title}
               fill
               className="object-cover"
@@ -128,10 +132,10 @@ export default function RaffleCard({
       <div className="md:hidden bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20 h-[32vh] min-h-[200px] max-h-[220px]">
         <div className="flex h-full">
           {/* Left Side - Image */}
-          {finalImageUrl && (
+          {mobileImageUrl && (
             <div className="relative w-2/5 min-w-[140px] h-full bg-primary-darker flex-shrink-0">
               <Image
-                src={finalImageUrl}
+                src={mobileImageUrl}
                 alt={title}
                 fill
                 className="object-cover"
