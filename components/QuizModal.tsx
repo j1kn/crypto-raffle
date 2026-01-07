@@ -99,100 +99,6 @@ export default function QuizModal({
     };
   }, [isOpen]);
 
-  // Fetch questions when modal opens
-  useEffect(() => {
-    if (!isOpen || questions.length > 0) return;
-
-    const fetchQuestions = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Get IP address (client-side approximation) - optional, server will get real IP
-        let ipAddress = null;
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-          const ipResponse = await fetch('https://api.ipify.org?format=json', { 
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          if (ipResponse.ok) {
-            const ipData = await ipResponse.json();
-            ipAddress = ipData?.ip || null;
-          }
-        } catch (ipError) {
-          // IP fetching is optional, continue without it
-          console.warn('Could not fetch IP address:', ipError);
-        }
-
-        const response = await fetch('/api/quiz/questions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            raffleId,
-            walletAddress,
-            ipAddress,
-            count: 10,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to fetch questions' }));
-          throw new Error(errorData.error || 'Failed to fetch questions');
-        }
-
-        const data = await response.json();
-        setQuestions(data.questions || []);
-        setSessionToken(data.sessionToken);
-        setExpiresAt(new Date(data.expiresAt));
-        setStartTime(Date.now());
-        setTimeLeft(120); // Reset timer
-      } catch (err: any) {
-        console.error('Error fetching questions:', err);
-        setError(err.message || 'Failed to load quiz questions');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchQuestions();
-  }, [isOpen, raffleId, walletAddress]);
-
-  // Timer countdown
-  useEffect(() => {
-    if (!isOpen || !expiresAt || submitting) {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-      return;
-    }
-
-    const updateTimer = () => {
-      const now = new Date();
-      const remaining = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
-      setTimeLeft(remaining);
-
-      if (remaining === 0 && sessionToken && !submitting) {
-        // Time's up - auto submit
-        handleSubmit();
-      }
-    };
-
-    updateTimer(); // Initial update
-    timerIntervalRef.current = setInterval(updateTimer, 1000);
-
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-    };
-  }, [isOpen, expiresAt, submitting, sessionToken, handleSubmit]);
-
   const handleAnswerSelect = (questionId: string, answer: string) => {
     setAnswers(prev => ({
       ...prev,
@@ -261,6 +167,100 @@ export default function QuizModal({
       setSubmitting(false);
     }
   }, [sessionToken, submitting, questions, answers, startTime, onPass]);
+
+  // Fetch questions when modal opens
+  useEffect(() => {
+    if (!isOpen || questions.length > 0) return;
+
+    const fetchQuestions = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Get IP address (client-side approximation) - optional, server will get real IP
+        let ipAddress = null;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+          const ipResponse = await fetch('https://api.ipify.org?format=json', { 
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (ipResponse.ok) {
+            const ipData = await ipResponse.json();
+            ipAddress = ipData?.ip || null;
+          }
+        } catch (ipError) {
+          // IP fetching is optional, continue without it
+          console.warn('Could not fetch IP address:', ipError);
+        }
+
+        const response = await fetch('/api/quiz/questions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            raffleId,
+            walletAddress,
+            ipAddress,
+            count: 10,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to fetch questions' }));
+          throw new Error(errorData.error || 'Failed to fetch questions');
+        }
+
+        const data = await response.json();
+        setQuestions(data.questions || []);
+        setSessionToken(data.sessionToken);
+        setExpiresAt(new Date(data.expiresAt));
+        setStartTime(Date.now());
+        setTimeLeft(120); // Reset timer
+      } catch (err: any) {
+        console.error('Error fetching questions:', err);
+        setError(err.message || 'Failed to load quiz questions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [isOpen, raffleId, walletAddress, questions.length]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (!isOpen || !expiresAt || submitting) {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = new Date();
+      const remaining = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
+      setTimeLeft(remaining);
+
+      if (remaining === 0 && sessionToken && !submitting) {
+        // Time's up - auto submit
+        handleSubmit();
+      }
+    };
+
+    updateTimer(); // Initial update
+    timerIntervalRef.current = setInterval(updateTimer, 1000);
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [isOpen, expiresAt, submitting, sessionToken, handleSubmit]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
