@@ -37,6 +37,13 @@ export async function PUT(
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    if (!supabaseUrl) {
+      return NextResponse.json(
+        { error: 'SUPABASE_URL is required' },
+        { status: 500 }
+      );
+    }
+
     if (!serviceRoleKey) {
       return NextResponse.json(
         { error: 'SUPABASE_SERVICE_ROLE_KEY is required' },
@@ -95,6 +102,13 @@ export async function DELETE(
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl) {
+      return NextResponse.json(
+        { error: 'SUPABASE_URL is required' },
+        { status: 500 }
+      );
+    }
 
     if (!serviceRoleKey) {
       return NextResponse.json(
