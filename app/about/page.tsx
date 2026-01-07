@@ -103,68 +103,18 @@ export default function AboutPage() {
         {/* Main Content */}
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-4xl">
-            {/* Mission */}
+            {/* About PrimePick */}
             <div className="mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Our Mission</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">About PrimePick</h2>
               <p className="text-gray-300 text-lg leading-relaxed mb-4">
-                PrimePick Tournament is revolutionizing the way people participate in crypto raffles. 
-                We believe in transparency, fairness, and the power of blockchain technology to create 
-                trustless, verifiable raffle systems.
+                PrimePick is a <strong className="text-white">skill-based crypto competition platform</strong> built for transparency, fairness, and user control.
+              </p>
+              <p className="text-gray-300 text-lg leading-relaxed mb-4">
+                We run digital competitions where <strong className="text-white">skill is required to participate</strong> and <strong className="text-white">no purchase is ever necessary</strong>. Every competition includes a mandatory skill question designed to ensure that entry is based on knowledge and reasoning — not chance alone.
               </p>
               <p className="text-gray-300 text-lg leading-relaxed">
-                Our platform ensures that every raffle is conducted fairly, winners are selected randomly, 
-                and all transactions are recorded on the blockchain for complete transparency.
+                Participants can choose to enter <strong className="text-white">for free</strong> or, where available, via an optional paid entry. <strong className="text-white">Both entry methods are treated equally</strong>, with the <strong className="text-white">same odds of winning</strong> and the <strong className="text-white">same draw process</strong>.
               </p>
-            </div>
-
-            {/* Features */}
-            <div className="mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-8">Why Choose PrimePick?</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Shield className="w-8 h-8 text-primary-green" />
-                    <h3 className="text-xl font-bold text-white">Secure & Transparent</h3>
-                  </div>
-                  <p className="text-gray-300">
-                    All transactions are recorded on the blockchain. Every raffle entry and winner selection 
-                    is verifiable and cannot be tampered with.
-                  </p>
-                </div>
-
-                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Zap className="w-8 h-8 text-primary-orange" />
-                    <h3 className="text-xl font-bold text-white">Instant Results</h3>
-                  </div>
-                  <p className="text-gray-300">
-                    Winners are automatically drawn when raffles end. No waiting, no manual processes. 
-                    Results are immediate and fair.
-                  </p>
-                </div>
-
-                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Users className="w-8 h-8 text-primary-green" />
-                    <h3 className="text-xl font-bold text-white">Community Driven</h3>
-                  </div>
-                  <p className="text-gray-300">
-                    Built for the crypto community, by the crypto community. Join thousands of participants 
-                    in exciting raffles with amazing prizes.
-                  </p>
-                </div>
-
-                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Award className="w-8 h-8 text-primary-orange" />
-                    <h3 className="text-xl font-bold text-white">Fair Selection</h3>
-                  </div>
-                  <p className="text-gray-300">
-                    Every participant has an equal chance. Our random selection algorithm ensures 
-                    complete fairness in winner selection.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* How It Works */}
@@ -176,9 +126,9 @@ export default function AboutPage() {
                     1
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white mb-2">Connect Your Wallet</h3>
+                    <h3 className="text-xl font-bold text-white mb-2">Answer a skill question</h3>
                     <p className="text-gray-300">
-                      Connect your Web3 wallet (MetaMask, Coinbase Wallet, Trust Wallet, etc.) to get started.
+                      Each competition requires participants to correctly answer a skill-based question before entering.
                     </p>
                   </div>
                 </div>
@@ -188,9 +138,13 @@ export default function AboutPage() {
                     2
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white mb-2">Browse Active Raffles</h3>
-                    <p className="text-gray-300">
-                      Explore our live raffles, check prize pools, ticket prices, and countdown timers.
+                    <h3 className="text-xl font-bold text-white mb-2">Choose how to enter</h3>
+                    <ul className="text-gray-300 space-y-1 list-disc list-inside ml-4">
+                      <li><strong className="text-white">Free entry</strong> via email</li>
+                      <li>Optional paid entry using cryptocurrency</li>
+                    </ul>
+                    <p className="text-gray-300 mt-2">
+                      There is <strong className="text-white">no advantage</strong> to either method.
                     </p>
                   </div>
                 </div>
@@ -200,9 +154,9 @@ export default function AboutPage() {
                     3
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white mb-2">Enter & Pay</h3>
+                    <h3 className="text-xl font-bold text-white mb-2">Fair and transparent draw</h3>
                     <p className="text-gray-300">
-                      Select a raffle, pay the entry fee directly from your wallet, and secure your entry.
+                      Winners are selected using a transparent, non-discriminatory process. Entry method never affects the outcome.
                     </p>
                   </div>
                 </div>
@@ -212,51 +166,130 @@ export default function AboutPage() {
                     4
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white mb-2">Wait for Results</h3>
+                    <h3 className="text-xl font-bold text-white mb-2">On-chain prizes</h3>
                     <p className="text-gray-300">
-                      When the raffle ends, a winner is automatically selected. Check the winners page 
-                      to see if you won!
+                      Prizes are paid directly to the winning wallet address.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Security */}
+            {/* Our Principles */}
             <div className="mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Security & Fairness</h2>
-              <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
-                <div className="flex items-start gap-4">
-                  <Lock className="w-8 h-8 text-primary-green flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-3">Blockchain Verified</h3>
-                    <p className="text-gray-300 mb-4">
-                      All raffle entries and payments are recorded on-chain. This means:
-                    </p>
-                    <ul className="list-disc list-inside space-y-2 text-gray-300">
-                      <li>Every transaction is publicly verifiable</li>
-                      <li>No central authority can manipulate results</li>
-                      <li>Winner selection is cryptographically random</li>
-                      <li>All funds are handled transparently</li>
-                    </ul>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-8">Our Principles</h2>
+              <div className="space-y-6">
+                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Award className="w-8 h-8 text-primary-green" />
+                    <h3 className="text-xl font-bold text-white">Skill First</h3>
                   </div>
+                  <p className="text-gray-300">
+                    Skill is not cosmetic. It is a <strong className="text-white">mandatory requirement</strong> for all entries.
+                  </p>
+                </div>
+
+                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Shield className="w-8 h-8 text-primary-orange" />
+                    <h3 className="text-xl font-bold text-white">No Purchase Necessary</h3>
+                  </div>
+                  <p className="text-gray-300">
+                    Every competition includes a <strong className="text-white">free entry route</strong> with identical chances of winning.
+                  </p>
+                </div>
+
+                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Users className="w-8 h-8 text-primary-green" />
+                    <h3 className="text-xl font-bold text-white">Equal Odds</h3>
+                  </div>
+                  <p className="text-gray-300">
+                    Paid and free entries are processed identically. No weighting. No preference.
+                  </p>
+                </div>
+
+                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Lock className="w-8 h-8 text-primary-orange" />
+                    <h3 className="text-xl font-bold text-white">Transparency</h3>
+                  </div>
+                  <p className="text-gray-300">
+                    We clearly explain how entries work, how winners are selected, and how prizes are distributed.
+                  </p>
+                </div>
+
+                <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Zap className="w-8 h-8 text-primary-green" />
+                    <h3 className="text-xl font-bold text-white">User Control</h3>
+                  </div>
+                  <p className="text-gray-300">
+                    Participants remain in control of their own wallets at all times.
+                  </p>
                 </div>
               </div>
+            </div>
+
+            {/* What PrimePick Is — and Is Not */}
+            <div className="mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">What PrimePick Is — and Is Not</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-primary-gray border border-primary-green rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-primary-green mb-4">PrimePick is:</h3>
+                  <ul className="list-disc list-inside space-y-2 text-gray-300">
+                    <li>A skill-based prize competition platform</li>
+                    <li>Open to users aged 18+</li>
+                    <li>Designed with fairness and compliance in mind</li>
+                  </ul>
+                </div>
+
+                <div className="bg-primary-gray border border-primary-orange rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-primary-orange mb-4">PrimePick is not:</h3>
+                  <ul className="list-disc list-inside space-y-2 text-gray-300">
+                    <li>A gambling or betting service</li>
+                    <li>A casino or sportsbook</li>
+                    <li>A custodial wallet or exchange</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Responsible Participation */}
+            <div className="mb-16">
+              <div className="bg-primary-gray border border-primary-lightgray rounded-lg p-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Responsible Participation</h2>
+                <p className="text-gray-300 text-lg leading-relaxed">
+                  PrimePick is intended for responsible participation only.
+                  We do not encourage excessive or impulsive behaviour, and we provide clear information so users can make informed decisions.
+                </p>
+              </div>
+            </div>
+
+            {/* Looking Ahead */}
+            <div className="mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Looking Ahead</h2>
+              <p className="text-gray-300 text-lg leading-relaxed mb-4">
+                PrimePick is an early-stage platform built for a global, crypto-native audience. As we grow, we plan to continue strengthening our compliance framework, transparency tools, and user protections.
+              </p>
+              <p className="text-gray-300 text-lg leading-relaxed">
+                Our goal is simple: <strong className="text-white">run fair, skill-based competitions that users can trust.</strong>
+              </p>
             </div>
 
             {/* CTA */}
             <div className="text-center bg-gradient-to-r from-primary-green/20 to-primary-orange/20 border-2 border-primary-green rounded-lg p-8">
               <Trophy className="w-16 h-16 text-primary-orange mx-auto mb-4" />
-              <h2 className="text-3xl font-bold text-white mb-4">Ready to Win?</h2>
+              <h2 className="text-3xl font-bold text-white mb-4">Ready to Participate?</h2>
               <p className="text-gray-300 mb-6">
-                Join thousands of participants in our exciting crypto raffles
+                Join our skill-based competitions and test your knowledge
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/raffles"
                   className="bg-primary-green text-primary-darker px-8 py-4 rounded font-bold text-lg hover:bg-primary-green/90 transition-colors inline-flex items-center justify-center gap-2"
                 >
-                  View Live Raffles
+                  View Competitions
                 </Link>
                 <Link
                   href="/winners"
