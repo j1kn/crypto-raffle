@@ -108,10 +108,20 @@ export default function QuizModal({
       setError(null);
 
       try {
-        // Get IP address (client-side approximation)
-        const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
-        const ipData = ipResponse ? await ipResponse.json().catch(() => null) : null;
-        const ipAddress = ipData?.ip || null;
+        // Get IP address (client-side approximation) - optional, server will get real IP
+        let ipAddress = null;
+        try {
+          const ipResponse = await fetch('https://api.ipify.org?format=json', { 
+            signal: AbortSignal.timeout(3000) // 3 second timeout
+          });
+          if (ipResponse.ok) {
+            const ipData = await ipResponse.json();
+            ipAddress = ipData?.ip || null;
+          }
+        } catch (ipError) {
+          // IP fetching is optional, continue without it
+          console.warn('Could not fetch IP address:', ipError);
+        }
 
         const response = await fetch('/api/quiz/questions', {
           method: 'POST',
