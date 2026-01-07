@@ -18,7 +18,8 @@ import {
   useWaitForTransactionReceipt,
 } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { parseEther } from 'viem';
+import { parseEther, parseUnits, encodeFunctionData } from 'viem';
+import { PaymentMethod } from '@/lib/paymentMethods';
 import { Trophy, Clock, Users, Play, Crown, CheckCircle, ExternalLink } from 'lucide-react';
 import { getEtherscanTxUrl, formatTxHash } from '@/lib/etherscan';
 
@@ -560,7 +561,7 @@ export default function RaffleDetailPage() {
   };
 
   // Handle confirmed entry (called from modal)
-  const handleConfirmEntry = async (qty: number) => {
+  const handleConfirmEntry = async (qty: number, paymentMethod: PaymentMethod) => {
     if (!raffle || !mounted) return;
     
     setConfirmedQuantity(qty);
@@ -576,41 +577,90 @@ export default function RaffleDetailPage() {
         throw new Error('Wallet client not available. Please reconnect your wallet.');
       }
       
-      // Removed chain verification check - let the transaction specify chainId
-      console.log(`[Payment] Proceeding with transaction on chain ${REQUIRED_CHAIN_ID}`);
+      // Always use Ethereum Mainnet (chain ID 1) for mobile compatibility
+      console.log(`[Payment] Proceeding with transaction on chain ${REQUIRED_CHAIN_ID} using ${paymentMethod.symbol}`);
       
       if (!PAYOUT_ADDRESS) {
         throw new Error('Missing recipient address. Please contact support.');
       }
 
       const totalPrice = parseFloat(raffle.ticket_price.toString()) * qty;
-      const value = parseEther(totalPrice.toString());
-      
-      console.log('[Payment] Preparing plain ETH transfer:', {
-        from: address,
-        to: PAYOUT_ADDRESS,
-        value: value.toString(),
-        valueInEth: totalPrice.toString(),
-        quantity: qty,
-        unitPrice: raffle.ticket_price.toString(),
-        chainId: REQUIRED_CHAIN_ID,
-      });
+      let hash: `0x${string}`;
 
-      console.log('[Payment] Sending plain ETH transfer:', {
-        to: PAYOUT_ADDRESS,
-        value: value.toString(),
-        chainId: REQUIRED_CHAIN_ID,
-        data: "0x",
-        gas: BigInt(21000),
-      });
+      // ERC-20 Transfer ABI
+      const ERC20_TRANSFER_ABI = [
+        {
+          constant: false,
+          inputs: [
+            { name: '_to', type: 'address' },
+            { name: '_value', type: 'uint256' },
+          ],
+          name: 'transfer',
+          outputs: [{ name: '', type: 'bool' }],
+          type: 'function',
+        },
+      ] as const;
 
-      const hash = await walletClient.sendTransaction({
-        to: PAYOUT_ADDRESS,
-        value: value,
-        chainId: REQUIRED_CHAIN_ID,
-        data: "0x",
-        gas: BigInt(21000),
-      });
+      if (paymentMethod.isNative) {
+        // Native ETH transfer
+        const value = parseEther(totalPrice.toString());
+        
+        console.log('[Payment] Preparing ETH transfer:', {
+          from: address,
+          to: PAYOUT_ADDRESS,
+          value: value.toString(),
+          valueInEth: totalPrice.toString(),
+          quantity: qty,
+          unitPrice: raffle.ticket_price.toString(),
+          chainId: REQUIRED_CHAIN_ID,
+        });
+
+        hash = await walletClient.sendTransaction({
+          to: PAYOUT_ADDRESS,
+          value: value,
+          chainId: REQUIRED_CHAIN_ID,
+          data: "0x",
+          gas: BigInt(21000),
+        });
+      } else {
+        // ERC-20 token transfer (USDC, USDT, etc.)
+        if (!paymentMethod.contractAddress) {
+          throw new Error(`Token contract address not found for ${paymentMethod.symbol}`);
+        }
+
+        // Convert amount to token's decimal precision
+        const amount = parseUnits(
+          totalPrice.toString(), 
+          paymentMethod.decimals
+        );
+
+        console.log('[Payment] Preparing ERC-20 transfer:', {
+          from: address,
+          to: PAYOUT_ADDRESS,
+          token: paymentMethod.symbol,
+          contractAddress: paymentMethod.contractAddress,
+          amount: amount.toString(),
+          amountInTokens: totalPrice.toString(),
+          decimals: paymentMethod.decimals,
+          quantity: qty,
+          chainId: REQUIRED_CHAIN_ID,
+        });
+
+        // Encode the transfer function call
+        const data = encodeFunctionData({
+          abi: ERC20_TRANSFER_ABI,
+          functionName: 'transfer',
+          args: [PAYOUT_ADDRESS, amount],
+        });
+
+        hash = await walletClient.sendTransaction({
+          to: paymentMethod.contractAddress as `0x${string}`,
+          value: BigInt(0), // No ETH sent, just calling contract
+          data: data,
+          chainId: REQUIRED_CHAIN_ID,
+          // Gas will be estimated automatically for contract calls
+        });
+      }
 
       console.log('[Payment] Transaction sent successfully:', hash);
       if (hash && mounted) {

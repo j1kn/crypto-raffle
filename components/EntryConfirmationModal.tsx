@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
+import { PAYMENT_METHODS, PaymentMethod, getDefaultPaymentMethod } from '@/lib/paymentMethods';
 
 interface EntryConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (quantity: number) => void;
+  onConfirm: (quantity: number, paymentMethod: PaymentMethod) => void;
   raffleTitle: string;
   ticketPrice: number;
   prizePoolSymbol: string;
@@ -33,9 +34,13 @@ export default function EntryConfirmationModal({
   isLoading = false,
 }: EntryConfirmationModalProps) {
   const [quantity, setQuantity] = useState(initialQuantity);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(getDefaultPaymentMethod());
+  const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
 
   useEffect(() => {
     setQuantity(initialQuantity);
+    // Reset to default payment method when modal opens
+    setSelectedPaymentMethod(getDefaultPaymentMethod());
   }, [initialQuantity, isOpen]);
 
   if (!isOpen) return null;
@@ -49,7 +54,7 @@ export default function EntryConfirmationModal({
 
   const handleConfirm = () => {
     if (quantity >= 1 && quantity <= maxAllowedQuantity) {
-      onConfirm(quantity);
+      onConfirm(quantity, selectedPaymentMethod);
     }
   };
 
@@ -89,6 +94,55 @@ export default function EntryConfirmationModal({
           </div>
         </div>
 
+        {/* Payment Method Selection */}
+        <div className="mb-4">
+          <label className="block text-sm text-gray-400 mb-2">Pay With</label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
+              disabled={isLoading}
+              className="w-full px-4 py-3 bg-primary-darker border border-primary-lightgray rounded-lg text-white text-left flex items-center justify-between hover:bg-primary-dark transition-colors disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{selectedPaymentMethod.symbol}</span>
+                <span className="text-gray-400 text-sm">({selectedPaymentMethod.name})</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {showPaymentDropdown && (
+              <div className="absolute z-10 w-full mt-2 bg-primary-darker border border-primary-lightgray rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {PAYMENT_METHODS.map((method) => (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPaymentMethod(method);
+                      setShowPaymentDropdown(false);
+                    }}
+                    className={`w-full px-4 py-3 text-left hover:bg-primary-gray transition-colors ${
+                      selectedPaymentMethod.id === method.id
+                        ? 'bg-primary-green/20 border-l-2 border-primary-green'
+                        : ''
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-white">{method.symbol}</div>
+                        <div className="text-xs text-gray-400">{method.name}</div>
+                      </div>
+                      {selectedPaymentMethod.id === method.id && (
+                        <div className="w-2 h-2 bg-primary-green rounded-full"></div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Quantity */}
         <div className="mb-6">
           <label className="block text-sm text-gray-400 mb-2">Quantity</label>
@@ -124,6 +178,16 @@ export default function EntryConfirmationModal({
             >
               +
             </button>
+          </div>
+        </div>
+
+        {/* Total Price Display */}
+        <div className="mb-6 p-3 bg-primary-darker rounded-lg">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">Total:</span>
+            <span className="text-xl font-bold text-primary-green">
+              {selectedPaymentMethod.symbol} {totalPrice.toFixed(selectedPaymentMethod.decimals === 6 ? 6 : 2)}
+            </span>
           </div>
         </div>
 
