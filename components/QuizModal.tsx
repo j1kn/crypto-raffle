@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -20,6 +20,8 @@ interface QuizModalProps {
   walletAddress: string;
 }
 
+type QuizStage = 'welcome' | 'questions' | 'results';
+
 export default function QuizModal({
   isOpen,
   onClose,
@@ -30,14 +32,13 @@ export default function QuizModal({
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
-  const [showResults, setShowResults] = useState(false);
+  const [stage, setStage] = useState<QuizStage>('welcome');
   const [score, setScore] = useState<number | null>(null);
   const [passed, setPassed] = useState(false);
   const [animatingScore, setAnimatingScore] = useState(0);
@@ -48,7 +49,6 @@ export default function QuizModal({
     if (!isOpen) return;
 
     const preventScreenshot = (e: KeyboardEvent) => {
-      // Disable common screenshot shortcuts
       if (
         (e.ctrlKey || e.metaKey) &&
         (e.key === 's' || e.key === 'p' || e.key === 'PrintScreen')
@@ -72,7 +72,6 @@ export default function QuizModal({
     };
 
     const preventDevTools = (e: KeyboardEvent) => {
-      // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
       if (
         e.key === 'F12' ||
         ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
@@ -89,7 +88,6 @@ export default function QuizModal({
     document.addEventListener('contextmenu', preventContextMenu);
     document.addEventListener('mousedown', preventRightClick);
 
-    // Disable text selection
     document.body.style.userSelect = 'none';
     document.body.style.webkitUserSelect = 'none';
 
@@ -103,11 +101,41 @@ export default function QuizModal({
     };
   }, [isOpen]);
 
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setStage('welcome');
+      setQuestions([]);
+      setAnswers({});
+      setCurrentQuestionIndex(0);
+      setScore(null);
+      setPassed(false);
+      setAnimatingScore(0);
+      setError(null);
+      setSessionToken(null);
+      setExpiresAt(null);
+      setStartTime(null);
+    }
+  }, [isOpen]);
+
   const handleAnswerSelect = (questionId: string, answer: string) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer,
     }));
+
+    // Auto-advance to next question after a short delay
+    const currentIndex = questions.findIndex(q => q.id === questionId);
+    if (currentIndex < questions.length - 1) {
+      setTimeout(() => {
+        setCurrentQuestionIndex(currentIndex + 1);
+      }, 300); // Smooth transition
+    } else {
+      // Last question - auto submit after delay
+      setTimeout(() => {
+        handleSubmit();
+      }, 500);
+    }
   };
 
   const handleSubmit = useCallback(async () => {
@@ -148,13 +176,13 @@ export default function QuizModal({
       // Store results
       setScore(data.score);
       setPassed(data.passed);
-      setShowResults(true);
+      setStage('results');
       setSubmitting(false);
 
       // Animate score from 0 to actual score
       setAnimatingScore(0);
       const targetScore = data.score;
-      const duration = 1500; // 1.5 seconds
+      const duration = 1500;
       const steps = 30;
       const increment = targetScore / steps;
       const stepDuration = duration / steps;
@@ -181,7 +209,7 @@ export default function QuizModal({
       onPass();
     } else {
       // Reset for retry
-      setShowResults(false);
+      setStage('welcome');
       setScore(null);
       setPassed(false);
       setAnimatingScore(0);
@@ -191,11 +219,12 @@ export default function QuizModal({
       setSessionToken(null);
       setExpiresAt(null);
       setStartTime(null);
-      setTimeLeft(120);
-      setError(
-        `You scored ${score}/10. You need at least 7/10 to enter the raffle. Please try again.`
-      );
+      setError(null);
     }
+  };
+
+  const handleStartQuiz = () => {
+    setStage('questions');
   };
 
   // Fetch questions when modal opens
@@ -207,11 +236,10 @@ export default function QuizModal({
       setError(null);
 
       try {
-        // Get IP address (client-side approximation) - optional, server will get real IP
         let ipAddress = null;
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
           const ipResponse = await fetch('https://api.ipify.org?format=json', { 
             signal: controller.signal
           });
@@ -221,7 +249,6 @@ export default function QuizModal({
             ipAddress = ipData?.ip || null;
           }
         } catch (ipError) {
-          // IP fetching is optional, continue without it
           console.warn('Could not fetch IP address:', ipError);
         }
 
@@ -248,7 +275,6 @@ export default function QuizModal({
         setSessionToken(data.sessionToken);
         setExpiresAt(new Date(data.expiresAt));
         setStartTime(Date.now());
-        setTimeLeft(120); // Reset timer
       } catch (err: any) {
         console.error('Error fetching questions:', err);
         setError(err.message || 'Failed to load quiz questions');
@@ -260,9 +286,9 @@ export default function QuizModal({
     fetchQuestions();
   }, [isOpen, raffleId, walletAddress, questions.length]);
 
-  // Timer countdown
+  // Timer countdown (hidden but still tracks)
   useEffect(() => {
-    if (!isOpen || !expiresAt || submitting) {
+    if (!isOpen || !expiresAt || submitting || stage !== 'questions') {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
@@ -273,15 +299,13 @@ export default function QuizModal({
     const updateTimer = () => {
       const now = new Date();
       const remaining = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
-      setTimeLeft(remaining);
 
       if (remaining === 0 && sessionToken && !submitting) {
-        // Time's up - auto submit
         handleSubmit();
       }
     };
 
-    updateTimer(); // Initial update
+    updateTimer();
     timerIntervalRef.current = setInterval(updateTimer, 1000);
 
     return () => {
@@ -290,23 +314,16 @@ export default function QuizModal({
         timerIntervalRef.current = null;
       }
     };
-  }, [isOpen, expiresAt, submitting, sessionToken, handleSubmit]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, [isOpen, expiresAt, submitting, sessionToken, stage, handleSubmit]);
 
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
   const allAnswered = questions.length > 0 && questions.every(q => answers[q.id]);
 
   if (!isOpen) return null;
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-6"
       style={{
         userSelect: 'none',
         WebkitUserSelect: 'none',
@@ -317,67 +334,154 @@ export default function QuizModal({
       onDragStart={(e) => e.preventDefault()}
     >
       <div 
-        className="bg-primary-gray border-2 border-primary-green rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col m-4"
+        className="bg-primary-gray border-2 border-primary-green rounded-lg w-full max-w-2xl overflow-hidden flex flex-col transition-all duration-300"
         style={{
           userSelect: 'none',
           WebkitUserSelect: 'none',
+          maxHeight: 'calc(100vh - 2rem)',
+          marginTop: '1rem',
+          marginBottom: '1rem',
         }}
       >
-        {/* Header with timer */}
-        <div className="bg-primary-darker border-b border-primary-lightgray p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-white">Skill-Based Quiz</h2>
-            <span className="text-xs text-gray-400 bg-primary-gray px-2 py-1 rounded">
-              Answer 7/10 correctly to proceed
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded ${
-              timeLeft < 30 ? 'bg-red-500/20 text-red-400' : 'bg-primary-green/20 text-primary-green'
-            }`}>
-              <Clock className="w-4 h-4" />
-              <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
-            </div>
+        {/* Close button - only show on welcome and results */}
+        {(stage === 'welcome' || stage === 'results') && (
+          <div className="absolute top-4 right-4 z-10">
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors p-2"
               disabled={submitting}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 md:p-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-green mb-4"></div>
               <p className="text-gray-400">Loading questions...</p>
             </div>
-          ) : showResults && score !== null ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-8">
+          ) : error && stage === 'welcome' ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+              <p className="text-red-400 text-center mb-4">{error}</p>
+              <button
+                onClick={onClose}
+                className="px-6 py-3 bg-primary-green text-primary-darker rounded-lg font-semibold hover:bg-primary-green/90 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          ) : stage === 'welcome' ? (
+            // Welcome Screen
+            <div className="flex flex-col items-center justify-center py-8 md:py-12 space-y-6">
+              <div className="text-center space-y-4">
+                <h2 className="text-2xl md:text-3xl font-bold text-white">
+                  You are ready to answer the question
+                </h2>
+                <div className="bg-primary-darker rounded-lg p-4 border border-primary-green/30">
+                  <p className="text-primary-green font-semibold text-lg">
+                    You need 7/10 in 2 min
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleStartQuiz}
+                disabled={questions.length === 0}
+                className="px-8 py-4 bg-primary-green text-primary-darker rounded-lg font-bold text-lg hover:bg-primary-green/90 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                Continue
+              </button>
+            </div>
+          ) : stage === 'questions' && currentQuestion ? (
+            // Questions Screen
+            <div className="space-y-6">
+              {/* Back button */}
+              {currentQuestionIndex > 0 && (
+                <button
+                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                  disabled={submitting}
+                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="text-sm">Back to previous question</span>
+                </button>
+              )}
+
+              {/* Question */}
+              <div className="bg-primary-darker rounded-lg p-6 space-y-6">
+                <h3 className="text-xl md:text-2xl font-bold text-white">
+                  {currentQuestion.question}
+                </h3>
+
+                {/* Options */}
+                <div className="space-y-3">
+                  {['A', 'B', 'C', 'D'].map((option) => {
+                    const optionKey = `option_${option.toLowerCase()}` as keyof Question;
+                    const optionText = currentQuestion[optionKey] as string;
+                    const isSelected = answers[currentQuestion.id] === option;
+
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => handleAnswerSelect(currentQuestion.id, option)}
+                        disabled={submitting}
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-300 ${
+                          isSelected
+                            ? 'border-primary-green bg-primary-green/10 text-white scale-[1.02]'
+                            : 'border-primary-lightgray bg-primary-gray text-gray-300 hover:border-primary-green/50 hover:bg-primary-gray/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-all ${
+                            isSelected
+                              ? 'bg-primary-green text-primary-darker scale-110'
+                              : 'bg-primary-lightgray text-gray-400'
+                          }`}>
+                            {option}
+                          </div>
+                          <span className="text-base md:text-lg">{optionText}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Auto-submitting indicator */}
+              {submitting && (
+                <div className="flex items-center justify-center gap-2 text-primary-green">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-green"></div>
+                  <span>Submitting...</span>
+                </div>
+              )}
+            </div>
+          ) : stage === 'results' && score !== null ? (
+            // Results Screen
+            <div className="flex flex-col items-center justify-center py-8 md:py-12 space-y-6 md:space-y-8">
               {/* Result Icon */}
-              <div className={`w-24 h-24 rounded-full flex items-center justify-center ${
+              <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-500 ${
                 passed 
-                  ? 'bg-primary-green/20 border-4 border-primary-green' 
-                  : 'bg-red-500/20 border-4 border-red-500'
+                  ? 'bg-primary-green/20 border-4 border-primary-green scale-100' 
+                  : 'bg-red-500/20 border-4 border-red-500 scale-100'
               }`}>
                 {passed ? (
-                  <CheckCircle className="w-16 h-16 text-primary-green" />
+                  <CheckCircle className="w-12 h-12 md:w-16 md:h-16 text-primary-green" />
                 ) : (
-                  <AlertCircle className="w-16 h-16 text-red-500" />
+                  <AlertCircle className="w-12 h-12 md:w-16 md:h-16 text-red-500" />
                 )}
               </div>
 
               {/* Result Text */}
               <div className="text-center space-y-2">
-                <h3 className={`text-3xl font-bold ${
+                <h3 className={`text-2xl md:text-3xl font-bold transition-all ${
                   passed ? 'text-primary-green' : 'text-red-400'
                 }`}>
                   {passed ? 'Congratulations!' : 'Quiz Failed'}
                 </h3>
-                <p className="text-gray-400 text-lg">
+                <p className="text-gray-400 text-base md:text-lg">
                   {passed 
                     ? 'You passed the skill-based quiz!' 
                     : 'You need at least 7/10 to proceed'}
@@ -387,14 +491,14 @@ export default function QuizModal({
               {/* Score Display */}
               <div className="w-full max-w-md space-y-4">
                 <div className="text-center">
-                  <div className="text-6xl font-bold text-white mb-2">
-                    {Math.round(animatingScore)}<span className="text-3xl text-gray-400">/10</span>
+                  <div className="text-5xl md:text-6xl font-bold text-white mb-2 transition-all">
+                    {Math.round(animatingScore)}<span className="text-2xl md:text-3xl text-gray-400">/10</span>
                   </div>
                   <p className="text-gray-400">Correct Answers</p>
                 </div>
 
                 {/* Animated Progress Bar */}
-                <div className="w-full bg-primary-darker rounded-full h-6 overflow-hidden">
+                <div className="w-full bg-primary-darker rounded-full h-5 md:h-6 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ease-out flex items-center justify-center ${
                       passed ? 'bg-primary-green' : 'bg-red-500'
@@ -413,12 +517,12 @@ export default function QuizModal({
                 </div>
 
                 {/* Pass/Fail Indicator */}
-                <div className={`text-center p-4 rounded-lg ${
+                <div className={`text-center p-4 rounded-lg transition-all ${
                   passed 
                     ? 'bg-primary-green/10 border border-primary-green/30' 
                     : 'bg-red-500/10 border border-red-500/30'
                 }`}>
-                  <p className={`font-semibold ${
+                  <p className={`font-semibold text-sm md:text-base ${
                     passed ? 'text-primary-green' : 'text-red-400'
                   }`}>
                     {passed 
@@ -428,124 +532,22 @@ export default function QuizModal({
                 </div>
               </div>
 
-              {/* Continue Button */}
+              {/* Action Button */}
               <button
                 onClick={handleContinue}
-                className={`px-8 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105 ${
+                className={`px-8 py-4 rounded-lg font-bold text-base md:text-lg transition-all transform hover:scale-105 ${
                   passed
                     ? 'bg-primary-green text-primary-darker hover:bg-primary-green/90'
                     : 'bg-gray-600 text-white hover:bg-gray-700'
                 }`}
               >
-                {passed ? 'Continue to Payment' : 'Try Again'}
+                {passed ? 'Continue to Payment' : 'Retest'}
               </button>
-            </div>
-          ) : error && !currentQuestion ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-              <p className="text-red-400 text-center mb-4">{error}</p>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-primary-green text-primary-darker rounded font-semibold hover:bg-primary-green/90"
-              >
-                Close
-              </button>
-            </div>
-          ) : currentQuestion ? (
-            <div className="space-y-6">
-              {/* Progress bar */}
-              <div className="w-full bg-primary-darker rounded-full h-2">
-                <div
-                  className="bg-primary-green h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-400 text-center">
-                Question {currentQuestionIndex + 1} of {questions.length}
-              </p>
-
-              {/* Question */}
-              <div className="bg-primary-darker rounded-lg p-6">
-                <h3 className="text-xl font-bold text-white mb-6">
-                  {currentQuestion.question}
-                </h3>
-
-                {/* Options */}
-                <div className="space-y-3">
-                  {['A', 'B', 'C', 'D'].map((option) => {
-                    const optionKey = `option_${option.toLowerCase()}` as keyof Question;
-                    const optionText = currentQuestion[optionKey] as string;
-                    const isSelected = answers[currentQuestion.id] === option;
-
-                    return (
-                      <button
-                        key={option}
-                        onClick={() => handleAnswerSelect(currentQuestion.id, option)}
-                        disabled={submitting}
-                        className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                          isSelected
-                            ? 'border-primary-green bg-primary-green/10 text-white'
-                            : 'border-primary-lightgray bg-primary-gray text-gray-300 hover:border-primary-green/50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                            isSelected
-                              ? 'bg-primary-green text-primary-darker'
-                              : 'bg-primary-lightgray text-gray-400'
-                          }`}>
-                            {option}
-                          </div>
-                          <span>{optionText}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex justify-between">
-                <button
-                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                  disabled={currentQuestionIndex === 0 || submitting}
-                  className="px-6 py-2 bg-primary-gray border border-primary-lightgray rounded text-white font-semibold hover:bg-primary-lightgray disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                {currentQuestionIndex < questions.length - 1 ? (
-                  <button
-                    onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
-                    disabled={submitting}
-                    className="px-6 py-2 bg-primary-green text-primary-darker rounded font-semibold hover:bg-primary-green/90 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={!allAnswered || submitting || timeLeft === 0}
-                    className="px-6 py-2 bg-primary-green text-primary-darker rounded font-semibold hover:bg-primary-green/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-darker"></div>
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Submit Quiz
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
             </div>
           ) : null}
 
           {/* Error message */}
-          {error && currentQuestion && (
+          {error && stage === 'questions' && (
             <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
@@ -555,4 +557,3 @@ export default function QuizModal({
     </div>
   );
 }
-
