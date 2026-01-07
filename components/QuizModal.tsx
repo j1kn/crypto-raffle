@@ -37,6 +37,10 @@ export default function QuizModal({
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [score, setScore] = useState<number | null>(null);
+  const [passed, setPassed] = useState(false);
+  const [animatingScore, setAnimatingScore] = useState(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Prevent screenshots and right-click
@@ -141,32 +145,58 @@ export default function QuizModal({
 
       const data = await response.json();
 
-      if (data.passed) {
-        // User passed - proceed to checkout
-        onPass();
-      } else {
-        // User failed
-        setError(
-          `You scored ${data.score}/10. You need at least 7/10 to enter the raffle. Please try again.`
-        );
-        // Reset for retry
-        setTimeout(() => {
-          setQuestions([]);
-          setAnswers({});
-          setCurrentQuestionIndex(0);
-          setSessionToken(null);
-          setExpiresAt(null);
-          setStartTime(null);
-          setTimeLeft(120);
-          setSubmitting(false);
-        }, 3000);
-      }
+      // Store results
+      setScore(data.score);
+      setPassed(data.passed);
+      setShowResults(true);
+      setSubmitting(false);
+
+      // Animate score from 0 to actual score
+      setAnimatingScore(0);
+      const targetScore = data.score;
+      const duration = 1500; // 1.5 seconds
+      const steps = 30;
+      const increment = targetScore / steps;
+      const stepDuration = duration / steps;
+      
+      let currentStep = 0;
+      const scoreInterval = setInterval(() => {
+        currentStep++;
+        if (currentStep >= steps) {
+          setAnimatingScore(targetScore);
+          clearInterval(scoreInterval);
+        } else {
+          setAnimatingScore(Math.min(increment * currentStep, targetScore));
+        }
+      }, stepDuration);
     } catch (err: any) {
       console.error('Error submitting quiz:', err);
       setError(err.message || 'Failed to submit quiz');
       setSubmitting(false);
     }
-  }, [sessionToken, submitting, questions, answers, startTime, onPass]);
+  }, [sessionToken, submitting, questions, answers, startTime]);
+
+  const handleContinue = () => {
+    if (passed) {
+      onPass();
+    } else {
+      // Reset for retry
+      setShowResults(false);
+      setScore(null);
+      setPassed(false);
+      setAnimatingScore(0);
+      setQuestions([]);
+      setAnswers({});
+      setCurrentQuestionIndex(0);
+      setSessionToken(null);
+      setExpiresAt(null);
+      setStartTime(null);
+      setTimeLeft(120);
+      setError(
+        `You scored ${score}/10. You need at least 7/10 to enter the raffle. Please try again.`
+      );
+    }
+  };
 
   // Fetch questions when modal opens
   useEffect(() => {
@@ -324,6 +354,91 @@ export default function QuizModal({
             <div className="flex flex-col items-center justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-green mb-4"></div>
               <p className="text-gray-400">Loading questions...</p>
+            </div>
+          ) : showResults && score !== null ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-8">
+              {/* Result Icon */}
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center ${
+                passed 
+                  ? 'bg-primary-green/20 border-4 border-primary-green' 
+                  : 'bg-red-500/20 border-4 border-red-500'
+              }`}>
+                {passed ? (
+                  <CheckCircle className="w-16 h-16 text-primary-green" />
+                ) : (
+                  <AlertCircle className="w-16 h-16 text-red-500" />
+                )}
+              </div>
+
+              {/* Result Text */}
+              <div className="text-center space-y-2">
+                <h3 className={`text-3xl font-bold ${
+                  passed ? 'text-primary-green' : 'text-red-400'
+                }`}>
+                  {passed ? 'Congratulations!' : 'Quiz Failed'}
+                </h3>
+                <p className="text-gray-400 text-lg">
+                  {passed 
+                    ? 'You passed the skill-based quiz!' 
+                    : 'You need at least 7/10 to proceed'}
+                </p>
+              </div>
+
+              {/* Score Display */}
+              <div className="w-full max-w-md space-y-4">
+                <div className="text-center">
+                  <div className="text-6xl font-bold text-white mb-2">
+                    {Math.round(animatingScore)}<span className="text-3xl text-gray-400">/10</span>
+                  </div>
+                  <p className="text-gray-400">Correct Answers</p>
+                </div>
+
+                {/* Animated Progress Bar */}
+                <div className="w-full bg-primary-darker rounded-full h-6 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ease-out flex items-center justify-center ${
+                      passed ? 'bg-primary-green' : 'bg-red-500'
+                    }`}
+                    style={{ 
+                      width: `${(animatingScore / 10) * 100}%`,
+                      minWidth: animatingScore > 0 ? '40px' : '0'
+                    }}
+                  >
+                    {animatingScore > 0 && (
+                      <span className="text-xs font-bold text-white px-2">
+                        {Math.round((animatingScore / 10) * 100)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pass/Fail Indicator */}
+                <div className={`text-center p-4 rounded-lg ${
+                  passed 
+                    ? 'bg-primary-green/10 border border-primary-green/30' 
+                    : 'bg-red-500/10 border border-red-500/30'
+                }`}>
+                  <p className={`font-semibold ${
+                    passed ? 'text-primary-green' : 'text-red-400'
+                  }`}>
+                    {passed 
+                      ? '✓ You can now proceed to payment' 
+                      : '✗ Minimum score required: 7/10'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Continue Button */}
+              <button
+                onClick={handleContinue}
+                className={`px-8 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105 ${
+                  passed
+                    ? 'bg-primary-green text-primary-darker hover:bg-primary-green/90'
+                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                }`}
+              >
+                {passed ? 'Continue to Payment' : 'Try Again'}
+              </button>
             </div>
           ) : error && !currentQuestion ? (
             <div className="flex flex-col items-center justify-center py-20">
