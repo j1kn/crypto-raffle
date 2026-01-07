@@ -111,9 +111,12 @@ export default function QuizModal({
         // Get IP address (client-side approximation) - optional, server will get real IP
         let ipAddress = null;
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
           const ipResponse = await fetch('https://api.ipify.org?format=json', { 
-            signal: AbortSignal.timeout(3000) // 3 second timeout
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
           if (ipResponse.ok) {
             const ipData = await ipResponse.json();
             ipAddress = ipData?.ip || null;
