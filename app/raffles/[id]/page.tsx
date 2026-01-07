@@ -10,6 +10,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CountdownTimer from '@/components/CountdownTimer';
 import EntryConfirmationModal from '@/components/EntryConfirmationModal';
+import QuizModal from '@/components/QuizModal';
 import { supabase } from '@/lib/supabase';
 import {
   useAccount,
@@ -76,6 +77,7 @@ export default function RaffleDetailPage() {
   const [email, setEmail] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showQuizModal, setShowQuizModal] = useState(false);
   const [userTicketHoldings, setUserTicketHoldings] = useState(0);
   const [confirmedQuantity, setConfirmedQuantity] = useState(1);
   
@@ -512,8 +514,8 @@ export default function RaffleDetailPage() {
   const REQUIRED_CHAIN_ID = 1;
   const PAYOUT_ADDRESS = '0x842bab27dE95e329eb17733c1f29c082e5dd94c3' as `0x${string}`;
 
-  // Handle opening confirmation modal
-  const handleOpenConfirmModal = () => {
+  // Handle opening quiz modal (first step)
+  const handleOpenQuizModal = () => {
     if (!raffle || !mounted) return;
 
     if (!address) {
@@ -541,7 +543,15 @@ export default function RaffleDetailPage() {
       return;
     }
 
-    // Fetch latest holdings before showing modal
+    // Open quiz modal first
+    setShowQuizModal(true);
+  };
+
+  // Handle quiz passed - proceed to confirmation modal
+  const handleQuizPassed = () => {
+    if (!mounted) return;
+    setShowQuizModal(false);
+    // Fetch latest holdings before showing confirmation modal
     fetchUserTicketHoldings();
     setShowConfirmModal(true);
   };
@@ -996,7 +1006,7 @@ export default function RaffleDetailPage() {
 
                 {!isRaffleEnded && (
                   <button
-                    onClick={handleOpenConfirmModal}
+                    onClick={handleOpenQuizModal}
                     disabled={entering || isConfirming}
                     className={`w-full py-4 rounded font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
                       isConfirming
@@ -1047,6 +1057,17 @@ export default function RaffleDetailPage() {
       </main>
 
       <Footer />
+
+      {/* Quiz Modal */}
+      {raffle && address && (
+        <QuizModal
+          isOpen={showQuizModal}
+          onClose={() => setShowQuizModal(false)}
+          onPass={handleQuizPassed}
+          raffleId={raffle.id}
+          walletAddress={address}
+        />
+      )}
 
       {/* Entry Confirmation Modal */}
       {raffle && (

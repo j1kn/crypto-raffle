@@ -190,6 +190,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hero Raffle Validation: Ensure only one live featured raffle exists
+    // If this raffle is being set as featured AND live, unfeature all other live raffles
+    if (raffleData.is_featured === true && raffleData.status === 'live') {
+      console.log('🎯 Setting raffle as hero - unfeaturing other live raffles...');
+      
+      // Find all other live raffles that are currently featured
+      const { data: existingFeatured, error: featuredCheckError } = await supabase
+        .from('raffles')
+        .select('id, title')
+        .eq('status', 'live')
+        .eq('is_featured', true);
+      
+      if (featuredCheckError) {
+        console.error('Error checking existing featured raffles:', featuredCheckError);
+      } else if (existingFeatured && existingFeatured.length > 0) {
+        console.log(`Found ${existingFeatured.length} existing featured raffle(s), unfeaturing them...`);
+        
+        // Unfeature all other live raffles
+        const { error: unfeatureError } = await supabase
+          .from('raffles')
+          .update({ is_featured: false })
+          .eq('status', 'live')
+          .eq('is_featured', true);
+        
+        if (unfeatureError) {
+          console.error('Error unfeaturing existing raffles:', unfeatureError);
+          // Continue anyway - this is not critical
+        } else {
+          console.log('✅ Successfully unfeatured existing hero raffles');
+        }
+      }
+    }
+
     console.log('Inserting raffle with data:', {
       ...raffleData,
       receiving_address: '***', // Hide sensitive data in logs

@@ -59,12 +59,13 @@ export default function HomePage() {
 
   const fetchHeroRaffle = async () => {
     try {
-      // Fetch the most recent live raffle as hero (always shows at top)
-      // Only shows live raffles, completed raffles are automatically excluded
+      // Fetch the featured live raffle as hero (marked with is_featured = true)
+      // Only shows live raffles that are explicitly marked as featured
       const { data, error } = await supabase
         .from('public_raffles')
         .select('*')
         .eq('status', 'live')  // Only live raffles
+        .eq('is_featured', true)  // Only featured raffles
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

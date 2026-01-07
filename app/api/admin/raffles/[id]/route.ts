@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 // GET single raffle for admin (includes receiving_address)
 // Protected by PIN authentication
@@ -14,8 +14,22 @@ export async function GET(
       return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
-    // Note: In production, use service role key here to bypass RLS
-    const supabase = createServerClient();
+    // Use service role key to bypass RLS
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceRoleKey) {
+      return NextResponse.json({ 
+        error: 'SUPABASE_SERVICE_ROLE_KEY is required for admin operations' 
+      }, { status: 500 });
+    }
+    
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
     
     const { data, error } = await supabase
       .from('raffles')
@@ -47,8 +61,60 @@ export async function PUT(
 
     const body = await request.json();
     
-    // Note: In production, use service role key here to bypass RLS
-    const supabase = createServerClient();
+    // Use service role key to bypass RLS (same as create endpoint)
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceRoleKey) {
+      return NextResponse.json({ 
+        error: 'SUPABASE_SERVICE_ROLE_KEY is required for admin operations' 
+      }, { status: 500 });
+    }
+    
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    const isFeatured = body.is_featured === true || body.is_featured === 'true' || false;
+    const isLive = body.status === 'live';
+
+    // Hero Raffle Validation: Ensure only one live featured raffle exists
+    // If this raffle is being set as featured AND live, unfeature all other live raffles
+    if (isFeatured && isLive) {
+      console.log('🎯 Updating raffle to hero - unfeaturing other live raffles...');
+      
+      // Find all other live raffles that are currently featured (excluding this one)
+      const { data: existingFeatured, error: featuredCheckError } = await supabase
+        .from('raffles')
+        .select('id, title')
+        .eq('status', 'live')
+        .eq('is_featured', true)
+        .neq('id', params.id);
+      
+      if (featuredCheckError) {
+        console.error('Error checking existing featured raffles:', featuredCheckError);
+      } else if (existingFeatured && existingFeatured.length > 0) {
+        console.log(`Found ${existingFeatured.length} existing featured raffle(s), unfeaturing them...`);
+        
+        // Unfeature all other live raffles (excluding this one)
+        const { error: unfeatureError } = await supabase
+          .from('raffles')
+          .update({ is_featured: false })
+          .eq('status', 'live')
+          .eq('is_featured', true)
+          .neq('id', params.id);
+        
+        if (unfeatureError) {
+          console.error('Error unfeaturing existing raffles:', unfeatureError);
+          // Continue anyway - this is not critical
+        } else {
+          console.log('✅ Successfully unfeatured existing hero raffles');
+        }
+      }
+    }
     
     const { error } = await supabase
       .from('raffles')
@@ -65,7 +131,7 @@ export async function PUT(
         receiving_address: body.receiving_address,
         starts_at: body.starts_at,
         ends_at: body.ends_at,
-        is_featured: body.is_featured === true || body.is_featured === 'true' || false,
+        is_featured: isFeatured,
       })
       .eq('id', params.id);
 
@@ -91,8 +157,22 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
-    // Note: In production, use service role key here to bypass RLS
-    const supabase = createServerClient();
+    // Use service role key to bypass RLS
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceRoleKey) {
+      return NextResponse.json({ 
+        error: 'SUPABASE_SERVICE_ROLE_KEY is required for admin operations' 
+      }, { status: 500 });
+    }
+    
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
     
     const { error } = await supabase
       .from('raffles')
