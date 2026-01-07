@@ -75,13 +75,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Get questions that this user/IP has NOT seen before for this raffle
-    const { data: previousAttempts } = await supabase
+    // Use separate queries and combine results to avoid .or() syntax issues
+    const { data: attemptsByUser } = await supabase
       .from('quiz_attempts')
       .select('questions_used')
       .eq('raffle_id', raffleId)
-      .or(`user_id.eq.${userId},wallet_address.eq.${walletAddress.toLowerCase()}`)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(10);
+    
+    const { data: attemptsByWallet } = await supabase
+      .from('quiz_attempts')
+      .select('questions_used')
+      .eq('raffle_id', raffleId)
+      .eq('wallet_address', walletAddress.toLowerCase())
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    const previousAttempts = [...(attemptsByUser || []), ...(attemptsByWallet || [])];
 
     // Collect all previously used question IDs
     const usedQuestionIds = new Set<string>();

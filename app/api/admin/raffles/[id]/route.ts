@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 // Protected by PIN authentication
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     // Verify admin PIN is configured
@@ -14,9 +14,19 @@ export async function GET(
       return NextResponse.json({ error: 'Admin PIN not configured' }, { status: 500 });
     }
 
+    // Handle both sync and async params (Next.js 14+ compatibility)
+    const resolvedParams = 'then' in params ? await params : params;
+    const raffleId = resolvedParams.id;
+
     // Use service role key to bypass RLS
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl) {
+      return NextResponse.json({ 
+        error: 'SUPABASE_URL is required' 
+      }, { status: 500 });
+    }
     
     if (!serviceRoleKey) {
       return NextResponse.json({ 
@@ -34,7 +44,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('raffles')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', raffleId)
       .single();
 
     if (error) throw error;
@@ -50,7 +60,7 @@ export async function GET(
 // Protected by PIN authentication
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     // Verify admin PIN is configured
@@ -61,9 +71,19 @@ export async function PUT(
 
     const body = await request.json();
     
+    // Handle both sync and async params (Next.js 14+ compatibility)
+    const resolvedParams = 'then' in params ? await params : params;
+    const raffleId = resolvedParams.id;
+    
     // Use service role key to bypass RLS (same as create endpoint)
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://puofbkubhtkynvdlwquu.supabase.co';
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl) {
+      return NextResponse.json({ 
+        error: 'SUPABASE_URL is required' 
+      }, { status: 500 });
+    }
     
     if (!serviceRoleKey) {
       return NextResponse.json({ 
@@ -92,7 +112,7 @@ export async function PUT(
         .select('id, title')
         .eq('status', 'live')
         .eq('is_featured', true)
-        .neq('id', params.id);
+        .neq('id', raffleId);
       
       if (featuredCheckError) {
         console.error('Error checking existing featured raffles:', featuredCheckError);
@@ -105,7 +125,7 @@ export async function PUT(
           .update({ is_featured: false })
           .eq('status', 'live')
           .eq('is_featured', true)
-          .neq('id', params.id);
+          .neq('id', raffleId);
         
         if (unfeatureError) {
           console.error('Error unfeaturing existing raffles:', unfeatureError);
@@ -133,7 +153,7 @@ export async function PUT(
         ends_at: body.ends_at,
         is_featured: isFeatured,
       })
-      .eq('id', params.id);
+      .eq('id', raffleId);
 
     if (error) throw error;
 
