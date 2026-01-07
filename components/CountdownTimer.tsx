@@ -56,7 +56,7 @@ export default function CountdownTimer({ endDate, className = '' }: CountdownTim
       <span className="text-primary-green font-bold">
         {String(timeLeft.seconds).padStart(2, '0')}
       </span>
-      <span className="text-gray-400 text-xs ml-2">DAY HOUR MIN SEC</span>
+      <span className="text-gray-400 text-xs ml-2 hidden sm:inline">DAY HOUR MIN SEC</span>
     </div>
   );
 }

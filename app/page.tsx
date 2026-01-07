@@ -233,7 +233,7 @@ export default function HomePage() {
                 <h1 className="text-3xl font-bold text-white drop-shadow-lg">
                   {heroRaffle.title}
                 </h1>
-                <div className="text-white text-base">
+                <div className="text-white text-base flex justify-center">
                   <CountdownTimer endDate={heroRaffle.ends_at} />
                 </div>
                 <div className="pt-2">
@@ -272,7 +272,7 @@ export default function HomePage() {
               <p className="text-sm">Check back soon for new draws.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
               {raffles.map((raffle, index) => {
                 const badgeColor = index === 1 ? 'orange' : 'green';
                 return (

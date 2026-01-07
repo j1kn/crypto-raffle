@@ -56,7 +56,8 @@ export default function RaffleCard({
 
   return (
     <Link href={`/raffles/${id}`}>
-      <div className="bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20">
+      {/* Desktop Layout - Vertical Card */}
+      <div className="hidden md:block bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20">
         {/* Timer Container */}
         <div className="relative p-4 min-h-[60px]">
           <div className="absolute top-4 right-4 z-10">
@@ -120,6 +121,77 @@ export default function RaffleCard({
           <button className="w-full bg-primary-green text-primary-darker py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors">
             ENTER NOW
           </button>
+        </div>
+      </div>
+
+      {/* Mobile Layout - Horizontal Card */}
+      <div className="md:hidden bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20 h-[32vh] min-h-[200px] max-h-[220px]">
+        <div className="flex h-full">
+          {/* Left Side - Image */}
+          {finalImageUrl && (
+            <div className="relative w-2/5 min-w-[140px] h-full bg-primary-darker flex-shrink-0">
+              <Image
+                src={finalImageUrl}
+                alt={title}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+              {/* Badge on top-left of image */}
+              <div className={`absolute top-2 left-2 px-2 py-1 rounded-full flex items-center gap-1 text-xs font-bold z-10 ${
+                badgeColor === 'green' 
+                  ? 'bg-primary-green text-primary-darker' 
+                  : 'bg-primary-orange text-white'
+              }`}>
+                <Trophy className="w-2.5 h-2.5" />
+                {prizePool}
+              </div>
+            </div>
+          )}
+
+          {/* Right Side - Details */}
+          <div className="flex-1 flex flex-col p-3 min-w-0">
+            {/* Timer - Centered at top */}
+            <div className="flex justify-center mb-2">
+              <CountdownTimer endDate={endDate} className="text-[10px]" />
+            </div>
+
+            {/* Title */}
+            <h3 className="text-white font-bold text-sm mb-1.5 line-clamp-2 leading-tight">{title}</h3>
+            
+            {/* Prize Places */}
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+              <Trophy className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{prizePlaces} PRIZE PLACES</span>
+            </div>
+
+            {/* Prize Info - Compact */}
+            <div className="space-y-1 mb-2 flex-1 overflow-hidden">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-400 flex-shrink-0">Prize:</span>
+                <span className="text-primary-green font-semibold truncate ml-2 text-right">
+                  {prizeSymbol} {prizePool}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-400 flex-shrink-0">Price:</span>
+                <span className="text-white font-semibold truncate ml-2 text-right">
+                  {prizeSymbol} {ticketPrice}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-400 flex-shrink-0">Entries:</span>
+                <span className="text-white font-semibold truncate ml-2 text-right">
+                  {entryCount} / {maxTickets}
+                </span>
+              </div>
+            </div>
+
+            {/* Enter Button - Bottom */}
+            <button className="w-full bg-primary-green text-primary-darker py-2 rounded text-xs font-semibold hover:bg-primary-green/90 transition-colors mt-auto">
+              ENTER NOW
+            </button>
+          </div>
         </div>
       </div>
     </Link>
