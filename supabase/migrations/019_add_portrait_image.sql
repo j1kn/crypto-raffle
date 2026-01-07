@@ -7,3 +7,4 @@ ADD COLUMN IF NOT EXISTS image_url_portrait TEXT;
 
 COMMENT ON COLUMN raffles.image_url_portrait IS 'Portrait orientation image for mobile home and tournament pages. Landscape image (image_url) is used for desktop and mobile detail pages.';
 
+         

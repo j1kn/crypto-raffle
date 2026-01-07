@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useAccount } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { Trophy, Clock, ExternalLink, LogOut, User, Settings, CheckCircle, Hourglass, Shield, Share2, ArrowRight, Copy, Activity, Wallet } from 'lucide-react';
+import { getEtherscanTxUrl, formatTxHash } from '@/lib/etherscan';
 import { useDisconnect } from 'wagmi';
 import Link from 'next/link';
 
@@ -464,13 +465,13 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-2">
                                 <span className="text-gray-500">Transaction:</span>
                                 <a
-                                  href={`https://etherscan.io/tx/${entry.tx_hash}`}
+                                  href={getEtherscanTxUrl(entry.tx_hash, 1)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[#00d97e] font-mono hover:underline text-xs"
+                                  className="text-[#00d97e] font-mono hover:underline text-xs flex items-center gap-1"
                                 >
-                                  {entry.tx_hash.slice(0, 10)}...{entry.tx_hash.slice(-8)}
-                                  <ExternalLink className="w-3 h-3 inline ml-1" />
+                                  {formatTxHash(entry.tx_hash)}
+                                  <ExternalLink className="w-3 h-3" />
                                 </a>
                               </div>
                             )}

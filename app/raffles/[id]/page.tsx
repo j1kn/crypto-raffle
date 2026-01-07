@@ -19,7 +19,8 @@ import {
 } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { parseEther } from 'viem';
-import { Trophy, Clock, Users, Play, Crown, CheckCircle } from 'lucide-react';
+import { Trophy, Clock, Users, Play, Crown, CheckCircle, ExternalLink } from 'lucide-react';
+import { getEtherscanTxUrl, formatTxHash } from '@/lib/etherscan';
 
 // Client-side check to prevent SSR issues
 const isClient = typeof window !== 'undefined';
@@ -44,6 +45,7 @@ interface Raffle {
 interface Entry {
   id: string;
   user_id: string;
+  tx_hash: string | null;
   created_at: string;
   users: {
     wallet_address: string;
@@ -223,6 +225,7 @@ export default function RaffleDetailPage() {
         .select(`
           id,
           user_id,
+          tx_hash,
           created_at,
           users!inner (
             wallet_address
@@ -912,21 +915,35 @@ export default function RaffleDetailPage() {
                         key={entry.id}
                         className="flex items-center justify-between bg-primary-darker rounded-lg p-3 hover:bg-primary-dark transition-colors"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-primary-green/20 rounded-full flex items-center justify-center">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 bg-primary-green/20 rounded-full flex items-center justify-center flex-shrink-0">
                             <CheckCircle className="w-4 h-4 text-primary-green" />
                           </div>
-                          <div>
-                            <p className="text-white font-mono text-sm">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-mono text-sm truncate">
                               {entry.users.wallet_address.slice(0, 6)}...{entry.users.wallet_address.slice(-4)}
                             </p>
-                            <p className="text-gray-400 text-xs">
-                              {new Date(entry.created_at).toLocaleString()}
-                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-gray-400 text-xs">
+                                {new Date(entry.created_at).toLocaleString()}
+                              </p>
+                              {entry.tx_hash && (
+                                <a
+                                  href={getEtherscanTxUrl(entry.tx_hash, 1)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary-green hover:text-primary-green/80 text-xs font-mono flex items-center gap-1 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {formatTxHash(entry.tx_hash)}
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
                           </div>
                         </div>
                         {entry.users.wallet_address.toLowerCase() === address?.toLowerCase() && (
-                          <span className="text-xs bg-primary-green/20 text-primary-green px-2 py-1 rounded">
+                          <span className="text-xs bg-primary-green/20 text-primary-green px-2 py-1 rounded flex-shrink-0 ml-2">
                             YOU
                           </span>
                         )}
