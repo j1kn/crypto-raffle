@@ -14,8 +14,8 @@ export default function AboutPage() {
   const [isAnimating, setIsAnimating] = useState(false);
   
   const headings = [
-    'A Fixed-Rule ETH Draw System',
-    'Fair Ai Crypto Raffles',
+    'A Skill Based Raffle',
+    'Answer the Question to Enter',
   ];
   
   const subtitle = 'Entries are recorded on-chain. Draws execute on schedule. Payouts are verifiable.';
