@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 // POST - Fetch random questions for a quiz session
 export async function POST(request: NextRequest) {
   try {

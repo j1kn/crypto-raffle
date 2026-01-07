@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 // Verify admin PIN
 function verifyAdmin() {
   const adminPin = process.env.ADMIN_PIN;
@@ -13,13 +15,17 @@ function verifyAdmin() {
 // PUT - Update question
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     verifyAdmin();
 
     const body = await request.json();
     const { question, option_a, option_b, option_c, option_d, correct_answer, category, difficulty, is_active } = body;
+
+    // Handle both sync and async params (Next.js 14+ compatibility)
+    const resolvedParams = 'then' in params ? await params : params;
+    const questionId = resolvedParams.id;
 
     if (correct_answer && !['A', 'B', 'C', 'D'].includes(correct_answer.toUpperCase())) {
       return NextResponse.json(
@@ -59,7 +65,7 @@ export async function PUT(
     const { data, error } = await supabase
       .from('quiz_questions')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', questionId)
       .select()
       .single();
 
@@ -78,10 +84,14 @@ export async function PUT(
 // DELETE - Delete question
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     verifyAdmin();
+
+    // Handle both sync and async params (Next.js 14+ compatibility)
+    const resolvedParams = 'then' in params ? await params : params;
+    const questionId = resolvedParams.id;
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -103,7 +113,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('quiz_questions')
       .delete()
-      .eq('id', params.id);
+      .eq('id', questionId);
 
     if (error) throw error;
 

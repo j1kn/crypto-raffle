@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface Question {
@@ -176,7 +176,7 @@ export default function QuizModal({
       const remaining = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
       setTimeLeft(remaining);
 
-      if (remaining === 0) {
+      if (remaining === 0 && sessionToken && !submitting) {
         // Time's up - auto submit
         handleSubmit();
       }
@@ -191,7 +191,7 @@ export default function QuizModal({
         timerIntervalRef.current = null;
       }
     };
-  }, [isOpen, expiresAt, submitting]);
+  }, [isOpen, expiresAt, submitting, sessionToken, handleSubmit]);
 
   const handleAnswerSelect = (questionId: string, answer: string) => {
     setAnswers(prev => ({
@@ -200,7 +200,7 @@ export default function QuizModal({
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!sessionToken || submitting) return;
 
     // Check if all questions are answered
@@ -260,7 +260,7 @@ export default function QuizModal({
       setError(err.message || 'Failed to submit quiz');
       setSubmitting(false);
     }
-  };
+  }, [sessionToken, submitting, questions, answers, startTime, onPass]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

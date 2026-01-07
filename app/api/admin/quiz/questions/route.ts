@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 // Verify admin PIN
 function verifyAdmin() {
   const adminPin = process.env.ADMIN_PIN;
