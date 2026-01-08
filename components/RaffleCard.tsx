@@ -64,7 +64,7 @@ export default function RaffleCard({
       <div className="hidden md:block h-full bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20 flex">
         {/* Left Side - Image */}
         {desktopImageUrl && (
-          <div className="relative w-[250px] h-full bg-primary-darker flex-shrink-0 overflow-hidden z-0">
+          <div className="relative w-[200px] h-full bg-primary-darker flex-shrink-0 overflow-hidden">
             <Image
               src={desktopImageUrl}
               alt={title}
@@ -85,10 +85,10 @@ export default function RaffleCard({
         )}
 
         {/* Right Side - Details */}
-        <div className="flex-1 flex flex-col p-6 min-w-0 bg-primary-gray relative z-10">
+        <div className="flex-1 flex flex-col p-6 bg-primary-gray overflow-visible">
           {/* Timer and Title - Aligned together */}
-          <div className="flex items-start gap-3 mb-3 flex-shrink-0">
-            <h3 className="text-white font-bold text-lg line-clamp-2 leading-tight flex-1">{title}</h3>
+          <div className="flex items-start gap-3 mb-3 flex-shrink-0 w-full">
+            <h3 className="text-white font-bold text-lg line-clamp-2 leading-tight flex-1 min-w-0">{title}</h3>
             <div className="flex-shrink-0 mt-0.5">
               <CountdownTimer endDate={endDate} />
             </div>
