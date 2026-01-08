@@ -101,7 +101,7 @@ export default function RafflesPage() {
               No active raffles at the moment. Check back soon!
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ gridAutoRows: '1fr' }}>
               {raffles.map((raffle) => (
                 <RaffleCard
                   key={raffle.id}

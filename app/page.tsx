@@ -285,7 +285,7 @@ export default function HomePage() {
               <p className="text-sm">Check back soon for new draws.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" style={{ gridAutoRows: '1fr' }}>
               {raffles.map((raffle, index) => {
                 const badgeColor = index === 1 ? 'orange' : 'green';
                 return (
