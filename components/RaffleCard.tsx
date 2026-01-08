@@ -54,18 +54,18 @@ export default function RaffleCard({
     return url;
   };
 
-  // Desktop always uses landscape, mobile uses portrait if available, otherwise landscape
-  const desktopImageUrl = convertGoogleDriveUrl(imageUrl);
+  // Desktop uses landscape if available, otherwise portrait. Mobile uses portrait if available, otherwise landscape
+  const desktopImageUrl = convertGoogleDriveUrl(imageUrl || imageUrlPortrait);
   const mobileImageUrl = convertGoogleDriveUrl(imageUrlPortrait || imageUrl);
 
   return (
     <Link href={`/raffles/${id}`}>
       {/* Desktop Layout - Horizontal Card (Image Left, Info Right, Button Below) */}
       <div className="hidden md:block bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20">
-        <div className="flex h-full min-h-[200px]">
+        <div className="flex min-h-[200px]">
           {/* Left Side - Image */}
           {desktopImageUrl && (
-            <div className="relative w-2/5 min-w-[200px] h-full bg-primary-darker flex-shrink-0">
+            <div className="relative w-2/5 min-w-[200px] h-[200px] bg-primary-darker flex-shrink-0">
               <Image
                 src={desktopImageUrl}
                 alt={title}
