@@ -43,10 +43,10 @@ async function handleCheckWinners(request: NextRequest) {
 
     for (const raffle of endedRaffles) {
       try {
-        // Get all entries for this raffle
+        // Get all entries for this raffle (with quantity)
         const { data: entries, error: entriesError } = await supabase
           .from('raffle_entries')
-          .select('user_id')
+          .select('user_id, quantity')
           .eq('raffle_id', raffle.id);
 
         if (entriesError) {
@@ -65,10 +65,31 @@ async function handleCheckWinners(request: NextRequest) {
           continue;
         }
 
-        // Draw random winner
-        const randomIndex = Math.floor(Math.random() * entries.length);
-        const winnerEntry = entries[randomIndex];
-        const winnerUserId = winnerEntry.user_id;
+        // Create a ticket pool where each ticket gets its own entry
+        // This ensures 1 ticket = 1 chance (weighted by quantity)
+        const ticketPool: string[] = [];
+        entries.forEach(entry => {
+          const quantity = entry.quantity || 1; // Default to 1 if quantity is null
+          // Add this user_id to the pool once for each ticket they purchased
+          for (let i = 0; i < quantity; i++) {
+            ticketPool.push(entry.user_id);
+          }
+        });
+
+        if (ticketPool.length === 0) {
+          // No valid tickets, mark as completed without winner
+          await supabase
+            .from('raffles')
+            .update({
+              status: 'completed',
+            })
+            .eq('id', raffle.id);
+          continue;
+        }
+
+        // Draw random winner from ticket pool (1 ticket = 1 chance)
+        const randomIndex = Math.floor(Math.random() * ticketPool.length);
+        const winnerUserId = ticketPool[randomIndex];
 
         // Update raffle with winner
         const { error: updateError } = await supabase
