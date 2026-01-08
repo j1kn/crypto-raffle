@@ -61,10 +61,10 @@ export default function RaffleCard({
   return (
     <Link href={`/raffles/${id}`} className="h-full">
       {/* Desktop Layout - Horizontal Card (Image Left, Info Right, Button Below) */}
-      <div className="hidden md:block h-full bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20 flex">
+      <div className="hidden md:block h-full bg-primary-gray border border-primary-lightgray rounded-lg hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20 flex">
         {/* Left Side - Image */}
         {desktopImageUrl && (
-          <div className="relative w-[200px] h-full bg-primary-darker flex-shrink-0 overflow-hidden">
+          <div className="relative w-[200px] h-full bg-primary-darker flex-shrink-0 overflow-hidden rounded-l-lg">
             <Image
               src={desktopImageUrl}
               alt={title}
@@ -85,7 +85,7 @@ export default function RaffleCard({
         )}
 
         {/* Right Side - Details */}
-        <div className="flex-1 flex flex-col p-6 bg-primary-gray overflow-visible">
+        <div className="flex-1 flex flex-col p-6 bg-primary-gray rounded-r-lg" style={{ minWidth: '250px' }}>
           {/* Timer and Title - Aligned together */}
           <div className="flex items-start gap-3 mb-3 flex-shrink-0 w-full">
             <h3 className="text-white font-bold text-lg line-clamp-2 leading-tight flex-1 min-w-0">{title}</h3>
