@@ -184,6 +184,15 @@ export default function Header() {
     }
   };
 
+  const handleWhitepaperDownload = () => {
+    const link = document.createElement('a');
+    link.href = '/whitepaper.pdf';
+    link.download = 'PrimePick-Whitepaper.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const navLinks = [
     { href: '/', label: 'HOME' },
     { href: '/about', label: 'ABOUT US' },
@@ -226,6 +235,12 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            <button
+              onClick={handleWhitepaperDownload}
+              className="text-sm font-medium transition-colors text-gray-300 hover:text-primary-green"
+            >
+              WHITEPAPER
+            </button>
             {isAdmin && (
               <Link
                 href="/admin"
@@ -307,6 +322,15 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
+              <button
+                onClick={() => {
+                  handleWhitepaperDownload();
+                  setIsMenuOpen(false);
+                }}
+                className="text-sm font-medium transition-colors text-gray-300 hover:text-primary-green text-left"
+              >
+                WHITEPAPER
+              </button>
               {isAdmin && (
                 <Link
                   href="/admin"
