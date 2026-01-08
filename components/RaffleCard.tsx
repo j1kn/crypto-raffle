@@ -60,71 +60,74 @@ export default function RaffleCard({
 
   return (
     <Link href={`/raffles/${id}`}>
-      {/* Desktop Layout - Vertical Card */}
+      {/* Desktop Layout - Horizontal Card (Image Left, Info Right, Button Below) */}
       <div className="hidden md:block bg-primary-gray border border-primary-lightgray rounded-lg overflow-hidden hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20">
-        {/* Timer Container */}
-        <div className="relative p-4 min-h-[60px]">
-          <div className="absolute top-4 right-4 z-10">
-            <CountdownTimer endDate={endDate} />
-          </div>
-        </div>
-
-        {/* Image with Badge */}
-        {desktopImageUrl && (
-          <div className="relative w-full h-48 bg-primary-darker">
-            <Image
-              src={desktopImageUrl}
-              alt={title}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-            {/* Badge on top-left of image */}
-            <div className={`absolute top-4 left-4 px-3 py-1 rounded-full flex items-center gap-1 text-xs font-bold z-10 ${
-              badgeColor === 'green' 
-                ? 'bg-primary-green text-primary-darker' 
-                : 'bg-primary-orange text-white'
-            }`}>
-              <Trophy className="w-3 h-3" />
-              {prizePool}
+        <div className="flex h-full min-h-[200px]">
+          {/* Left Side - Image */}
+          {desktopImageUrl && (
+            <div className="relative w-2/5 min-w-[200px] h-full bg-primary-darker flex-shrink-0">
+              <Image
+                src={desktopImageUrl}
+                alt={title}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+              {/* Badge on top-left of image */}
+              <div className={`absolute top-4 left-4 px-3 py-1 rounded-full flex items-center gap-1 text-xs font-bold z-10 ${
+                badgeColor === 'green' 
+                  ? 'bg-primary-green text-primary-darker' 
+                  : 'bg-primary-orange text-white'
+              }`}>
+                <Trophy className="w-3 h-3" />
+                {prizePool}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Content */}
-        <div className="p-6">
-          <h3 className="text-white font-bold text-lg mb-2">{title}</h3>
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-            <Trophy className="w-4 h-4" />
-            <span>{prizePlaces} PRIZE PLACES</span>
-          </div>
+          {/* Right Side - Details */}
+          <div className="flex-1 flex flex-col p-6 min-w-0">
+            {/* Timer - Top Right */}
+            <div className="flex justify-end mb-3">
+              <CountdownTimer endDate={endDate} />
+            </div>
 
-          {/* Prize Info */}
-          <div className="space-y-2 mb-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Prize Pool:</span>
-              <span className="text-primary-green font-semibold">
-                {prizeSymbol} {prizePool}
-              </span>
+            {/* Title */}
+            <h3 className="text-white font-bold text-lg mb-2 line-clamp-2 leading-tight">{title}</h3>
+            
+            {/* Prize Places */}
+            <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+              <Trophy className="w-4 h-4 flex-shrink-0" />
+              <span>{prizePlaces} PRIZE PLACES</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Ticket Price:</span>
-              <span className="text-white font-semibold">
-                {prizeSymbol} {ticketPrice}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Entries:</span>
-              <span className="text-white font-semibold">
-                {entryCount} / {maxTickets}
-              </span>
-            </div>
-          </div>
 
-          {/* Enter Button */}
-          <button className="w-full bg-primary-green text-primary-darker py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors">
-            ENTER NOW
-          </button>
+            {/* Prize Info */}
+            <div className="space-y-2 mb-4 flex-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Prize Pool:</span>
+                <span className="text-primary-green font-semibold">
+                  {prizeSymbol} {prizePool}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Ticket Price:</span>
+                <span className="text-white font-semibold">
+                  {prizeSymbol} {ticketPrice}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Entries:</span>
+                <span className="text-white font-semibold">
+                  {entryCount} / {maxTickets}
+                </span>
+              </div>
+            </div>
+
+            {/* Enter Button - Bottom */}
+            <button className="w-full bg-primary-green text-primary-darker py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors mt-auto">
+              ENTER NOW
+            </button>
+          </div>
         </div>
       </div>
 
