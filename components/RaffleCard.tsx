@@ -61,7 +61,7 @@ export default function RaffleCard({
   return (
     <Link href={`/raffles/${id}`} className="h-full">
       {/* Desktop Layout - Horizontal Card (Image Left, Info Right, Button Below) */}
-      <div className="hidden md:block h-full bg-primary-gray border border-primary-lightgray rounded-lg hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20 flex">
+      <div className="hidden md:flex h-full bg-primary-gray border border-primary-lightgray rounded-lg hover:border-primary-green transition-all duration-300 hover:shadow-lg hover:shadow-primary-green/20">
         {/* Left Side - Image */}
         {desktopImageUrl && (
           <div className="relative w-[200px] h-full bg-primary-darker flex-shrink-0 overflow-hidden rounded-l-lg">
