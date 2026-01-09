@@ -124,9 +124,9 @@ export default function RaffleCard({
 
           {/* Enter Button - Bottom */}
           <div className="mt-auto flex-shrink-0">
-            <button className="w-full bg-primary-green text-primary-darker py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors">
-              ENTER NOW
-            </button>
+          <button className="w-full bg-primary-green text-primary-darker py-2 rounded font-semibold hover:bg-primary-green/90 transition-colors">
+            ENTER NOW
+          </button>
           </div>
         </div>
       </div>
