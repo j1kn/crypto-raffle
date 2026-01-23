@@ -39,9 +39,12 @@ export default function EntryConfirmationModal({
 
   useEffect(() => {
     setQuantity(initialQuantity);
-    // Reset to default payment method when modal opens
-    setSelectedPaymentMethod(getDefaultPaymentMethod());
-  }, [initialQuantity, isOpen]);
+    // Set payment method based on raffle's prize pool symbol
+    const matchingMethod = PAYMENT_METHODS.find(
+      method => method.symbol.toUpperCase() === prizePoolSymbol.toUpperCase()
+    );
+    setSelectedPaymentMethod(matchingMethod || getDefaultPaymentMethod());
+  }, [initialQuantity, isOpen, prizePoolSymbol]);
 
   if (!isOpen) return null;
 
