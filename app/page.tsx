@@ -175,73 +175,43 @@ export default function HomePage() {
       <HeroBanner />
       <InfoBanner />
       
-      {/* Hero Raffle Section - Full Screen */}
+      {/* Hero Raffle Section */}
       {heroRaffle && (
-        <section className="relative w-screen h-[85vh] md:h-screen overflow-hidden">
-          {/* Background Image */}
-          {heroRaffle.image_url || heroRaffle.image_url_portrait ? (
-            <div className="absolute inset-0 w-full h-full">
-              {/* Mobile: Use portrait if available, otherwise landscape */}
-              <img
-                src={convertGoogleDriveUrl(
-                  (heroRaffle.image_url_portrait || heroRaffle.image_url) || ''
-                ) || (heroRaffle.image_url_portrait || heroRaffle.image_url) || ''}
-                alt={heroRaffle.title}
-                className="w-full h-full object-cover object-center md:hidden"
-              />
-              {/* Desktop: Always use landscape */}
-              <img
-                src={convertGoogleDriveUrl(heroRaffle.image_url) || heroRaffle.image_url || ''}
-                alt={heroRaffle.title}
-                className="hidden md:block w-full h-full object-cover object-center"
-              />
-            </div>
-          ) : (
-            <div className="absolute inset-0 w-full h-full bg-[#0a0a0a]"></div>
-          )}
-
-          {/* Overlay - Flat, Horizontal, Constant Shadow Band */}
-          <div 
-            className="absolute inset-0 w-full h-full"
-            style={{
-              backgroundImage: `linear-gradient(
-                to top,
-                rgba(0,0,0,0.85) 0%,
-                rgba(0,0,0,0.85) 20%,
-                rgba(0,0,0,0.6) 45%,
-                rgba(0,0,0,0.25) 65%,
-                rgba(0,0,0,0.0) 100%
-              )`
-            }}
-          ></div>
-
-          {/* Content - Desktop: Bottom-Left Title/Timer, Bottom-Right Button */}
-          <div className="relative z-10 h-full">
-            {/* Desktop Layout */}
-            <div className="hidden md:block h-full">
-              {/* Title + Timer - Bottom Left */}
-              <div className="absolute bottom-0 left-0 pb-16 pl-16">
-                <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 drop-shadow-lg">
-                  {heroRaffle.title}
-                </h1>
-                <div className="text-white text-lg lg:text-xl">
-                  <CountdownTimer endDate={heroRaffle.ends_at} />
-                </div>
+        <section className="relative w-screen overflow-hidden">
+          {/* Mobile Layout - Full Screen with Background Image */}
+          <div className="md:hidden relative h-[85vh] overflow-hidden">
+            {/* Background Image */}
+            {heroRaffle.image_url || heroRaffle.image_url_portrait ? (
+              <div className="absolute inset-0 w-full h-full">
+                <img
+                  src={convertGoogleDriveUrl(
+                    (heroRaffle.image_url_portrait || heroRaffle.image_url) || ''
+                  ) || (heroRaffle.image_url_portrait || heroRaffle.image_url) || ''}
+                  alt={heroRaffle.title}
+                  className="w-full h-full object-cover object-center"
+                />
               </div>
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-[#0a0a0a]"></div>
+            )}
 
-              {/* Button - Bottom Right */}
-              <div className="absolute bottom-0 right-0 pb-16 pr-16">
-                <Link
-                  href={`/raffles/${heroRaffle.id}`}
-                  className="inline-flex items-center justify-center bg-[#069852] text-white px-8 py-3 rounded-lg font-semibold text-base hover:bg-[#058a47] transition-colors"
-                >
-                  Enter Now
-                </Link>
-              </div>
-            </div>
+            {/* Overlay */}
+            <div
+              className="absolute inset-0 w-full h-full"
+              style={{
+                backgroundImage: `linear-gradient(
+                  to top,
+                  rgba(0,0,0,0.85) 0%,
+                  rgba(0,0,0,0.85) 20%,
+                  rgba(0,0,0,0.6) 45%,
+                  rgba(0,0,0,0.25) 65%,
+                  rgba(0,0,0,0.0) 100%
+                )`
+              }}
+            ></div>
 
-            {/* Mobile Layout - Stacked, Center Aligned */}
-            <div className="md:hidden h-full flex flex-col justify-end pb-8 px-4">
+            {/* Content - Stacked, Center Aligned */}
+            <div className="relative z-10 h-full flex flex-col justify-end pb-8 px-4">
               <div className="text-center space-y-4">
                 <h1 className="text-3xl font-bold text-white drop-shadow-lg">
                   {heroRaffle.title}
@@ -257,6 +227,64 @@ export default function HomePage() {
                     Enter Now
                   </Link>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout - Split: Image Left, Details Right */}
+          <div className="hidden md:flex min-h-[600px] bg-[#0a0a0a]">
+            {/* Left Side - Image (50%) */}
+            <div className="w-1/2 relative overflow-hidden">
+              {heroRaffle.image_url ? (
+                <img
+                  src={convertGoogleDriveUrl(heroRaffle.image_url) || heroRaffle.image_url}
+                  alt={heroRaffle.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#069852] to-[#045a31]"></div>
+              )}
+            </div>
+
+            {/* Right Side - Details (50%) */}
+            <div className="w-1/2 flex flex-col justify-center px-12 lg:px-16 py-12">
+              {/* Timer at Top */}
+              <div className="mb-6">
+                <div className="text-gray-400 text-sm uppercase tracking-wider mb-2">Time Remaining</div>
+                <div className="text-white text-xl">
+                  <CountdownTimer endDate={heroRaffle.ends_at} />
+                </div>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6">
+                {heroRaffle.title}
+              </h1>
+
+              {/* Prize Info */}
+              <div className="mb-8 space-y-3">
+                <div>
+                  <div className="text-gray-400 text-sm uppercase tracking-wider mb-1">Prize Pool</div>
+                  <div className="text-[#069852] text-3xl font-bold">
+                    {heroRaffle.prize_pool_symbol} {heroRaffle.prize_pool_amount.toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-sm uppercase tracking-wider mb-1">Entry Price</div>
+                  <div className="text-white text-xl font-semibold">
+                    {heroRaffle.prize_pool_symbol} {heroRaffle.ticket_price}
+                  </div>
+                </div>
+              </div>
+
+              {/* Enter Button */}
+              <div>
+                <Link
+                  href={`/raffles/${heroRaffle.id}`}
+                  className="inline-flex items-center justify-center bg-[#069852] text-white px-10 py-4 rounded-lg font-bold text-lg hover:bg-[#058a47] transition-colors shadow-lg hover:shadow-xl"
+                >
+                  Enter Now
+                </Link>
               </div>
             </div>
           </div>

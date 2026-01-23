@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { raffleId, walletAddress, ipAddress: clientIpAddress, count = 10 } = body;
+    const { raffleId, walletAddress, ipAddress: clientIpAddress, count = 3 } = body;
     
     // Get IP from headers (more reliable)
     const forwarded = request.headers.get('x-forwarded-for');

@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const passed = score >= 7; // Need 7/10 to pass
+    const passed = score >= 2; // Need 2/3 to pass
 
     // Create quiz attempt record
     const { data: attempt, error: attemptError } = await supabase
