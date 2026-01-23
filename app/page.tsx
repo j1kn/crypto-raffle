@@ -177,7 +177,7 @@ export default function HomePage() {
       
       {/* Hero Raffle Section */}
       {heroRaffle && (
-        <section className="relative w-screen overflow-hidden">
+        <section className="relative w-screen overflow-hidden md:px-8 md:py-8">
           {/* Mobile Layout - Full Screen with Background Image */}
           <div className="md:hidden relative h-[85vh] overflow-hidden">
             {/* Background Image */}
@@ -232,7 +232,7 @@ export default function HomePage() {
           </div>
 
           {/* Desktop Layout - Split: Image Left, Details Right */}
-          <div className="hidden md:flex min-h-[600px] bg-[#0a0a0a]">
+          <div className="hidden md:flex min-h-[600px] bg-[#0a0a0a] border-2 border-[#069852] rounded-lg overflow-hidden">
             {/* Left Side - Image (50%) */}
             <div className="w-1/2 relative overflow-hidden">
               {heroRaffle.image_url ? (
