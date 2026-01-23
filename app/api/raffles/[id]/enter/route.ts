@@ -17,9 +17,9 @@ export async function POST(
       quantity?: number;
     };
 
-    if (!walletAddress || !txHash) {
+    if (!walletAddress) {
       return NextResponse.json(
-        { error: 'Missing walletAddress or txHash' },
+        { error: 'Missing walletAddress' },
         { status: 400 }
       );
     }
@@ -47,10 +47,29 @@ export async function POST(
       throw userError || new Error('Failed to create user');
     }
 
-    // Fetch raffle data
+    // CRITICAL: Verify user passed the quiz for this raffle
+    const { data: quizAttempt, error: quizError } = await supabase
+      .from('quiz_attempts')
+      .select('id, passed, score')
+      .eq('raffle_id', raffleId)
+      .eq('user_id', userData.id)
+      .eq('passed', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (quizError || !quizAttempt) {
+      console.error('Quiz validation failed:', quizError);
+      return NextResponse.json(
+        { error: 'You must pass the skill quiz before entering this raffle. Please complete the quiz first.' },
+        { status: 403 }
+      );
+    }
+
+    // Fetch raffle data including free ticket settings
     const { data: raffleData, error: raffleError } = await supabase
       .from('raffles')
-      .select('max_tickets')
+      .select('max_tickets, free_ticket_percentage, entry_limit_per_wallet, ticket_price')
       .eq('id', raffleId)
       .single();
 
@@ -63,7 +82,9 @@ export async function POST(
     }
 
     const maxTickets = raffleData.max_tickets;
-    const maxUserTickets = Math.floor(maxTickets * 0.2); // 20% of total tickets
+    const freeTicketPercentage = raffleData.free_ticket_percentage || 0;
+    const entryLimitPerWallet = raffleData.entry_limit_per_wallet || Math.floor(maxTickets * 0.2); // Use custom limit or default 20%
+    const maxUserTickets = entryLimitPerWallet;
 
     // Calculate user's current total tickets for this raffle
     const { data: userEntriesData, error: userEntriesError } = await supabase
@@ -83,12 +104,12 @@ export async function POST(
     const userCurrentTickets = (userEntriesData || []).reduce((sum, entry) => sum + (entry.quantity || 1), 0);
     const userNewTotal = userCurrentTickets + ticketQuantity;
 
-    // Check 20% limit
+    // Check entry limit per wallet
     if (userNewTotal > maxUserTickets) {
       const remainingAllowed = Math.max(0, maxUserTickets - userCurrentTickets);
       return NextResponse.json(
-        { 
-          error: `You cannot purchase more than ${maxUserTickets} tickets (20% of total). You currently have ${userCurrentTickets} tickets. Maximum ${remainingAllowed} more tickets allowed.` 
+        {
+          error: `You cannot purchase more than ${maxUserTickets} tickets. You currently have ${userCurrentTickets} tickets. Maximum ${remainingAllowed} more tickets allowed.`
         },
         { status: 400 }
       );
@@ -118,12 +139,25 @@ export async function POST(
       );
     }
 
-    // Try to create raffle entry with transaction hash
+    // Calculate if this entry qualifies for free tickets
+    const freeTicketLimit = Math.floor(maxTickets * (freeTicketPercentage / 100));
+    const isFreeEntry = freeTicketLimit > 0 && totalTicketsSold < freeTicketLimit;
+
+    // If this is a free entry, we don't require txHash
+    if (!isFreeEntry && !txHash) {
+      return NextResponse.json(
+        { error: 'Missing transaction hash for paid entry' },
+        { status: 400 }
+      );
+    }
+
+    // Try to create raffle entry
     const entryData = {
       raffle_id: raffleId,
       user_id: userData.id,
-      tx_hash: txHash,
+      tx_hash: isFreeEntry ? null : txHash, // Free entries don't need tx_hash
       quantity: ticketQuantity,
+      is_free_entry: isFreeEntry,
       ...(email && email.trim() && { email: email.trim() }), // Only include email if provided and not empty
     };
 
@@ -141,6 +175,10 @@ export async function POST(
     return NextResponse.json({
       success: true,
       entry: entryResult,
+      isFreeEntry: isFreeEntry,
+      message: isFreeEntry
+        ? `Congratulations! You got ${ticketQuantity} FREE ticket${ticketQuantity > 1 ? 's' : ''} (first ${freeTicketPercentage}% are free)!`
+        : `Successfully purchased ${ticketQuantity} ticket${ticketQuantity > 1 ? 's' : ''}!`
     });
   } catch (error: any) {
     console.error('Error in /api/raffles/[id]/enter:', error);
