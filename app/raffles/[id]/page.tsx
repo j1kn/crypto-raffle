@@ -551,13 +551,76 @@ export default function RaffleDetailPage() {
     setShowQuizModal(true);
   };
 
-  // Handle quiz passed - proceed to confirmation modal
-  const handleQuizPassed = () => {
-    if (!mounted) return;
+  // Handle quiz passed - check for free entry eligibility
+  const handleQuizPassed = async () => {
+    if (!mounted || !raffle || !address) return;
+    
+    console.log('[Quiz Passed] Checking free entry eligibility...');
     setShowQuizModal(false);
-    // Fetch latest holdings before showing confirmation modal
-    fetchUserTicketHoldings();
-    setShowConfirmModal(true);
+    
+    try {
+      // Check if this entry qualifies for free ticket
+      const response = await fetch(`/api/raffles/${raffle.id}/check-free-entry`);
+      const data = await response.json();
+      
+      console.log('[Free Entry Check]', data);
+      
+      if (data.isFreeEntry) {
+        // User qualifies for free entry - submit directly without payment
+        console.log('[Free Entry] User qualifies! Submitting free entry...');
+        setEntering(true);
+        
+        try {
+          const entryResponse = await fetch(`/api/raffles/${raffle.id}/enter`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress: address,
+              txHash: null, // No payment required
+              email: email.trim() || undefined,
+              quantity: 1, // Free entries are always 1 ticket
+            }),
+          });
+          
+          if (!entryResponse.ok) {
+            const errorData = await entryResponse.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || 'Failed to create free entry');
+          }
+          
+          const entryData = await entryResponse.json();
+          
+          if (!entryData.success) {
+            throw new Error(entryData.error || 'Failed to create free entry');
+          }
+          
+          alert(`🎉 Congratulations! You've entered the raffle for FREE!\n\nYou answered the quiz correctly and qualified for a free ticket. Good luck!`);
+          
+          // Refresh data
+          if (mounted) {
+            fetchEntryCount();
+            fetchEntries();
+            fetchUserTicketHoldings();
+          }
+        } catch (error: any) {
+          console.error('[Free Entry] Error:', error);
+          alert(`Failed to submit free entry: ${error.message}`);
+        } finally {
+          if (mounted) {
+            setEntering(false);
+          }
+        }
+      } else {
+        // User needs to pay - show payment modal
+        console.log('[Free Entry] User must pay. Showing payment modal...');
+        fetchUserTicketHoldings();
+        setShowConfirmModal(true);
+      }
+    } catch (error) {
+      console.error('[Free Entry Check] Error:', error);
+      // On error, default to payment modal
+      fetchUserTicketHoldings();
+      setShowConfirmModal(true);
+    }
   };
 
   // Handle confirmed entry (called from modal)
