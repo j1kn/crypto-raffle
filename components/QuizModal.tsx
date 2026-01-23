@@ -15,7 +15,7 @@ interface Question {
 interface QuizModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPass: () => void; // Called when user passes (7/10 or more)
+  onPass: () => void; // Called when user passes (2/3 or more)
   raffleId: string;
   walletAddress: string;
 }
@@ -262,7 +262,7 @@ export default function QuizModal({
             raffleId,
             walletAddress,
             ipAddress,
-            count: 10,
+            count: 3,
           }),
         });
 
@@ -392,7 +392,7 @@ export default function QuizModal({
                 </h2>
                 <div className="bg-primary-darker rounded-lg p-4 border border-primary-green/30">
                   <p className="text-primary-green font-semibold text-lg">
-                    You need 7/10 in 2 min
+                    You need 2/3 in 2 min
                   </p>
                 </div>
               </div>
@@ -499,9 +499,9 @@ export default function QuizModal({
                   {passed ? 'Congratulations!' : 'Quiz Failed'}
                 </h3>
                 <p className="text-gray-400 text-base md:text-lg">
-                  {passed 
-                    ? 'You passed the skill-based quiz!' 
-                    : 'You need at least 7/10 to proceed'}
+                  {passed
+                    ? 'You passed the skill-based quiz!'
+                    : 'You need at least 2/3 to proceed'}
                 </p>
               </div>
 
@@ -509,7 +509,7 @@ export default function QuizModal({
               <div className="w-full max-w-md space-y-4">
                 <div className="text-center">
                   <div className="text-5xl md:text-6xl font-bold text-white mb-2 transition-all">
-                    {Math.round(animatingScore)}<span className="text-2xl md:text-3xl text-gray-400">/10</span>
+                    {Math.round(animatingScore)}<span className="text-2xl md:text-3xl text-gray-400">/3</span>
                   </div>
                   <p className="text-gray-400">Correct Answers</p>
                 </div>
@@ -521,13 +521,13 @@ export default function QuizModal({
                       passed ? 'bg-primary-green' : 'bg-red-500'
                     }`}
                     style={{ 
-                      width: `${(animatingScore / 10) * 100}%`,
+                      width: `${(animatingScore / 3) * 100}%`,
                       minWidth: animatingScore > 0 ? '40px' : '0'
                     }}
                   >
                     {animatingScore > 0 && (
                       <span className="text-xs font-bold text-white px-2">
-                        {Math.round((animatingScore / 10) * 100)}%
+                        {Math.round((animatingScore / 3) * 100)}%
                       </span>
                     )}
                   </div>
@@ -542,9 +542,9 @@ export default function QuizModal({
                   <p className={`font-semibold text-sm md:text-base ${
                     passed ? 'text-primary-green' : 'text-red-400'
                   }`}>
-                    {passed 
-                      ? '✓ You can now proceed to payment' 
-                      : '✗ Minimum score required: 7/10'}
+                    {passed
+                      ? '✓ You can now proceed to payment'
+                      : '✗ Minimum score required: 2/3'}
                   </p>
                 </div>
               </div>
