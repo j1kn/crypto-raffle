@@ -48,23 +48,53 @@ export async function POST(
     }
 
     // CRITICAL: Verify user passed the quiz for this raffle
-    const { data: quizAttempt, error: quizError } = await supabase
+    const { data: quizAttempts, error: quizError } = await supabase
       .from('quiz_attempts')
-      .select('id, passed, score')
+      .select('id, passed, score, created_at')
       .eq('raffle_id', raffleId)
       .eq('user_id', userData.id)
-      .eq('passed', true)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    if (quizError || !quizAttempt) {
-      console.error('Quiz validation failed:', quizError);
+    if (quizError) {
+      console.error('[Quiz Validation] Database error:', quizError);
       return NextResponse.json(
-        { error: 'You must pass the skill quiz before entering this raffle. Please complete the quiz first.' },
+        { error: 'Failed to verify quiz status. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    // Check if user has attempted the quiz
+    if (!quizAttempts || quizAttempts.length === 0) {
+      console.log('[Quiz Validation] No quiz attempt found for user:', userData.id, 'raffle:', raffleId);
+      return NextResponse.json(
+        { error: 'You must complete the skill quiz before entering this raffle. Please take the quiz first.' },
         { status: 403 }
       );
     }
+
+    const latestAttempt = quizAttempts[0];
+    
+    // Check if user passed (score >= 2)
+    if (!latestAttempt.passed || latestAttempt.score < 2) {
+      console.log('[Quiz Validation] User failed quiz:', {
+        userId: userData.id,
+        raffleId,
+        score: latestAttempt.score,
+        passed: latestAttempt.passed
+      });
+      return NextResponse.json(
+        { error: `Quiz not passed. You scored ${latestAttempt.score}/3. You need at least 2/3 to enter. Please retake the quiz.` },
+        { status: 403 }
+      );
+    }
+
+    console.log('[Quiz Validation] User passed quiz:', {
+      userId: userData.id,
+      raffleId,
+      score: latestAttempt.score,
+      attemptId: latestAttempt.id
+    });
 
     // Fetch raffle data including free ticket settings
     const { data: raffleData, error: raffleError } = await supabase
