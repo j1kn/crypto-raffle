@@ -35,10 +35,13 @@ export async function POST(
 
     const supabase = createServerClient();
 
+    // CRITICAL: Normalize wallet address to lowercase to match quiz system
+    const normalizedWalletAddress = walletAddress.toLowerCase();
+
     // Create or fetch user by wallet address
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .upsert({ wallet_address: walletAddress }, { onConflict: 'wallet_address' })
+      .upsert({ wallet_address: normalizedWalletAddress }, { onConflict: 'wallet_address' })
       .select()
       .single();
 
