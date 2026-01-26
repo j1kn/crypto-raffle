@@ -47,6 +47,6 @@ export function getPaymentMethodById(id: string): PaymentMethod | undefined {
 }
 
 export function getDefaultPaymentMethod(): PaymentMethod {
-  return PAYMENT_METHODS[0]; // Default to ETH
+  return PAYMENT_METHODS[2]; // Default to USDT
 }
 

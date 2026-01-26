@@ -47,7 +47,7 @@ export default function NewRafflePage() {
     title: '',
     description: '',
     prize_pool_amount: '',
-    prize_pool_symbol: '',
+    prize_pool_symbol: 'USDT',
     ticket_price: '',
     max_tickets: '',
     status: 'draft',

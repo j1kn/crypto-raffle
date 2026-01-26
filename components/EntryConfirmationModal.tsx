@@ -39,11 +39,16 @@ export default function EntryConfirmationModal({
 
   useEffect(() => {
     setQuantity(initialQuantity);
-    // Set payment method based on raffle's prize pool symbol
+    // Set payment method based on raffle's prize pool symbol, default to USDT
     const matchingMethod = PAYMENT_METHODS.find(
       method => method.symbol.toUpperCase() === prizePoolSymbol.toUpperCase()
     );
-    setSelectedPaymentMethod(matchingMethod || getDefaultPaymentMethod());
+    // If no match found or prize pool is ETH, default to USDT for payment
+    if (!matchingMethod || matchingMethod.symbol === 'ETH') {
+      setSelectedPaymentMethod(getDefaultPaymentMethod()); // USDT
+    } else {
+      setSelectedPaymentMethod(matchingMethod);
+    }
   }, [initialQuantity, isOpen, prizePoolSymbol]);
 
   if (!isOpen) return null;
