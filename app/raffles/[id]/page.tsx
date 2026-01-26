@@ -633,18 +633,33 @@ export default function RaffleDetailPage() {
 
     try {
       if (!address) {
-        throw new Error('Missing sender address. Please reconnect your wallet.');
+        throw new Error('Please connect your wallet to continue.');
       }
       
       if (!walletClient) {
-        throw new Error('Wallet client not available. Please reconnect your wallet.');
+        throw new Error('Wallet not ready. Please reconnect your wallet and try again.');
+      }
+
+      // CRITICAL: Enforce Ethereum Mainnet (chainId 1)
+      const currentChainId = chain?.id;
+      if (currentChainId !== REQUIRED_CHAIN_ID) {
+        if (mounted) {
+          setEntering(false);
+          setError(`Wrong network! Please switch to Ethereum Mainnet (Chain ID: ${REQUIRED_CHAIN_ID})`);
+        }
+        alert(
+          `⚠️ Wrong Network Detected\n\n` +
+          `Current: Chain ID ${currentChainId || 'Unknown'}\n` +
+          `Required: Ethereum Mainnet (Chain ID ${REQUIRED_CHAIN_ID})\n\n` +
+          `Please switch your wallet to Ethereum Mainnet and try again.`
+        );
+        return;
       }
       
-      // Always use Ethereum Mainnet (chain ID 1) for mobile compatibility
-      console.log(`[Payment] Proceeding with transaction on chain ${REQUIRED_CHAIN_ID} using ${paymentMethod.symbol}`);
+      console.log(`[Payment] Chain validation passed. Proceeding with ${paymentMethod.symbol} payment on chain ${REQUIRED_CHAIN_ID}`);
       
       if (!PAYOUT_ADDRESS) {
-        throw new Error('Missing recipient address. Please contact support.');
+        throw new Error('Payment address not configured. Please contact support.');
       }
 
       const totalPrice = parseFloat(raffle.ticket_price.toString()) * qty;
@@ -744,31 +759,61 @@ export default function RaffleDetailPage() {
 
       const lower = message.toLowerCase();
 
+      // Clean up state
+      if (mounted) {
+        setEntering(false);
+        setTxHash(undefined);
+      }
+
+      // User-friendly error messages
       if (lower.includes('user rejected') || lower.includes('user denied')) {
-        alert('Transaction was rejected in your wallet.');
+        setError('Transaction cancelled');
+        alert('❌ Transaction Cancelled\n\nYou rejected the transaction in your wallet.');
       } else if (lower.includes('insufficient funds') || lower.includes('insufficient balance')) {
+        setError('Insufficient funds');
         alert(
-          'Insufficient funds to pay the entry price. Please top up your wallet and try again.'
+          '❌ Insufficient Funds\n\n' +
+          `You need ${paymentMethod.symbol} to pay for this entry.\n\n` +
+          'Please add funds to your wallet and try again.'
         );
       } else if (
         lower.includes('chain') &&
         (lower.includes('mismatch') || lower.includes('unsupported') || lower.includes('invalid'))
       ) {
+        setError('Wrong network');
         alert(
-          'Network mismatch detected. Please ensure your wallet is on Ethereum Mainnet (chainId: 1) and try again.'
+          '❌ Wrong Network\n\n' +
+          'Please switch your wallet to Ethereum Mainnet (Chain ID: 1) and try again.'
+        );
+      } else if (lower.includes('invalidfeopcode') || lower.includes('invalid opcode')) {
+        setError('Contract error - please contact support');
+        alert(
+          '❌ Transaction Failed\n\n' +
+          'There was an error processing your payment.\n\n' +
+          'This may be due to:\n' +
+          '• Wrong network selected\n' +
+          '• Insufficient token balance\n' +
+          '• Token approval needed\n\n' +
+          'Please ensure you are on Ethereum Mainnet and have sufficient ' + paymentMethod.symbol + ' balance.'
         );
       } else if (lower.includes('internal error') || lower.includes('data couldn\'t be read')) {
+        setError('Wallet connection error');
         alert(
-          'Wallet connection error. Please:\n\n1. Ensure you are on Ethereum Mainnet\n2. Disconnect and reconnect your wallet\n3. Try again'
+          '❌ Wallet Connection Error\n\n' +
+          'Please try the following:\n\n' +
+          '1. Ensure you are on Ethereum Mainnet\n' +
+          '2. Disconnect and reconnect your wallet\n' +
+          '3. Refresh the page\n' +
+          '4. Try again'
         );
       } else {
-        const userMessage = message || 'Failed to initiate payment. Please check your wallet connection and try again.';
-        if (mounted) {
-          setError(userMessage);
-          setEntering(false);
-          setTxHash(undefined);
-        }
-        setTimeout(() => alert(userMessage), 0);
+        const userMessage = message || 'Payment failed. Please try again.';
+        setError(userMessage);
+        alert(
+          '❌ Payment Failed\n\n' +
+          userMessage + '\n\n' +
+          'If this problem persists, please contact support.'
+        );
       }
     }
   };
