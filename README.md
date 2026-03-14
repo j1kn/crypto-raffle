@@ -1,142 +1,134 @@
-# PrimePick Tournament
+# 🏆 PrimePick - Transparent Crypto Raffle Platform
 
-A production-grade, mobile-first crypto raffle platform with admin panel, Supabase integration, WalletConnect v2, and dark neon gaming UI.
+PrimePick is a decentralized raffle platform built for high-stakes, transparent crypto tournaments. Our platform allows users to enter world-class raffles with verifiable results, all powered by Web3 technology.
+
+![PrimePick Logo](/public/favicon.ico)
 
 ## 🚀 Features
 
-- **Crypto Raffle Platform**: Create and participate in crypto raffles
-- **WalletConnect v2 Integration**: Connect wallets seamlessly
-- **Admin Panel**: Full CRUD operations for raffles
-- **Supabase Backend**: Secure database with RLS policies
-- **Dark Gaming UI**: Modern dark theme with neon green and orange accents
-- **Mobile-First Design**: Responsive across all devices
+-   **Web3 Integration:** Secure wallet connection via WalletConnect and Web3Modal.
+-   **Multi-Chain Support:** Support for Ethereum, Solana, and other popular chains.
+-   **Skill-Based Quiz:** Extra layer of interaction where users must pass a quiz to enter.
+-   **Admin Dashboard:** Comprehensive tools for creating, editing, and managing raffles.
+-   **Real-time Updates:** Powered by Supabase for instant raffle status and entry tracking.
+-   **High Security:** Row Level Security (RLS) on database for maximum data integrity.
 
-## 🛠 Tech Stack
+---
 
-- **Next.js 14** (App Router)
-- **TypeScript**
-- **Tailwind CSS**
-- **Supabase** (Database + Storage)
-- **WalletConnect v2**
+## 🛠️ Tech Stack
 
-## 📋 Prerequisites
+-   **Framework:** [Next.js 14](https://nextjs.org/) (App Router, TypeScript)
+-   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+-   **Database & Auth:** [Supabase](https://supabase.com/)
+-   **Web3 Library:** [Wagmi](https://wagmi.sh/) & [Viem](https://viem.sh/)
+-   **Wallet Connection:** [Web3Modal v5](https://web3modal.com/) (WalletConnect)
+-   **Icons:** [Lucide-React](https://lucide.dev/)
 
-- Node.js 18+ 
-- npm or yarn
-- Supabase account
-- WalletConnect Project ID
+---
 
-## 🔧 Setup
+## ⚙️ Setup Instructions
 
-1. **Clone and install dependencies:**
-   ```bash
-   npm install
-   ```
+### 1. Prerequisites
 
-2. **Set up environment variables:**
-   Copy `.env.local` and fill in your credentials:
-   ```env
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-   ADMIN_WALLETS=wallet1,wallet2
-   ```
+Before you begin, ensure you have the following accounts and tools set up:
 
-   For client-side access, also add:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-   ```
+-   **Node.js 18+** installed on your machine.
+-   A **[Supabase](https://supabase.com/)** account.
+-   A **[WalletConnect Cloud](https://cloud.walletconnect.com/)** project ID.
+-   A **[Vercel](https://vercel.com/)** account for deployment (optional but recommended).
 
-3. **Set up Supabase:**
-   - Run the migration in `supabase/migrations/001_initial_schema.sql` in your Supabase SQL editor
-   - Create a storage bucket named `raffle-images` with public access:
-     - Go to Storage in Supabase dashboard
-     - Create new bucket: `raffle-images`
-     - Set it to public
-     - Add policy: `SELECT` for `anon` and `authenticated` roles
-   - **Important**: For full admin functionality, add `SUPABASE_SERVICE_ROLE_KEY` to your `.env.local` and update API routes to use it (currently uses anon key which is subject to RLS)
+### 2. Clone the Repository
 
-4. **Run the development server:**
-   ```bash
-   npm run dev
-   ```
+```bash
+git clone https://github.com/j1kn/crypto-raffle.git
+cd crypto-raffle
+```
 
-5. **Open [http://localhost:3000](http://localhost:3000)**
+### 3. Install Dependencies
 
-## 🗄 Database Schema
+```bash
+npm install
+```
 
-The platform uses the following tables:
+### 4. Configure Environment Variables
 
-- **users**: Wallet addresses and user data
-- **chains**: Supported blockchain networks
-- **raffles**: Raffle information (receiving_address is private)
-- **raffle_entries**: User entries in raffles
+Create a `.env.local` file in the root directory by copying the example:
 
-## 🔐 Security
+```bash
+cp .env.local.example .env.local
+```
 
-- Row Level Security (RLS) policies protect sensitive data
-- `receiving_address` is never exposed to public queries
-- Admin access is controlled via `ADMIN_WALLETS` environment variable
-- Public can only view live raffles
+Fill in the following variables:
 
-## 📱 Pages
+| Variable | Description | Where to find |
+| :--- | :--- | :--- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | Supabase Dashboard > Settings > API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase Anonymous Key | Supabase Dashboard > Settings > API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase Service Role Key | Supabase Dashboard > Settings > API (**SECRET**) |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Your WalletConnect Project ID | [WalletConnect Cloud Dashboard](https://cloud.walletconnect.com/) |
+| `ADMIN_WALLETS` | Comma-separated admin wallets | Your wallet address (e.g., `0x123...,0xabc...`) |
+| `ADMIN_PIN` | Secure PIN for /superman setup | Any secure string (e.g., `MySecretPin123`) |
 
-- `/` - Landing page
-- `/raffles` - Browse active raffles
-- `/raffles/[id]` - Raffle detail page
-- `/dashboard` - User dashboard (requires wallet connection)
-- `/admin` - Admin panel (requires admin wallet)
+### 5. Initialize Supabase Database
 
-## 🎨 Design
+To set up the database schema and public views:
 
-The UI follows a dark gaming theme with:
-- Primary green: `#00ff88`
-- Primary orange: `#ff6b35`
-- Dark backgrounds with neon accents
-- Modern typography (Inter font)
+1.  Go to your **Supabase Dashboard**.
+2.  Navigate to the **SQL Editor**.
+3.  Run the contents of these files in order:
+    -   `supabase/migrations/000_complete_fresh_setup.sql` (Initial core schema)
+    -   `supabase/migrations/018_create_quiz_system.sql` (Quiz system)
+    -   `supabase/migrations/016_create_comments_table.sql` (Raffle comments)
+4.  Alternatively, you can run all migrations in numerical order for the latest updates.
 
-## 📝 Notes
+**Important Storage Bucket:**
+Create a storage bucket named `raffle-images` and set its privacy to **Public**. This is required for raffle image uploads.
 
-- Admin panel requires wallet connection with address in `ADMIN_WALLETS`
-- Image uploads go to Supabase Storage bucket `raffle-images`
-- WalletConnect supports Ethereum, Polygon, BSC, Avalanche, and more
+### 6. Run the Application
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Your app should now be running at [http://localhost:3000](http://localhost:3000).
+
+---
+
+## 🔐 Admin Panel Access
+
+There are two ways to manage the platform:
+
+1.  **Manual Admin Access:**
+    -   Connect your wallet.
+    -   Add your wallet address to the `ADMIN_WALLETS` environment variable.
+    -   You will see an **ADMIN** link in the navigation header.
+
+2.  **Emergency Setup Page:**
+    -   Navigate to `/superman` in your browser.
+    -   Enter your `ADMIN_PIN` (defined in environment variables).
+    -   Follow the on-screen instructions to verify your admin status.
+
+---
 
 ## 🚢 Deployment
 
-### Netlify Deployment
+### Vercel (Recommended)
 
-See [NETLIFY_DEPLOY.md](./NETLIFY_DEPLOY.md) for detailed Netlify deployment instructions.
+Click the button below to deploy your own instance of PrimePick:
 
-**Quick Steps:**
-1. Push code to GitHub/GitLab/Bitbucket
-2. Connect repository to Netlify
-3. Set environment variables in Netlify dashboard (see NETLIFY_DEPLOY.md)
-4. Deploy!
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fj1kn%2Fcrypto-raffle)
 
-**Required Environment Variables for Netlify:**
-- `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL`
-- `SUPABASE_ANON_KEY` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `WALLETCONNECT_PROJECT_ID` and `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
-- `ADMIN_WALLETS`
+**Important Deployment Note:**
+When deploying to Vercel, make sure to add all environment variables listed in `.env.local.example` in the Vercel Dashboard Settings.
 
-### Other Platforms
+---
 
-1. Build the project:
-   ```bash
-   npm run build
-   ```
+## 🤝 Contributing
 
-2. Deploy to Vercel, Netlify, or your preferred platform
-
-3. Ensure environment variables are set in your deployment platform
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-All rights reserved.
-
-// Force deployment trigger - 1766417669
-// Mobile wallet fix deployment - 1766418217
-
-# Force redeploy Mon Jan 26 11:49:05 GMT 2026
+This project is licensed under the MIT License - see the LICENSE file for details.
